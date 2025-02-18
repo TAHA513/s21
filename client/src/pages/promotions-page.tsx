@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/table";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Promotion, DiscountCode } from "@shared/schema";
-import { Ticket, Tag, Copy, BookTemplate, MoreHorizontal } from "lucide-react";
+import { Ticket, Tag, Copy, BookTemplate } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { SearchInput } from "@/components/ui/search-input";
 import { format } from "date-fns";
@@ -25,96 +25,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-// Types
-type PromotionActions = {
-  onDuplicate: (promotion: Promotion) => void;
-  onSaveTemplate: (promotion: Promotion) => void;
-};
-
-// Components
-const PromotionTableRow = ({ 
-  promotion, 
-  actions 
-}: { 
-  promotion: Promotion; 
-  actions: PromotionActions;
-}) => (
-  <TableRow key={promotion.id}>
-    <TableCell className="font-medium">
-      {promotion.name}
-      {promotion.description && (
-        <p className="text-sm text-muted-foreground">{promotion.description}</p>
-      )}
-    </TableCell>
-    <TableCell>
-      {promotion.discountType === "percentage" ? "نسبة مئوية" : "قيمة ثابتة"}
-    </TableCell>
-    <TableCell>
-      {promotion.discountType === "percentage"
-        ? `${promotion.discountValue}%`
-        : `${promotion.discountValue} ريال`}
-    </TableCell>
-    <TableCell>
-      {format(new Date(promotion.startDate), 'dd MMMM yyyy', { locale: ar })}
-    </TableCell>
-    <TableCell>
-      {format(new Date(promotion.endDate), 'dd MMMM yyyy', { locale: ar })}
-    </TableCell>
-    <TableCell>
-      <Badge
-        variant={promotion.status === 'active' ? 'success' : 'secondary'}
-      >
-        {promotion.status === 'active' ? 'نشط' : 'غير نشط'}
-      </Badge>
-    </TableCell>
-    <TableCell>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon">
-            <MoreHorizontal className="h-4 w-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => actions.onDuplicate(promotion)}>
-            <Copy className="h-4 w-4 ml-2" />
-            نسخ العرض
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => actions.onSaveTemplate(promotion)}>
-            <BookTemplate className="h-4 w-4 ml-2" />
-            حفظ كقالب
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </TableCell>
-  </TableRow>
-);
-
-const DiscountCodeTableRow = ({ code }: { code: DiscountCode }) => (
-  <TableRow key={code.id}>
-    <TableCell className="font-medium">{code.code}</TableCell>
-    <TableCell>{code.promotionId}</TableCell>
-    <TableCell>{code.usageLimit}</TableCell>
-    <TableCell>{code.usageCount}</TableCell>
-    <TableCell>
-      {code.expiresAt
-        ? format(new Date(code.expiresAt), 'dd MMMM yyyy', { locale: ar })
-        : 'غير محدد'}
-    </TableCell>
-    <TableCell>
-      <Button variant="ghost" size="sm">
-        تعديل
-      </Button>
-    </TableCell>
-  </TableRow>
-);
-
-// Main Component
 export default function PromotionsPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [searchTerm, setSearchTerm] = useState("");
 
-  // Queries
   const { data: promotions } = useQuery<Promotion[]>({
     queryKey: ["/api/promotions"],
   });
@@ -123,7 +37,9 @@ export default function PromotionsPage() {
     queryKey: ["/api/discount-codes"],
   });
 
-  // Mutations
+  const [searchTerm, setSearchTerm] = useState("");
+
+  // Duplicate promotion mutation
   const duplicatePromotion = useMutation({
     mutationFn: async (promotion: Promotion) => {
       const response = await fetch('/api/promotions/duplicate', {
@@ -143,6 +59,7 @@ export default function PromotionsPage() {
     },
   });
 
+  // Save as template mutation
   const saveAsTemplate = useMutation({
     mutationFn: async (promotion: Promotion) => {
       const response = await fetch('/api/promotion-templates', {
@@ -161,7 +78,6 @@ export default function PromotionsPage() {
     },
   });
 
-  // Filtered data
   const filteredPromotions = promotions?.filter((promotion) => {
     const searchLower = searchTerm.toLowerCase();
     return (
@@ -177,17 +93,12 @@ export default function PromotionsPage() {
     return code.code.toLowerCase().includes(searchLower);
   });
 
-  const promotionActions: PromotionActions = {
-    onDuplicate: (promotion) => duplicatePromotion.mutate(promotion),
-    onSaveTemplate: (promotion) => saveAsTemplate.mutate(promotion),
-  };
-
   return (
     <DashboardLayout>
       <div className="space-y-8">
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold">العروض والخصومات</h1>
-          <div className="flex gap-4">
+          <div className="space-x-4">
             <Button variant="outline">
               <Tag className="h-4 w-4 ml-2" />
               إنشاء كود خصم
@@ -207,7 +118,7 @@ export default function PromotionsPage() {
           />
         </div>
 
-        <Tabs defaultValue="promotions" className="w-full">
+        <Tabs defaultValue="promotions">
           <TabsList>
             <TabsTrigger value="promotions">العروض الترويجية</TabsTrigger>
             <TabsTrigger value="codes">أكواد الخصم</TabsTrigger>
@@ -228,11 +139,56 @@ export default function PromotionsPage() {
               </TableHeader>
               <TableBody>
                 {filteredPromotions?.map((promotion) => (
-                  <PromotionTableRow
-                    key={promotion.id}
-                    promotion={promotion}
-                    actions={promotionActions}
-                  />
+                  <TableRow key={promotion.id}>
+                    <TableCell className="font-medium">
+                      {promotion.name}
+                      {promotion.description && (
+                        <p className="text-sm text-muted-foreground">{promotion.description}</p>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {promotion.discountType === "percentage" ? "نسبة مئوية" : "قيمة ثابتة"}
+                    </TableCell>
+                    <TableCell>
+                      {promotion.discountType === "percentage"
+                        ? `${promotion.discountValue}%`
+                        : `${promotion.discountValue} ريال`}
+                    </TableCell>
+                    <TableCell>
+                      {format(new Date(promotion.startDate), 'dd MMMM yyyy', { locale: ar })}
+                    </TableCell>
+                    <TableCell>
+                      {format(new Date(promotion.endDate), 'dd MMMM yyyy', { locale: ar })}
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        className={promotion.status === 'active'
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-gray-100 text-gray-800'}
+                      >
+                        {promotion.status === 'active' ? 'نشط' : 'غير نشط'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            المزيد
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                          <DropdownMenuItem onClick={() => duplicatePromotion.mutate(promotion)}>
+                            <Copy className="h-4 w-4 ml-2" />
+                            نسخ العرض
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => saveAsTemplate.mutate(promotion)}>
+                            <BookTemplate className="h-4 w-4 ml-2" />
+                            حفظ كقالب
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
                 ))}
                 {filteredPromotions?.length === 0 && (
                   <TableRow>
@@ -259,7 +215,22 @@ export default function PromotionsPage() {
               </TableHeader>
               <TableBody>
                 {filteredDiscountCodes?.map((code) => (
-                  <DiscountCodeTableRow key={code.id} code={code} />
+                  <TableRow key={code.id}>
+                    <TableCell className="font-medium">{code.code}</TableCell>
+                    <TableCell>{code.promotionId}</TableCell>
+                    <TableCell>{code.usageLimit}</TableCell>
+                    <TableCell>{code.usageCount}</TableCell>
+                    <TableCell>
+                      {code.expiresAt
+                        ? format(new Date(code.expiresAt), 'dd MMMM yyyy', { locale: ar })
+                        : 'غير محدد'}
+                    </TableCell>
+                    <TableCell>
+                      <Button variant="ghost" size="sm">
+                        تعديل
+                      </Button>
+                    </TableCell>
+                  </TableRow>
                 ))}
                 {filteredDiscountCodes?.length === 0 && (
                   <TableRow>
