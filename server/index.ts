@@ -53,8 +53,7 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // استخدام المنفذ من متغيرات البيئة أو المنفذ الافتراضي 5000
-  const PORT = process.env.PORT || 5000;
+  const PORT = 5000;
   server.listen(PORT, "0.0.0.0", () => {
     log(`serving on port ${PORT}`);
   });
