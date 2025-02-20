@@ -6,12 +6,11 @@
       "use": "@vercel/node"
     },
     {
-      "src": "client/**",
+      "src": "package.json",
       "use": "@vercel/static-build",
       "config": {
-        "buildCommand": "cd client && npm install && npm run build",
-        "outputDirectory": "client/dist",
-        "distDir": "client/dist"
+        "buildCommand": "npm install && npm run build",
+        "outputDirectory": "dist"
       }
     }
   ],
@@ -21,15 +20,21 @@
       "dest": "server/index.ts"
     },
     {
-      "src": "/(.*)",
-      "dest": "/client/dist/$1"
+      "src": "^/assets/(.*)",
+      "dest": "/dist/assets/$1"
     },
     {
-      "src": "/",
-      "dest": "/client/dist/index.html"
+      "handle": "filesystem"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/dist/$1"
     }
   ],
   "env": {
-    "NODE_ENV": "production"
+    "NODE_ENV": "production",
+    "DATABASE_URL": "",
+    "SESSION_SECRET": "",
+    "ALLOWED_IPS": ""
   }
 }

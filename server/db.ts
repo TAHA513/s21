@@ -11,5 +11,17 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+// Configure the pool with settings optimized for serverless
+export const pool = new Pool({ 
+  connectionString: process.env.DATABASE_URL,
+  max: 1, // Limit connections for serverless environment
+  connectionTimeoutMillis: 5000, // 5 second timeout
+  idleTimeoutMillis: 120000 // Close idle connections after 120 seconds
+});
+
 export const db = drizzle({ client: pool, schema });
+
+// Ensure connections are released properly
+process.on('SIGTERM', () => {
+  pool.end();
+});
