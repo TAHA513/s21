@@ -4,10 +4,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertUserSchema } from "@shared/schema";
+import { insertUserSchema, InsertUser } from "@shared/schema";
 import { useForm } from "react-hook-form";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLocation } from "wouter";
+import { z } from "zod";
+
+// Define login schema using the insertUserSchema but only pick username and password
+const loginSchema = insertUserSchema.pick({ username: true, password: true });
+type LoginData = z.infer<typeof loginSchema>;
 
 export default function AuthPage() {
   const { loginMutation, registerMutation, user } = useAuth();
@@ -18,11 +23,11 @@ export default function AuthPage() {
     return null;
   }
 
-  const loginForm = useForm({
-    resolver: zodResolver(insertUserSchema.omit({ name: true })),
+  const loginForm = useForm<LoginData>({
+    resolver: zodResolver(loginSchema),
   });
 
-  const registerForm = useForm({
+  const registerForm = useForm<InsertUser>({
     resolver: zodResolver(insertUserSchema),
   });
 
