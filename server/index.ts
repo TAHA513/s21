@@ -8,11 +8,12 @@ const app = express();
 // Set trust proxy before any middleware
 app.set("trust proxy", 1);
 
+// Add IP Filter middleware before parsing to block unauthorized access early
+app.use(ipFilter);
+
+// Add parsing middleware after IP filter
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));
-
-// Add IP Filter middleware after trust proxy setup
-app.use(ipFilter);
 
 app.use((req, res, next) => {
   const start = Date.now();
