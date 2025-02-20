@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/use-auth";
 import {
   Home,
   Users,
@@ -16,7 +17,8 @@ import {
   Truck,
   DollarSign,
   FolderIcon,
-  ClipboardList, // Add import for inventory report icon
+  ClipboardList,
+  LogOut,
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
@@ -111,6 +113,11 @@ const navItems = [
 
 export function DashboardNav() {
   const [location] = useLocation();
+  const { logoutMutation } = useAuth();
+
+  const handleLogout = () => {
+    logoutMutation.mutate();
+  };
 
   return (
     <div className="h-screen w-64 border-l bg-card p-4 flex flex-col">
@@ -137,6 +144,16 @@ export function DashboardNav() {
           </Link>
         ))}
       </nav>
+
+      <Button
+        variant="ghost"
+        className="w-full mt-4 flex items-center justify-start gap-3 px-3 py-2 h-10 text-destructive hover:text-destructive hover:bg-destructive/10"
+        onClick={handleLogout}
+        disabled={logoutMutation.isPending}
+      >
+        <LogOut className="h-4 w-4" />
+        {logoutMutation.isPending ? "جاري تسجيل الخروج..." : "تسجيل الخروج"}
+      </Button>
     </div>
   );
 }
