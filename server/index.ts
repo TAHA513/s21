@@ -1,10 +1,18 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { ipFilter } from "./middleware/ipFilter";
 
 const app = express();
+
+// Set trust proxy before any middleware
+app.set("trust proxy", 1);
+
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));
+
+// Add IP Filter middleware after trust proxy setup
+app.use(ipFilter);
 
 app.use((req, res, next) => {
   const start = Date.now();

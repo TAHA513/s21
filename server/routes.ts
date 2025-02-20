@@ -28,7 +28,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         id: invoice.id,
         amount: invoice.finalTotal,
         date: invoice.date,
-        status: invoice.status,
         customerName: invoice.customerName
       }))
     });
