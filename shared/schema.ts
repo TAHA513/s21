@@ -238,6 +238,8 @@ export const products = pgTable("products", {
   groupId: integer("group_id").notNull(),
   isWeighted: boolean("is_weighted").notNull().default(false),
   status: text("status").notNull().default("active"),
+  productionDate: timestamp("production_date"),
+  expiryDate: timestamp("expiry_date"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -360,6 +362,8 @@ export const insertProductSchema = createInsertSchema(products).extend({
   groupId: z.coerce.number(),
   isWeighted: z.boolean(),
   status: z.enum(["active", "inactive"]).default("active"),
+  productionDate: z.string().optional(),
+  expiryDate: z.string().optional(),
 });
 
 export const insertInvoiceSchema = createInsertSchema(invoices).extend({

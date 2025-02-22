@@ -49,7 +49,9 @@ export function ProductForm({ product, groups, onSuccess }: ProductFormProps) {
       sellingPrice: product?.sellingPrice?.toString() ?? "0",
       groupId: product?.groupId ?? groups[0]?.id ?? 0,
       isWeighted: product?.isWeighted ?? false,
-      status: product?.status ?? "active"
+      status: product?.status ?? "active",
+      productionDate: product?.productionDate ?? "",
+      expiryDate: product?.expiryDate ?? "",
     },
   });
 
@@ -295,6 +297,42 @@ export function ProductForm({ product, groups, onSuccess }: ProductFormProps) {
               </div>
             </FormItem>
           )}
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <FormField
+            control={form.control}
+            name="productionDate"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>تاريخ الإنتاج</FormLabel>
+                <FormControl>
+                  <Input 
+                    type="date"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="expiryDate"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>تاريخ الانتهاء</FormLabel>
+                <FormControl>
+                  <Input 
+                    type="date"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </div>
 
         <FormField
