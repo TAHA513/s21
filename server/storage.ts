@@ -447,6 +447,7 @@ export class DatabaseStorage implements IStorage {
           name: schema.products.name,
           type: schema.products.type,
           quantity: schema.products.quantity,
+          minimumQuantity: schema.products.minimumQuantity,
           costPrice: schema.products.costPrice,
           sellingPrice: schema.products.sellingPrice,
           groupId: schema.products.groupId,
@@ -464,9 +465,10 @@ export class DatabaseStorage implements IStorage {
 
       return products.map(product => ({
         ...product,
-        quantity: Number(product.quantity),
-        costPrice: Number(product.costPrice),
-        sellingPrice: Number(product.sellingPrice),
+        quantity: product.quantity,
+        minimumQuantity: product.minimumQuantity,
+        costPrice: product.costPrice,
+        sellingPrice: product.sellingPrice,
       }));
     } catch (error) {
       console.error('Error fetching products:', error);
@@ -489,17 +491,19 @@ export class DatabaseStorage implements IStorage {
       console.log('Creating product with data:', product);
       const [newProduct] = await db.insert(schema.products).values({
         ...product,
-        quantity: product.quantity.toString(),
-        costPrice: product.costPrice.toString(),
-        sellingPrice: product.sellingPrice.toString(),
+        quantity: product.quantity,
+        minimumQuantity: product.minimumQuantity,
+        costPrice: product.costPrice,
+        sellingPrice: product.sellingPrice,
       }).returning();
 
       console.log('Product created successfully:', newProduct);
       return {
         ...newProduct,
-        quantity: Number(newProduct.quantity),
-        costPrice: Number(newProduct.costPrice),
-        sellingPrice: Number(newProduct.sellingPrice),
+        quantity: newProduct.quantity,
+        minimumQuantity: newProduct.minimumQuantity,
+        costPrice: newProduct.costPrice,
+        sellingPrice: newProduct.sellingPrice,
       };
     } catch (error) {
       console.error('Error creating product:', error);
@@ -508,24 +512,26 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateProduct(id: number, updates: Partial<schema.InsertProduct>): Promise<schema.Product> {
-    const updatesWithStringNumbers = {
+    const updatesWithValues = {
       ...updates,
-      ...(updates.costPrice && { costPrice: updates.costPrice.toString() }),
-      ...(updates.sellingPrice && { sellingPrice: updates.sellingPrice.toString() }),
-      ...(updates.quantity && { quantity: updates.quantity.toString() }),
+      ...(updates.quantity && { quantity: updates.quantity }),
+      ...(updates.minimumQuantity && { minimumQuantity: updates.minimumQuantity }),
+      ...(updates.costPrice && { costPrice: updates.costPrice }),
+      ...(updates.sellingPrice && { sellingPrice: updates.sellingPrice }),
     };
 
     const [updatedProduct] = await db
       .update(schema.products)
-      .set(updatesWithStringNumbers)
+      .set(updatesWithValues)
       .where(eq(schema.products.id, id))
       .returning();
 
     return {
       ...updatedProduct,
-      quantity: Number(updatedProduct.quantity),
-      costPrice: Number(updatedProduct.costPrice),
-      sellingPrice: Number(updatedProduct.sellingPrice),
+      quantity: updatedProduct.quantity,
+      minimumQuantity: updatedProduct.minimumQuantity,
+      costPrice: updatedProduct.costPrice,
+      sellingPrice: updatedProduct.sellingPrice,
     };
   }
 
@@ -770,7 +776,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async testDatabaseConnection(connection: schema.InsertDatabaseConnection): Promise<boolean> {
-    // TODO: Implement actual connection testing logic based on the database type
+    // TODO:Implement actual connection testing logic based on the database type
     return true;
   }
 
