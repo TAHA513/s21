@@ -9,14 +9,22 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useQuery } from "@tanstack/react-query";
-import { Staff, User } from "@shared/schema";
+import { type User } from "@shared/schema";
 import { UserPlus2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { SearchInput } from "@/components/ui/search-input";
 import { useState } from "react";
 
+interface StaffMember {
+  id: number;
+  userId: number;
+  specialization?: string;
+  workDays?: string[];
+  workHours?: string[];
+}
+
 export default function StaffPage() {
-  const { data: staff } = useQuery<Staff[]>({
+  const { data: staff } = useQuery<StaffMember[]>({
     queryKey: ["/api/staff"],
   });
 
