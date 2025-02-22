@@ -10,11 +10,16 @@ const server = createServer(app);
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));
 
-// CORS middleware
+// CORS middleware with specific origins
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
+  const allowedOrigins = ['http://localhost:5000', 'https://localhost:5000'];
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
   res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
-  res.header('Access-Control-Allow-Headers', 'Content-Type');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.header('Access-Control-Allow-Credentials', 'true');
   next();
 });
 
@@ -49,7 +54,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// WebSocket server setup
+// WebSocket server setup with explicit port
 const wss = new WebSocketServer({ 
   server,
   path: '/ws',
@@ -76,10 +81,10 @@ wss.on('connection', (ws) => {
   await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+    console.error('Error:', err);
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
     res.status(status).json({ message });
-    console.error(err);
   });
 
   if (app.get("env") === "development") {
@@ -92,4 +97,7 @@ wss.on('connection', (ws) => {
   server.listen(PORT, "0.0.0.0", () => {
     log(`Server running at http://0.0.0.0:${PORT}`);
   });
-})().catch(console.error);
+})().catch((error) => {
+  console.error('Server startup error:', error);
+  process.exit(1);
+});
