@@ -425,16 +425,19 @@ export class DatabaseStorage implements IStorage {
   // Product operations
   async getProducts(): Promise<schema.Product[]> {
     try {
+      console.log('Fetching all products');
       const products = await db.select().from(schema.products);
+      console.log('Products fetched:', products);
+
       return products.map(product => ({
         ...product,
-        costPrice: parseFloat(product.costPrice),
-        sellingPrice: parseFloat(product.sellingPrice),
-        quantity: parseFloat(product.quantity),
+        costPrice: Number(product.costPrice),
+        sellingPrice: Number(product.sellingPrice),
+        quantity: Number(product.quantity),
       }));
     } catch (error) {
       console.error('Error fetching products:', error);
-      throw error;
+      throw new Error(`Failed to fetch products: ${error.message}`);
     }
   }
 
@@ -450,21 +453,26 @@ export class DatabaseStorage implements IStorage {
 
   async createProduct(product: schema.InsertProduct): Promise<schema.Product> {
     try {
+      console.log('Creating product with data:', product);
       const [newProduct] = await db.insert(schema.products).values({
         ...product,
         costPrice: product.costPrice.toString(),
         sellingPrice: product.sellingPrice.toString(),
         quantity: product.quantity.toString(),
       }).returning();
+
+      console.log('Product created successfully:', newProduct);
+
+      // Convert string numbers back to numbers for the response
       return {
         ...newProduct,
-        costPrice: parseFloat(newProduct.costPrice),
-        sellingPrice: parseFloat(newProduct.sellingPrice),
-        quantity: parseFloat(newProduct.quantity),
+        costPrice: Number(newProduct.costPrice),
+        sellingPrice: Number(newProduct.sellingPrice),
+        quantity: Number(newProduct.quantity),
       };
     } catch (error) {
       console.error('Error creating product:', error);
-      throw error;
+      throw new Error(`Failed to create product: ${error.message}`);
     }
   }
 
@@ -489,7 +497,22 @@ export class DatabaseStorage implements IStorage {
 
   // Invoice operations
   async getInvoices(): Promise<schema.Invoice[]> {
-    return await db.select().from(schema.invoices);
+    try {
+      console.log('Fetching all invoices');
+      const invoices = await db.select().from(schema.invoices);
+      console.log('Invoices fetched:', invoices);
+
+      return invoices.map(invoice => ({
+        ...invoice,
+        subtotal: Number(invoice.subtotal),
+        discount: Number(invoice.discount),
+        discountAmount: Number(invoice.discountAmount),
+        finalTotal: Number(invoice.finalTotal),
+      }));
+    } catch (error) {
+      console.error('Error fetching invoices:', error);
+      throw new Error(`Failed to fetch invoices: ${error.message}`);
+    }
   }
 
   async getInvoice(id: number): Promise<schema.Invoice | undefined> {
@@ -498,15 +521,33 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createInvoice(invoice: schema.InsertInvoice): Promise<schema.Invoice> {
-    const invoiceWithStringNumbers = {
-      ...invoice,
-      subtotal: invoice.subtotal.toString(),
-      discount: invoice.discount.toString(),
-      discountAmount: invoice.discountAmount.toString(),
-      finalTotal: invoice.finalTotal.toString(),
-    };
-    const [newInvoice] = await db.insert(schema.invoices).values([invoiceWithStringNumbers]).returning();
-    return newInvoice;
+    try {
+      console.log('Creating invoice with data:', invoice);
+      const invoiceWithStringNumbers = {
+        ...invoice,
+        subtotal: invoice.subtotal.toString(),
+        discount: invoice.discount.toString(),
+        discountAmount: invoice.discountAmount.toString(),
+        finalTotal: invoice.finalTotal.toString(),
+      };
+
+      const [newInvoice] = await db.insert(schema.invoices)
+        .values(invoiceWithStringNumbers)
+        .returning();
+
+      console.log('Invoice created successfully:', newInvoice);
+
+      return {
+        ...newInvoice,
+        subtotal: Number(newInvoice.subtotal),
+        discount: Number(newInvoice.discount),
+        discountAmount: Number(newInvoice.discountAmount),
+        finalTotal: Number(newInvoice.finalTotal),
+      };
+    } catch (error) {
+      console.error('Error creating invoice:', error);
+      throw new Error(`Failed to create invoice: ${error.message}`);
+    }
   }
 
   // Store Settings operations
