@@ -33,7 +33,7 @@ export interface IStorage {
   getStaff(): Promise<schema.Staff[]>;
   getStaffMember(id: number): Promise<schema.Staff | undefined>;
   createStaff(staff: schema.InsertStaff): Promise<schema.Staff>;
-  updateStaff(id: number, staff: Partial<schema.InsertStaff>): Promise<schema.Staff>;
+  updateStaff(id: number, updates: Partial<schema.InsertStaff>): Promise<schema.Staff>;
   deleteStaff(id: number): Promise<void>;
 
   // Settings operations
@@ -45,14 +45,14 @@ export interface IStorage {
   getCampaigns(): Promise<schema.MarketingCampaign[]>;
   getCampaign(id: number): Promise<schema.MarketingCampaign | undefined>;
   createCampaign(campaign: schema.InsertMarketingCampaign): Promise<schema.MarketingCampaign>;
-  updateCampaign(id: number, campaign: Partial<schema.InsertMarketingCampaign>): Promise<schema.MarketingCampaign>;
+  updateCampaign(id: number, updates: Partial<schema.InsertMarketingCampaign>): Promise<schema.MarketingCampaign>;
   deleteCampaign(id: number): Promise<void>;
 
   // Promotion operations
   getPromotions(): Promise<schema.Promotion[]>;
   getPromotion(id: number): Promise<schema.Promotion | undefined>;
   createPromotion(promotion: schema.InsertPromotion): Promise<schema.Promotion>;
-  updatePromotion(id: number, promotion: Partial<schema.InsertPromotion>): Promise<schema.Promotion>;
+  updatePromotion(id: number, updates: Partial<schema.InsertPromotion>): Promise<schema.Promotion>;
   deletePromotion(id: number): Promise<void>;
 
   // Discount Code operations
@@ -60,14 +60,14 @@ export interface IStorage {
   getDiscountCode(id: number): Promise<schema.DiscountCode | undefined>;
   getDiscountCodeByCode(code: string): Promise<schema.DiscountCode | undefined>;
   createDiscountCode(code: schema.InsertDiscountCode): Promise<schema.DiscountCode>;
-  updateDiscountCode(id: number, code: Partial<schema.InsertDiscountCode>): Promise<schema.DiscountCode>;
+  updateDiscountCode(id: number, updates: Partial<schema.InsertDiscountCode>): Promise<schema.DiscountCode>;
   deleteDiscountCode(id: number): Promise<void>;
 
   // Social Media Account operations
   getSocialMediaAccounts(): Promise<schema.SocialMediaAccount[]>;
   getSocialMediaAccount(id: number): Promise<schema.SocialMediaAccount | undefined>;
   createSocialMediaAccount(account: schema.InsertSocialMediaAccount): Promise<schema.SocialMediaAccount>;
-  updateSocialMediaAccount(id: number, account: Partial<schema.InsertSocialMediaAccount>): Promise<schema.SocialMediaAccount>;
+  updateSocialMediaAccount(id: number, updates: Partial<schema.InsertSocialMediaAccount>): Promise<schema.SocialMediaAccount>;
   deleteSocialMediaAccount(id: number): Promise<void>;
 
   // Product Group operations
@@ -464,13 +464,13 @@ export class DatabaseStorage implements IStorage {
 
       return products.map(product => ({
         ...product,
+        quantity: Number(product.quantity),
         costPrice: Number(product.costPrice),
         sellingPrice: Number(product.sellingPrice),
-        quantity: Number(product.quantity),
       }));
     } catch (error) {
       console.error('Error fetching products:', error);
-      throw new Error(`Failed to fetch products: ${error.message}`);
+      throw new Error(`Failed to fetch products: ${(error as Error).message}`);
     }
   }
 
@@ -486,35 +486,24 @@ export class DatabaseStorage implements IStorage {
 
   async createProduct(product: schema.InsertProduct): Promise<schema.Product> {
     try {
-      console.log('Validating product group exists:', product.groupId);
-      const [group] = await db
-        .select()
-        .from(schema.productGroups)
-        .where(eq(schema.productGroups.id, product.groupId));
-
-      if (!group) {
-        throw new Error(`Product group with id ${product.groupId} does not exist`);
-      }
-
       console.log('Creating product with data:', product);
       const [newProduct] = await db.insert(schema.products).values({
         ...product,
+        quantity: product.quantity.toString(),
         costPrice: product.costPrice.toString(),
         sellingPrice: product.sellingPrice.toString(),
-        quantity: product.quantity.toString(),
       }).returning();
 
       console.log('Product created successfully:', newProduct);
-
       return {
         ...newProduct,
+        quantity: Number(newProduct.quantity),
         costPrice: Number(newProduct.costPrice),
         sellingPrice: Number(newProduct.sellingPrice),
-        quantity: Number(newProduct.quantity),
       };
     } catch (error) {
       console.error('Error creating product:', error);
-      throw new Error(`Failed to create product: ${error.message}`);
+      throw new Error(`Failed to create product: ${(error as Error).message}`);
     }
   }
 
@@ -525,12 +514,19 @@ export class DatabaseStorage implements IStorage {
       ...(updates.sellingPrice && { sellingPrice: updates.sellingPrice.toString() }),
       ...(updates.quantity && { quantity: updates.quantity.toString() }),
     };
+
     const [updatedProduct] = await db
       .update(schema.products)
       .set(updatesWithStringNumbers)
       .where(eq(schema.products.id, id))
       .returning();
-    return updatedProduct;
+
+    return {
+      ...updatedProduct,
+      quantity: Number(updatedProduct.quantity),
+      costPrice: Number(updatedProduct.costPrice),
+      sellingPrice: Number(updatedProduct.sellingPrice),
+    };
   }
 
   async deleteProduct(id: number): Promise<void> {
@@ -775,9 +771,10 @@ export class DatabaseStorage implements IStorage {
 
   async testDatabaseConnection(connection: schema.InsertDatabaseConnection): Promise<boolean> {
     // TODO: Implement actual connection testing logic based on the database type
-    return true;  }
+    return true;
+  }
 
-  // Campaign Notification operations
+  //// Campaign Notification operations
   async getCampaignNotifications(campaignId: number): Promise<schema.CampaignNotification[]> {
     return await db
       .select()
@@ -797,8 +794,7 @@ export class DatabaseStorage implements IStorage {
     id: number,
     notification: Partial<schema.InsertCampaignNotification>
   ): Promise<schema.CampaignNotification> {
-    const [updatedNotification] = await db
-      .update(schema.campaignNotifications)
+    const [updatedNotification] = await db      .update(schema.campaignNotifications)
       .set(notification)
       .where(eq(schema.campaignNotifications.id, id))
       .returning();
