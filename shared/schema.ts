@@ -1,6 +1,7 @@
 import { pgTable, text, serial, integer, boolean, timestamp, decimal, json } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { relations } from 'drizzle-orm';
 
 // تعريف الأنواع الأساسية والتحقق من صحة البيانات
 const baseSchemas = {
@@ -43,6 +44,13 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+export const userRelations = relations(users, ({ one, many }) => ({
+  staff: one(staff, {
+    fields: [users.id],
+    references: [staff.userId],
+  }),
+}));
+
 export const customers = pgTable("customers", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
@@ -54,63 +62,51 @@ export const customers = pgTable("customers", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-// تحديث مخططات التحقق مع رسائل خطأ محسنة
-export const insertUserSchema = createInsertSchema(users)
-  .extend({
-    password: baseSchemas.password,
-    username: z.string().min(3, "اسم المستخدم يجب أن يكون 3 أحرف على الأقل"),
-    name: baseSchemas.name,
-  })
-  .omit({ 
-    lastLogin: true, 
-    isActive: true, 
-    createdAt: true, 
-    updatedAt: true 
-  });
-
-export const insertCustomerSchema = createInsertSchema(customers)
-  .extend({
-    phone: baseSchemas.phone,
-    email: baseSchemas.email,
-    name: baseSchemas.name,
-  })
-  .omit({ 
-    isActive: true, 
-    createdAt: true, 
-    updatedAt: true 
-  });
-
-// تحديث أنواع البيانات
-export type User = typeof users.$inferSelect;
-export type InsertUser = z.infer<typeof insertUserSchema>;
-export type Customer = typeof customers.$inferSelect;
-export type InsertCustomer = z.infer<typeof insertCustomerSchema>;
-
-// إضافة تعليقات توضيحية للمطورين
-/**
- * ملاحظات هامة للمطورين:
- * 1. جميع كلمات المرور يجب تشفيرها قبل الحفظ في قاعدة البيانات
- * 2. يجب التحقق من صحة رقم الهاتف والبريد الإلكتروني
- * 3. التأكد من تحديث حقل updatedAt عند تعديل أي سجل
- */
+export const customerRelations = relations(customers, ({ many }) => ({
+  appointments: many(appointments),
+  invoices: many(invoices),
+}));
 
 export const appointments = pgTable("appointments", {
   id: serial("id").primaryKey(),
-  customerId: integer("customer_id").notNull(),
-  staffId: integer("staff_id").notNull(),
+  customerId: integer("customer_id").notNull().references(() => customers.id, { onDelete: 'cascade' }),
+  staffId: integer("staff_id").notNull().references(() => staff.id, { onDelete: 'cascade' }),
   startTime: timestamp("start_time").notNull(),
   endTime: timestamp("end_time").notNull(),
   status: text("status").notNull().default("scheduled"),
   notes: text("notes"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
+
+export const appointmentRelations = relations(appointments, ({ one }) => ({
+  customer: one(customers, {
+    fields: [appointments.customerId],
+    references: [customers.id],
+  }),
+  staff: one(staff, {
+    fields: [appointments.staffId],
+    references: [staff.id],
+  }),
+}));
 
 export const staff = pgTable("staff", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
   specialization: text("specialization"),
   workDays: text("work_days").array(),
   workHours: text("work_hours").array(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
+
+export const staffRelations = relations(staff, ({ one, many }) => ({
+  user: one(users, {
+    fields: [staff.userId],
+    references: [users.id],
+  }),
+  appointments: many(appointments),
+}));
 
 export const settings = pgTable("settings", {
   id: serial("id").primaryKey(),
@@ -555,3 +551,11 @@ export const insertDatabaseConnectionSchema = createInsertSchema(databaseConnect
 
 export type DatabaseConnection = typeof databaseConnections.$inferSelect;
 export type InsertDatabaseConnection = z.infer<typeof insertDatabaseConnectionSchema>;
+
+// إضافة تعليقات توضيحية للمطورين
+/**
+ * ملاحظات هامة للمطورين:
+ * 1. جميع كلمات المرور يجب تشفيرها قبل الحفظ في قاعدة البيانات
+ * 2. يجب التحقق من صحة رقم الهاتف والبريد الإلكتروني
+ * 3. التأكد من تحديث حقل updatedAt عند تعديل أي سجل
+ */
