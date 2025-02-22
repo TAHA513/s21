@@ -74,9 +74,12 @@ export default function ProductsPage() {
   });
 
   const getStockStatus = (product: Product) => {
-    if (!product.minimumQuantity) return null;
+    const quantity = Number(product.quantity);
+    const minimumQuantity = Number(product.minimumQuantity);
 
-    if (product.quantity <= 0) {
+    if (!minimumQuantity) return null;
+
+    if (quantity <= 0) {
       return {
         label: "نفذ المخزون",
         variant: "destructive" as const,
@@ -84,10 +87,10 @@ export default function ProductsPage() {
       };
     }
 
-    if (product.quantity <= product.minimumQuantity) {
+    if (quantity <= minimumQuantity) {
       return {
         label: "المخزون منخفض",
-        variant: "warning" as const,
+        variant: "destructive" as const, 
         showWarning: true
       };
     }
@@ -133,7 +136,6 @@ export default function ProductsPage() {
     (product) => product.minimumQuantity && product.quantity <= product.minimumQuantity
   );
 
-  // Sample data for the chart - in real app, this would come from the API
   const stockData = [
     { name: "يناير", المخزون: 400 },
     { name: "فبراير", المخزون: 300 },

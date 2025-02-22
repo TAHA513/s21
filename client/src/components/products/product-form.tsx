@@ -43,10 +43,10 @@ export function ProductForm({ product, groups }: ProductFormProps) {
       name: "",
       barcode: "",
       type: "piece",
-      quantity: 0,
-      minimumQuantity: 0,
-      costPrice: 0,
-      sellingPrice: 0,
+      quantity: "0",
+      minimumQuantity: "0",
+      costPrice: "0",
+      sellingPrice: "0",
       groupId: groups[0]?.id,
       isWeighted: false,
       productionDate: new Date().toISOString().split('T')[0],
@@ -188,7 +188,12 @@ export function ProductForm({ product, groups }: ProductFormProps) {
               <FormItem>
                 <FormLabel>الكمية</FormLabel>
                 <FormControl>
-                  <Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} />
+                  <Input
+                    type="number"
+                    {...field}
+                    value={field.value || ""}
+                    onChange={(e) => field.onChange(e.target.value)}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -202,7 +207,12 @@ export function ProductForm({ product, groups }: ProductFormProps) {
               <FormItem>
                 <FormLabel>الحد الأدنى</FormLabel>
                 <FormControl>
-                  <Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} />
+                  <Input
+                    type="number"
+                    {...field}
+                    value={field.value || ""}
+                    onChange={(e) => field.onChange(e.target.value)}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -218,8 +228,8 @@ export function ProductForm({ product, groups }: ProductFormProps) {
               <FormItem>
                 <FormLabel>تاريخ الإنتاج</FormLabel>
                 <FormControl>
-                  <Input 
-                    type="date" 
+                  <Input
+                    type="date"
                     {...field}
                   />
                 </FormControl>
@@ -235,8 +245,8 @@ export function ProductForm({ product, groups }: ProductFormProps) {
               <FormItem>
                 <FormLabel>تاريخ الانتهاء</FormLabel>
                 <FormControl>
-                  <Input 
-                    type="date" 
+                  <Input
+                    type="date"
                     {...field}
                   />
                 </FormControl>
@@ -254,7 +264,12 @@ export function ProductForm({ product, groups }: ProductFormProps) {
               <FormItem>
                 <FormLabel>سعر التكلفة</FormLabel>
                 <FormControl>
-                  <Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} />
+                  <Input
+                    type="number"
+                    {...field}
+                    value={field.value || ""}
+                    onChange={(e) => field.onChange(e.target.value)}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -268,7 +283,12 @@ export function ProductForm({ product, groups }: ProductFormProps) {
               <FormItem>
                 <FormLabel>سعر البيع</FormLabel>
                 <FormControl>
-                  <Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} />
+                  <Input
+                    type="number"
+                    {...field}
+                    value={field.value || ""}
+                    onChange={(e) => field.onChange(e.target.value)}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
