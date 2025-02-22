@@ -10,6 +10,14 @@ const server = createServer(app);
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));
 
+// CORS middleware
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
+  res.header('Access-Control-Allow-Headers', 'Content-Type');
+  next();
+});
+
 // Logging middleware
 app.use((req, res, next) => {
   const start = Date.now();
@@ -41,10 +49,11 @@ app.use((req, res, next) => {
   next();
 });
 
-// WebSocket server
+// WebSocket server setup
 const wss = new WebSocketServer({ 
   server,
-  path: '/ws'
+  path: '/ws',
+  perMessageDeflate: false
 });
 
 wss.on('connection', (ws) => {
@@ -52,6 +61,10 @@ wss.on('connection', (ws) => {
 
   ws.on('message', (message) => {
     console.log('Received:', message);
+  });
+
+  ws.on('error', (error) => {
+    console.error('WebSocket error:', error);
   });
 
   ws.on('close', () => {
@@ -66,7 +79,7 @@ wss.on('connection', (ws) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
     res.status(status).json({ message });
-    throw err;
+    console.error(err);
   });
 
   if (app.get("env") === "development") {
@@ -75,8 +88,8 @@ wss.on('connection', (ws) => {
     serveStatic(app);
   }
 
-  const PORT = 5000;
+  const PORT = process.env.PORT || 5000;
   server.listen(PORT, "0.0.0.0", () => {
     log(`Server running at http://0.0.0.0:${PORT}`);
   });
-})();
+})().catch(console.error);
