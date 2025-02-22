@@ -199,7 +199,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   const httpServer = createServer(app);
 
-  // Initialize WebSocket server with explicit path
+  // Initialize WebSocket server with only server option
   const wss = new WebSocketServer({
     server: httpServer,
     path: '/ws'
