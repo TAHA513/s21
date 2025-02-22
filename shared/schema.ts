@@ -555,3 +555,34 @@ export const insertDatabaseConnectionSchema = createInsertSchema(databaseConnect
 
 export type DatabaseConnection = typeof databaseConnections.$inferSelect;
 export type InsertDatabaseConnection = z.infer<typeof insertDatabaseConnectionSchema>;
+
+// تحديث أنواع البيانات لجميع الكيانات
+export type Product = typeof products.$inferSelect;
+export type InsertProduct = z.infer<typeof insertProductSchema>;
+export type Supplier = typeof suppliers.$inferSelect;
+export type InsertSupplier = z.infer<typeof insertSupplierSchema>;
+export type PurchaseOrder = typeof purchaseOrders.$inferSelect;
+export type InsertPurchaseOrder = z.infer<typeof insertPurchaseOrderSchema>;
+export type Setting = typeof settings.$inferSelect;
+export type InsertSetting = z.infer<typeof insertSettingSchema>;
+export type StoreSetting = typeof storeSettings.$inferSelect;
+export type InsertStoreSetting = z.infer<typeof insertStoreSettingsSchema>;
+export type MarketingCampaign = typeof marketingCampaigns.$inferSelect;
+export type InsertMarketingCampaign = z.infer<typeof insertMarketingCampaignSchema>;
+export type Promotion = typeof promotions.$inferSelect;
+export type InsertPromotion = z.infer<typeof insertPromotionSchema>;
+export type DiscountCode = typeof discountCodes.$inferSelect;
+export type InsertDiscountCode = z.infer<typeof insertDiscountCodeSchema>;
+export type SocialMediaAccount = typeof socialMediaAccounts.$inferSelect;
+export type InsertSocialMediaAccount = z.infer<typeof insertSocialMediaAccountSchema>;
+export type ProductGroup = typeof productGroups.$inferSelect;
+export type Invoice = typeof invoices.$inferSelect;
+export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;
+export type Staff = typeof staff.$inferSelect;
+export type InsertStaff = z.infer<typeof insertStaffSchema>;
+export type Appointment = typeof appointments.$inferSelect;
+export type InsertAppointment = z.infer<typeof insertAppointmentSchema>;
+export type CampaignNotification = typeof campaignNotifications.$inferSelect;
+export type InsertCampaignNotification = z.infer<typeof insertCampaignNotificationSchema>;
+export type ScheduledPost = typeof scheduledPosts.$inferSelect;
+export type InsertScheduledPost = z.infer<typeof insertScheduledPostSchema>;

@@ -438,26 +438,32 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createProduct(product: schema.InsertProduct): Promise<schema.Product> {
-    const productWithStringNumbers = {
+    const productWithDecimalNumbers = {
       ...product,
       costPrice: product.costPrice.toString(),
       sellingPrice: product.sellingPrice.toString(),
       quantity: product.quantity.toString(),
     };
-    const [newProduct] = await db.insert(schema.products).values(productWithStringNumbers).returning();
+    const [newProduct] = await db
+      .insert(schema.products)
+      .values(productWithDecimalNumbers)
+      .returning();
     return newProduct;
   }
 
   async updateProduct(id: number, updates: Partial<schema.InsertProduct>): Promise<schema.Product> {
-    const updatesWithStringNumbers = {
+    const updatesWithDecimalNumbers = {
       ...updates,
-      ...(updates.costPrice && { costPrice: updates.costPrice.toString() }),
-      ...(updates.sellingPrice && { sellingPrice: updates.sellingPrice.toString() }),
-      ...(updates.quantity && { quantity: updates.quantity.toString() }),
+      ...(updates.costPrice !== undefined && { costPrice: updates.costPrice.toString() }),
+      ...(updates.sellingPrice !== undefined && { sellingPrice: updates.sellingPrice.toString() }),
+      ...(updates.quantity !== undefined && { quantity: updates.quantity.toString() }),
     };
     const [updatedProduct] = await db
       .update(schema.products)
-      .set(updatesWithStringNumbers)
+      .set({
+        ...updatesWithDecimalNumbers,
+        updatedAt: new Date()
+      })
       .where(eq(schema.products.id, id))
       .returning();
     return updatedProduct;
@@ -522,13 +528,23 @@ export class DatabaseStorage implements IStorage {
     return supplier;
   }
   async createSupplier(supplier: schema.InsertSupplier): Promise<schema.Supplier> {
-    const [newSupplier] = await db.insert(schema.suppliers).values(supplier).returning();
+    const [newSupplier] = await db
+      .insert(schema.suppliers)
+      .values({
+        ...supplier,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+      .returning();
     return newSupplier;
   }
   async updateSupplier(id: number, supplier: Partial<schema.InsertSupplier>): Promise<schema.Supplier> {
     const [updatedSupplier] = await db
       .update(schema.suppliers)
-      .set(supplier)
+      .set({
+        ...supplier,
+        updatedAt: new Date()
+      })
       .where(eq(schema.suppliers.id, id))
       .returning();
     return updatedSupplier;
