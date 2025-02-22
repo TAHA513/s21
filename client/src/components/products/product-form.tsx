@@ -30,38 +30,58 @@ import { Scan } from "lucide-react";
 interface ProductFormProps {
   product?: Product;
   groups: ProductGroup[];
+  onSuccess?: () => void;
 }
 
-export function ProductForm({ product, groups }: ProductFormProps) {
+export function ProductForm({ product, groups, onSuccess }: ProductFormProps) {
   const { toast } = useToast();
   const [isNewGroup, setIsNewGroup] = useState(false);
   const [newGroupName, setNewGroupName] = useState("");
 
   const form = useForm({
     resolver: zodResolver(insertProductSchema),
-    defaultValues: product || {
+    defaultValues: product ? {
+      ...product,
+      productionDate: product.productionDate ? new Date(product.productionDate).toISOString().split('T')[0] : undefined,
+      expiryDate: product.expiryDate ? new Date(product.expiryDate).toISOString().split('T')[0] : undefined,
+    } : {
       name: "",
       barcode: "",
       type: "piece",
-      quantity: 0,
-      minimumQuantity: 0,
-      costPrice: 0,
-      sellingPrice: 0,
+      quantity: "0",
+      minimumQuantity: "0",
+      costPrice: "0",
+      sellingPrice: "0",
       groupId: groups[0]?.id,
       isWeighted: false,
       productionDate: new Date().toISOString().split('T')[0],
       expiryDate: "",
+      status: "active"
     },
   });
 
   const productMutation = useMutation({
-    mutationFn: async (data: typeof form.getValues) => {
-      if (product) {
-        const res = await apiRequest("PATCH", `/api/products/${product.id}`, data);
-        return res.json();
-      } else {
-        const res = await apiRequest("POST", "/api/products", data);
-        return res.json();
+    mutationFn: async (data: any) => {
+      try {
+        // تحويل القيم النصية إلى أرقام
+        const formattedData = {
+          ...data,
+          quantity: parseFloat(data.quantity),
+          minimumQuantity: parseFloat(data.minimumQuantity),
+          costPrice: parseFloat(data.costPrice),
+          sellingPrice: parseFloat(data.sellingPrice),
+        };
+
+        if (product) {
+          const res = await apiRequest("PATCH", `/api/products/${product.id}`, formattedData);
+          return res.json();
+        } else {
+          const res = await apiRequest("POST", "/api/products", formattedData);
+          return res.json();
+        }
+      } catch (error) {
+        console.error("Error in product mutation:", error);
+        throw error;
       }
     },
     onSuccess: () => {
@@ -70,11 +90,14 @@ export function ProductForm({ product, groups }: ProductFormProps) {
         title: product ? "تم تحديث المنتج" : "تم إضافة المنتج",
         description: product ? "تم تحديث المنتج بنجاح" : "تم إضافة المنتج بنجاح",
       });
+      onSuccess?.();
+      form.reset();
     },
     onError: (error: Error) => {
+      console.error("Product mutation error:", error);
       toast({
         title: "خطأ",
-        description: error.message,
+        description: "حدث خطأ أثناء " + (product ? "تحديث" : "إضافة") + " المنتج",
         variant: "destructive",
       });
     },
@@ -98,14 +121,25 @@ export function ProductForm({ product, groups }: ProductFormProps) {
         description: "تم إنشاء المجموعة الجديدة بنجاح",
       });
     },
+    onError: (error: Error) => {
+      toast({
+        title: "خطأ",
+        description: "حدث خطأ أثناء إنشاء المجموعة",
+        variant: "destructive",
+      });
+    }
   });
 
-  async function onSubmit(data: typeof form.getValues) {
-    if (isNewGroup && newGroupName) {
-      const newGroup = await groupMutation.mutateAsync(newGroupName);
-      data.groupId = newGroup.id;
+  async function onSubmit(data: any) {
+    try {
+      if (isNewGroup && newGroupName) {
+        const newGroup = await groupMutation.mutateAsync(newGroupName);
+        data.groupId = newGroup.id;
+      }
+      await productMutation.mutateAsync(data);
+    } catch (error) {
+      console.error("Form submission error:", error);
     }
-    productMutation.mutate(data);
   }
 
   return (
@@ -188,7 +222,11 @@ export function ProductForm({ product, groups }: ProductFormProps) {
               <FormItem>
                 <FormLabel>الكمية</FormLabel>
                 <FormControl>
-                  <Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} />
+                  <Input 
+                    type="number"
+                    {...field}
+                    onChange={(e) => field.onChange(e.target.value)}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -202,7 +240,11 @@ export function ProductForm({ product, groups }: ProductFormProps) {
               <FormItem>
                 <FormLabel>الحد الأدنى</FormLabel>
                 <FormControl>
-                  <Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} />
+                  <Input 
+                    type="number"
+                    {...field}
+                    onChange={(e) => field.onChange(e.target.value)}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -254,7 +296,11 @@ export function ProductForm({ product, groups }: ProductFormProps) {
               <FormItem>
                 <FormLabel>سعر التكلفة</FormLabel>
                 <FormControl>
-                  <Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} />
+                  <Input 
+                    type="number"
+                    {...field}
+                    onChange={(e) => field.onChange(e.target.value)}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -268,7 +314,11 @@ export function ProductForm({ product, groups }: ProductFormProps) {
               <FormItem>
                 <FormLabel>سعر البيع</FormLabel>
                 <FormControl>
-                  <Input type="number" {...field} onChange={e => field.onChange(parseFloat(e.target.value))} />
+                  <Input 
+                    type="number"
+                    {...field}
+                    onChange={(e) => field.onChange(e.target.value)}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -342,8 +392,14 @@ export function ProductForm({ product, groups }: ProductFormProps) {
         />
 
         <div className="flex justify-end gap-2">
-          <Button type="submit" disabled={productMutation.isPending || groupMutation.isPending}>
-            {productMutation.isPending || groupMutation.isPending ? "جاري الحفظ..." : product ? "تحديث المنتج" : "إضافة المنتج"}
+          <Button 
+            type="submit" 
+            disabled={productMutation.isPending || groupMutation.isPending}
+          >
+            {productMutation.isPending || groupMutation.isPending ? 
+              "جاري الحفظ..." : 
+              product ? "تحديث المنتج" : "إضافة المنتج"
+            }
           </Button>
         </div>
       </form>
