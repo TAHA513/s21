@@ -2,12 +2,45 @@ import { pgTable, text, serial, integer, boolean, timestamp, decimal, json } fro
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// تعريف الأنواع الأساسية والتحقق من صحة البيانات
+const baseSchemas = {
+  phone: z.string()
+    .regex(/^[0-9+\s-]+$/, "رقم الهاتف يجب أن يحتوي على أرقام فقط")
+    .min(10, "رقم الهاتف يجب أن لا يقل عن 10 أرقام"),
+
+  email: z.string()
+    .email("البريد الإلكتروني غير صالح")
+    .optional()
+    .nullable(),
+
+  password: z.string()
+    .min(8, "كلمة المرور يجب أن تكون 8 أحرف على الأقل")
+    .regex(/[A-Z]/, "يجب أن تحتوي كلمة المرور على حرف كبير واحد على الأقل")
+    .regex(/[a-z]/, "يجب أن تحتوي كلمة المرور على حرف صغير واحد على الأقل")
+    .regex(/[0-9]/, "يجب أن تحتوي كلمة المرور على رقم واحد على الأقل"),
+
+  name: z.string()
+    .min(2, "الاسم يجب أن يكون حرفين على الأقل")
+    .max(100, "الاسم لا يجب أن يتجاوز 100 حرف"),
+
+  price: z.number()
+    .min(0, "السعر يجب أن يكون أكبر من أو يساوي صفر"),
+
+  quantity: z.number()
+    .min(0, "الكمية يجب أن تكون أكبر من أو تساوي صفر"),
+};
+
+// تحديث الجداول مع إضافة العلاقات المرجعية
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
   role: text("role").notNull().default("staff"),
   name: text("name").notNull(),
+  lastLogin: timestamp("last_login"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 export const customers = pgTable("customers", {
@@ -16,8 +49,50 @@ export const customers = pgTable("customers", {
   phone: text("phone").notNull(),
   email: text("email"),
   notes: text("notes"),
+  isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
+
+// تحديث مخططات التحقق مع رسائل خطأ محسنة
+export const insertUserSchema = createInsertSchema(users)
+  .extend({
+    password: baseSchemas.password,
+    username: z.string().min(3, "اسم المستخدم يجب أن يكون 3 أحرف على الأقل"),
+    name: baseSchemas.name,
+  })
+  .omit({ 
+    lastLogin: true, 
+    isActive: true, 
+    createdAt: true, 
+    updatedAt: true 
+  });
+
+export const insertCustomerSchema = createInsertSchema(customers)
+  .extend({
+    phone: baseSchemas.phone,
+    email: baseSchemas.email,
+    name: baseSchemas.name,
+  })
+  .omit({ 
+    isActive: true, 
+    createdAt: true, 
+    updatedAt: true 
+  });
+
+// تحديث أنواع البيانات
+export type User = typeof users.$inferSelect;
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type Customer = typeof customers.$inferSelect;
+export type InsertCustomer = z.infer<typeof insertCustomerSchema>;
+
+// إضافة تعليقات توضيحية للمطورين
+/**
+ * ملاحظات هامة للمطورين:
+ * 1. جميع كلمات المرور يجب تشفيرها قبل الحفظ في قاعدة البيانات
+ * 2. يجب التحقق من صحة رقم الهاتف والبريد الإلكتروني
+ * 3. التأكد من تحديث حقل updatedAt عند تعديل أي سجل
+ */
 
 export const appointments = pgTable("appointments", {
   id: serial("id").primaryKey(),
@@ -217,13 +292,6 @@ export const installmentPayments = pgTable("installment_payments", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
-  name: true,
-});
-
-export const insertCustomerSchema = createInsertSchema(customers);
 export const insertAppointmentSchema = createInsertSchema(appointments);
 export const insertStaffSchema = createInsertSchema(staff);
 export const insertSettingSchema = createInsertSchema(settings).pick({
@@ -333,42 +401,6 @@ export const insertScheduledPostSchema = createInsertSchema(scheduledPosts).exte
 });
 
 
-export type User = typeof users.$inferSelect;
-export type InsertUser = z.infer<typeof insertUserSchema>;
-export type Customer = typeof customers.$inferSelect;
-export type InsertCustomer = z.infer<typeof insertCustomerSchema>;
-export type Appointment = typeof appointments.$inferSelect;
-export type InsertAppointment = z.infer<typeof insertAppointmentSchema>;
-export type Staff = typeof staff.$inferSelect;
-export type InsertStaff = z.infer<typeof insertStaffSchema>;
-export type Setting = typeof settings.$inferSelect;
-export type InsertSetting = z.infer<typeof insertSettingSchema>;
-export type StoreSetting = typeof storeSettings.$inferSelect;
-export type InsertStoreSetting = z.infer<typeof insertStoreSettingsSchema>;
-export type MarketingCampaign = typeof marketingCampaigns.$inferSelect;
-export type InsertMarketingCampaign = z.infer<typeof insertMarketingCampaignSchema>;
-export type Promotion = typeof promotions.$inferSelect;
-export type InsertPromotion = z.infer<typeof insertPromotionSchema>;
-export type DiscountCode = typeof discountCodes.$inferSelect;
-export type InsertDiscountCode = z.infer<typeof insertDiscountCodeSchema>;
-export type SocialMediaAccount = typeof socialMediaAccounts.$inferSelect;
-export type InsertSocialMediaAccount = z.infer<typeof insertSocialMediaAccountSchema>;
-export type ProductGroup = typeof productGroups.$inferSelect;
-export type InsertProductGroup = z.infer<typeof insertProductGroupSchema>;
-export type Product = typeof products.$inferSelect;
-export type InsertProduct = z.infer<typeof insertProductSchema>;
-export type Invoice = typeof invoices.$inferSelect;
-export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;
-export type InstallmentPlan = typeof installmentPlans.$inferSelect;
-export type InsertInstallmentPlan = z.infer<typeof insertInstallmentPlanSchema>;
-export type InstallmentPayment = typeof installmentPayments.$inferSelect;
-export type InsertInstallmentPayment = z.infer<typeof insertInstallmentPaymentSchema>;
-export type CampaignNotification = typeof campaignNotifications.$inferSelect;
-export type InsertCampaignNotification = z.infer<typeof insertCampaignNotificationSchema>;
-export type ScheduledPost = typeof scheduledPosts.$inferSelect;
-export type InsertScheduledPost = z.infer<typeof insertScheduledPostSchema>;
-
-
 export const suppliers = pgTable("suppliers", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
@@ -408,8 +440,8 @@ export const purchaseItems = pgTable("purchase_items", {
 
 // Add Zod schemas for validation
 export const insertSupplierSchema = createInsertSchema(suppliers).extend({
-  phoneNumber: z.string().min(10, "رقم الهاتف يجب أن لا يقل عن 10 أرقام"),
-  email: z.string().email("البريد الإلكتروني غير صالح").optional().nullable(),
+  phoneNumber: baseSchemas.phone,
+  email: baseSchemas.email,
   status: z.enum(["active", "inactive"]).default("active"),
 });
 
