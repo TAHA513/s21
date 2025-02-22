@@ -13,6 +13,37 @@ import { Button } from "@/components/ui/button";
 import { Loader2, AlertCircle, Calendar, DollarSign, Package } from "lucide-react";
 import { Link, useLocation } from "wouter";
 
+interface QuickStats {
+  totalSales: number;
+  salesCount: number;
+  appointmentsCount: number;
+  lowStockCount: number;
+}
+
+interface Sale {
+  id: number;
+  customerName: string | null;
+  amount: string;
+  date: string;
+  status: 'completed' | 'pending' | 'cancelled';
+}
+
+interface Appointment {
+  id: number;
+  customerName: string;
+  customerPhone: string;
+  startTime: string;
+  status: 'completed' | 'pending' | 'cancelled';
+}
+
+interface Product {
+  id: number;
+  name: string;
+  groupName: string;
+  quantity: string;
+  sellingPrice: string;
+}
+
 export default function StaffDashboard() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
@@ -22,19 +53,19 @@ export default function StaffDashboard() {
     return <Link href="/" />;
   }
 
-  const { data: quickStats, isLoading: statsLoading } = useQuery({
+  const { data: quickStats, isLoading: statsLoading } = useQuery<QuickStats>({
     queryKey: ["/api/staff/quick-stats"],
   });
 
-  const { data: todaySales, isLoading: salesLoading } = useQuery({
+  const { data: todaySales, isLoading: salesLoading } = useQuery<{ items: Sale[] }>({
     queryKey: ["/api/sales/today"],
   });
 
-  const { data: appointments, isLoading: appointmentsLoading } = useQuery({
+  const { data: appointments, isLoading: appointmentsLoading } = useQuery<Appointment[]>({
     queryKey: ["/api/appointments/today"],
   });
 
-  const { data: lowStockProducts, isLoading: productsLoading } = useQuery({
+  const { data: lowStockProducts, isLoading: productsLoading } = useQuery<Product[]>({
     queryKey: ["/api/products/low-stock"],
   });
 
@@ -69,7 +100,9 @@ export default function StaffDashboard() {
             </div>
             <div>
               <h2 className="text-xl font-semibold mb-1">المبيعات اليومية</h2>
-              <div className="text-2xl font-bold">{quickStats?.totalSales?.toLocaleString()} د.ع</div>
+              <div className="text-2xl font-bold">
+                {quickStats?.totalSales?.toLocaleString()} د.ع
+              </div>
               <div className="text-sm text-muted-foreground">
                 {quickStats?.salesCount} فاتورة
               </div>
@@ -131,7 +164,7 @@ export default function StaffDashboard() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {todaySales?.items?.map((sale: any) => (
+            {todaySales?.items?.map((sale) => (
               <TableRow key={sale.id}>
                 <TableCell>{sale.id}</TableCell>
                 <TableCell>{sale.customerName || 'عميل نقدي'}</TableCell>
@@ -171,7 +204,7 @@ export default function StaffDashboard() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {appointments?.map((appointment: any) => (
+            {appointments?.map((appointment) => (
               <TableRow key={appointment.id}>
                 <TableCell>{new Date(appointment.startTime).toLocaleTimeString('ar-IQ')}</TableCell>
                 <TableCell>{appointment.customerName}</TableCell>
@@ -210,12 +243,16 @@ export default function StaffDashboard() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {lowStockProducts?.map((product: any) => (
+            {lowStockProducts?.map((product) => (
               <TableRow key={product.id}>
                 <TableCell className="font-medium">{product.name}</TableCell>
                 <TableCell>{product.groupName}</TableCell>
-                <TableCell className="text-red-500 font-bold">{product.quantity}</TableCell>
-                <TableCell>{Number(product.sellingPrice).toLocaleString()} د.ع</TableCell>
+                <TableCell className="text-red-500 font-bold">
+                  {Number(product.quantity).toLocaleString()}
+                </TableCell>
+                <TableCell>
+                  {Number(product.sellingPrice).toLocaleString()} د.ع
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
