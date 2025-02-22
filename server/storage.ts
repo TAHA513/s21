@@ -333,7 +333,10 @@ export class DatabaseStorage implements IStorage {
     try {
       const [updatedStaff] = await db
         .update(schema.staff)
-        .set(updates)
+        .set({
+          ...updates,
+          updatedAt: new Date()
+        })
         .where(eq(schema.staff.id, id))
         .returning();
       return updatedStaff;
@@ -852,7 +855,7 @@ export class DatabaseStorage implements IStorage {
       };
       const [updatedPurchaseOrder] = await db
         .update(schema.purchaseOrders)
-        .set({ ...updatesWithStringNumbers })
+                .set({ ...updatesWithStringNumbers })
         .where(eq(schema.purchaseOrders.id, id))
         .returning();
       return updatedPurchaseOrder;

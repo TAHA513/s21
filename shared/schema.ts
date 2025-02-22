@@ -23,15 +23,9 @@ const baseSchemas = {
   name: z.string()
     .min(2, "الاسم يجب أن يكون حرفين على الأقل")
     .max(100, "الاسم لا يجب أن يتجاوز 100 حرف"),
-
-  price: z.number()
-    .min(0, "السعر يجب أن يكون أكبر من أو يساوي صفر"),
-
-  quantity: z.number()
-    .min(0, "الكمية يجب أن تكون أكبر من أو تساوي صفر"),
 };
 
-// تحديث الجداول مع إضافة العلاقات المرجعية
+// Users table and types
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
@@ -44,12 +38,56 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-export const userRelations = relations(users, ({ one, many }) => ({
+export const userRelations = relations(users, ({ one }) => ({
   staff: one(staff, {
     fields: [users.id],
     references: [staff.userId],
   }),
 }));
+
+export const insertUserSchema = createInsertSchema(users)
+  .extend({
+    password: baseSchemas.password,
+    username: z.string().min(3, "اسم المستخدم يجب أن يكون 3 أحرف على الأقل"),
+    name: baseSchemas.name,
+  })
+  .omit({ 
+    lastLogin: true, 
+    isActive: true, 
+    createdAt: true, 
+    updatedAt: true 
+  });
+
+export type User = typeof users.$inferSelect;
+export type InsertUser = z.infer<typeof insertUserSchema>;
+
+// Staff table and types
+export const staff = pgTable("staff", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  specialization: text("specialization"),
+  workDays: text("work_days").array(),
+  workHours: text("work_hours").array(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const staffRelations = relations(staff, ({ one, many }) => ({
+  user: one(users, {
+    fields: [staff.userId],
+    references: [users.id],
+  }),
+  appointments: many(appointments),
+}));
+
+export const insertStaffSchema = createInsertSchema(staff)
+  .omit({ 
+    createdAt: true, 
+    updatedAt: true 
+  });
+
+export type Staff = typeof staff.$inferSelect;
+export type InsertStaff = z.infer<typeof insertStaffSchema>;
 
 export const customers = pgTable("customers", {
   id: serial("id").primaryKey(),
@@ -88,24 +126,6 @@ export const appointmentRelations = relations(appointments, ({ one }) => ({
     fields: [appointments.staffId],
     references: [staff.id],
   }),
-}));
-
-export const staff = pgTable("staff", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
-  specialization: text("specialization"),
-  workDays: text("work_days").array(),
-  workHours: text("work_hours").array(),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
-
-export const staffRelations = relations(staff, ({ one, many }) => ({
-  user: one(users, {
-    fields: [staff.userId],
-    references: [users.id],
-  }),
-  appointments: many(appointments),
 }));
 
 export const settings = pgTable("settings", {
@@ -289,7 +309,6 @@ export const installmentPayments = pgTable("installment_payments", {
 });
 
 export const insertAppointmentSchema = createInsertSchema(appointments);
-export const insertStaffSchema = createInsertSchema(staff);
 export const insertSettingSchema = createInsertSchema(settings).pick({
   key: true,
   value: true,
