@@ -396,7 +396,15 @@ export class DatabaseStorage implements IStorage {
 
   // Product Group operations
   async getProductGroups(): Promise<schema.ProductGroup[]> {
-    return await db.select().from(schema.productGroups);
+    try {
+      console.log('Fetching all product groups');
+      const groups = await db.select().from(schema.productGroups);
+      console.log('Product groups fetched:', groups);
+      return groups;
+    } catch (error) {
+      console.error('Error fetching product groups:', error);
+      throw new Error(`Failed to fetch product groups: ${error.message}`);
+    }
   }
 
   async getProductGroup(id: number): Promise<schema.ProductGroup | undefined> {
@@ -405,8 +413,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createProductGroup(group: schema.InsertProductGroup): Promise<schema.ProductGroup> {
-    const [newGroup] = await db.insert(schema.productGroups).values(group).returning();
-    return newGroup;
+    try {
+      console.log('Creating product group:', group);
+      const [newGroup] = await db.insert(schema.productGroups).values(group).returning();
+      console.log('Product group created:', newGroup);
+      return newGroup;
+    } catch (error) {
+      console.error('Error creating product group:', error);
+      throw new Error(`Failed to create product group: ${error.message}`);
+    }
   }
 
   async updateProductGroup(id: number, updates: Partial<schema.InsertProductGroup>): Promise<schema.ProductGroup> {
@@ -425,9 +440,27 @@ export class DatabaseStorage implements IStorage {
   // Product operations
   async getProducts(): Promise<schema.Product[]> {
     try {
-      console.log('Fetching all products');
-      const products = await db.select().from(schema.products);
-      console.log('Products fetched:', products);
+      console.log('Fetching all products with their groups');
+      const products = await db
+        .select({
+          id: schema.products.id,
+          name: schema.products.name,
+          type: schema.products.type,
+          quantity: schema.products.quantity,
+          costPrice: schema.products.costPrice,
+          sellingPrice: schema.products.sellingPrice,
+          groupId: schema.products.groupId,
+          isWeighted: schema.products.isWeighted,
+          status: schema.products.status,
+          barcode: schema.products.barcode,
+          createdAt: schema.products.createdAt,
+          updatedAt: schema.products.updatedAt,
+          groupName: schema.productGroups.name,
+        })
+        .from(schema.products)
+        .leftJoin(schema.productGroups, eq(schema.products.groupId, schema.productGroups.id));
+
+      console.log('Products fetched with groups:', products);
 
       return products.map(product => ({
         ...product,
@@ -453,6 +486,16 @@ export class DatabaseStorage implements IStorage {
 
   async createProduct(product: schema.InsertProduct): Promise<schema.Product> {
     try {
+      console.log('Validating product group exists:', product.groupId);
+      const [group] = await db
+        .select()
+        .from(schema.productGroups)
+        .where(eq(schema.productGroups.id, product.groupId));
+
+      if (!group) {
+        throw new Error(`Product group with id ${product.groupId} does not exist`);
+      }
+
       console.log('Creating product with data:', product);
       const [newProduct] = await db.insert(schema.products).values({
         ...product,
@@ -463,7 +506,6 @@ export class DatabaseStorage implements IStorage {
 
       console.log('Product created successfully:', newProduct);
 
-      // Convert string numbers back to numbers for the response
       return {
         ...newProduct,
         costPrice: Number(newProduct.costPrice),
@@ -733,8 +775,7 @@ export class DatabaseStorage implements IStorage {
 
   async testDatabaseConnection(connection: schema.InsertDatabaseConnection): Promise<boolean> {
     // TODO: Implement actual connection testing logic based on the database type
-    return true;
-  }
+    return true;  }
 
   // Campaign Notification operations
   async getCampaignNotifications(campaignId: number): Promise<schema.CampaignNotification[]> {
