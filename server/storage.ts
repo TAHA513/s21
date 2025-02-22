@@ -424,7 +424,18 @@ export class DatabaseStorage implements IStorage {
 
   // Product operations
   async getProducts(): Promise<schema.Product[]> {
-    return await db.select().from(schema.products);
+    try {
+      const products = await db.select().from(schema.products);
+      return products.map(product => ({
+        ...product,
+        costPrice: parseFloat(product.costPrice),
+        sellingPrice: parseFloat(product.sellingPrice),
+        quantity: parseFloat(product.quantity),
+      }));
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      throw error;
+    }
   }
 
   async getProduct(id: number): Promise<schema.Product | undefined> {
@@ -438,14 +449,23 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createProduct(product: schema.InsertProduct): Promise<schema.Product> {
-    const productWithStringNumbers = {
-      ...product,
-      costPrice: product.costPrice.toString(),
-      sellingPrice: product.sellingPrice.toString(),
-      quantity: product.quantity.toString(),
-    };
-    const [newProduct] = await db.insert(schema.products).values(productWithStringNumbers).returning();
-    return newProduct;
+    try {
+      const [newProduct] = await db.insert(schema.products).values({
+        ...product,
+        costPrice: product.costPrice.toString(),
+        sellingPrice: product.sellingPrice.toString(),
+        quantity: product.quantity.toString(),
+      }).returning();
+      return {
+        ...newProduct,
+        costPrice: parseFloat(newProduct.costPrice),
+        sellingPrice: parseFloat(newProduct.sellingPrice),
+        quantity: parseFloat(newProduct.quantity),
+      };
+    } catch (error) {
+      console.error('Error creating product:', error);
+      throw error;
+    }
   }
 
   async updateProduct(id: number, updates: Partial<schema.InsertProduct>): Promise<schema.Product> {
@@ -515,15 +535,25 @@ export class DatabaseStorage implements IStorage {
 
   // Supplier operations
   async getSuppliers(): Promise<schema.Supplier[]> {
-    return await db.select().from(schema.suppliers);
+    try {
+      return await db.select().from(schema.suppliers);
+    } catch (error) {
+      console.error('Error fetching suppliers:', error);
+      throw error;
+    }
   }
   async getSupplier(id: number): Promise<schema.Supplier | undefined> {
     const [supplier] = await db.select().from(schema.suppliers).where(eq(schema.suppliers.id, id));
     return supplier;
   }
   async createSupplier(supplier: schema.InsertSupplier): Promise<schema.Supplier> {
-    const [newSupplier] = await db.insert(schema.suppliers).values(supplier).returning();
-    return newSupplier;
+    try {
+      const [newSupplier] = await db.insert(schema.suppliers).values(supplier).returning();
+      return newSupplier;
+    } catch (error) {
+      console.error('Error creating supplier:', error);
+      throw error;
+    }
   }
   async updateSupplier(id: number, supplier: Partial<schema.InsertSupplier>): Promise<schema.Supplier> {
     const [updatedSupplier] = await db
