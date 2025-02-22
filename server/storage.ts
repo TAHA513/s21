@@ -463,12 +463,13 @@ export class DatabaseStorage implements IStorage {
 
       console.log('Products fetched with groups:', products);
 
+      // Convert string numbers to actual numbers
       return products.map(product => ({
         ...product,
-        quantity: product.quantity,
-        minimumQuantity: product.minimumQuantity,
-        costPrice: product.costPrice,
-        sellingPrice: product.sellingPrice,
+        quantity: Number(product.quantity),
+        minimumQuantity: Number(product.minimumQuantity),
+        costPrice: Number(product.costPrice),
+        sellingPrice: Number(product.sellingPrice),
       }));
     } catch (error) {
       console.error('Error fetching products:', error);
@@ -491,19 +492,19 @@ export class DatabaseStorage implements IStorage {
       console.log('Creating product with data:', product);
       const [newProduct] = await db.insert(schema.products).values({
         ...product,
-        quantity: product.quantity,
-        minimumQuantity: product.minimumQuantity,
-        costPrice: product.costPrice,
-        sellingPrice: product.sellingPrice,
+        quantity: product.quantity.toString(),
+        minimumQuantity: product.minimumQuantity.toString(),
+        costPrice: product.costPrice.toString(),
+        sellingPrice: product.sellingPrice.toString(),
       }).returning();
 
       console.log('Product created successfully:', newProduct);
       return {
         ...newProduct,
-        quantity: newProduct.quantity,
-        minimumQuantity: newProduct.minimumQuantity,
-        costPrice: newProduct.costPrice,
-        sellingPrice: newProduct.sellingPrice,
+        quantity: Number(newProduct.quantity),
+        minimumQuantity: Number(newProduct.minimumQuantity),
+        costPrice: Number(newProduct.costPrice),
+        sellingPrice: Number(newProduct.sellingPrice),
       };
     } catch (error) {
       console.error('Error creating product:', error);
@@ -512,26 +513,26 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateProduct(id: number, updates: Partial<schema.InsertProduct>): Promise<schema.Product> {
-    const updatesWithValues = {
+    const updatesWithStringNumbers = {
       ...updates,
-      ...(updates.quantity && { quantity: updates.quantity }),
-      ...(updates.minimumQuantity && { minimumQuantity: updates.minimumQuantity }),
-      ...(updates.costPrice && { costPrice: updates.costPrice }),
-      ...(updates.sellingPrice && { sellingPrice: updates.sellingPrice }),
+      ...(updates.quantity && { quantity: updates.quantity.toString() }),
+      ...(updates.minimumQuantity && { minimumQuantity: updates.minimumQuantity.toString() }),
+      ...(updates.costPrice && { costPrice: updates.costPrice.toString() }),
+      ...(updates.sellingPrice && { sellingPrice: updates.sellingPrice.toString() }),
     };
 
     const [updatedProduct] = await db
       .update(schema.products)
-      .set(updatesWithValues)
+      .set(updatesWithStringNumbers)
       .where(eq(schema.products.id, id))
       .returning();
 
     return {
       ...updatedProduct,
-      quantity: updatedProduct.quantity,
-      minimumQuantity: updatedProduct.minimumQuantity,
-      costPrice: updatedProduct.costPrice,
-      sellingPrice: updatedProduct.sellingPrice,
+      quantity: Number(updatedProduct.quantity),
+      minimumQuantity: Number(updatedProduct.minimumQuantity),
+      costPrice: Number(updatedProduct.costPrice),
+      sellingPrice: Number(updatedProduct.sellingPrice),
     };
   }
 
