@@ -40,36 +40,29 @@ export function ProductForm({ product, groups, onSuccess }: ProductFormProps) {
 
   const form = useForm({
     resolver: zodResolver(insertProductSchema),
-    defaultValues: product ? {
-      ...product,
-      productionDate: product.productionDate ? new Date(product.productionDate).toISOString().split('T')[0] : undefined,
-      expiryDate: product.expiryDate ? new Date(product.expiryDate).toISOString().split('T')[0] : undefined,
-    } : {
-      name: "",
-      barcode: "",
-      type: "piece",
-      quantity: "0",
-      minimumQuantity: "0",
-      costPrice: "0",
-      sellingPrice: "0",
-      groupId: groups[0]?.id,
-      isWeighted: false,
-      productionDate: new Date().toISOString().split('T')[0],
-      expiryDate: "",
-      status: "active"
+    defaultValues: {
+      name: product?.name ?? "",
+      barcode: product?.barcode ?? "",
+      type: product?.type ?? "piece",
+      quantity: product?.quantity?.toString() ?? "0",
+      costPrice: product?.costPrice?.toString() ?? "0",
+      sellingPrice: product?.sellingPrice?.toString() ?? "0",
+      groupId: product?.groupId ?? groups[0]?.id ?? 0,
+      isWeighted: product?.isWeighted ?? false,
+      status: product?.status ?? "active"
     },
   });
 
   const productMutation = useMutation({
-    mutationFn: async (data: any) => {
+    mutationFn: async (values: any) => {
       try {
-        // تحويل القيم النصية إلى أرقام
+        // Convert string values to numbers
         const formattedData = {
-          ...data,
-          quantity: parseFloat(data.quantity),
-          minimumQuantity: parseFloat(data.minimumQuantity),
-          costPrice: parseFloat(data.costPrice),
-          sellingPrice: parseFloat(data.sellingPrice),
+          ...values,
+          quantity: Number(values.quantity),
+          costPrice: Number(values.costPrice),
+          sellingPrice: Number(values.sellingPrice),
+          groupId: Number(values.groupId)
         };
 
         if (product) {
@@ -121,13 +114,6 @@ export function ProductForm({ product, groups, onSuccess }: ProductFormProps) {
         description: "تم إنشاء المجموعة الجديدة بنجاح",
       });
     },
-    onError: (error: Error) => {
-      toast({
-        title: "خطأ",
-        description: "حدث خطأ أثناء إنشاء المجموعة",
-        variant: "destructive",
-      });
-    }
   });
 
   async function onSubmit(data: any) {
@@ -225,7 +211,6 @@ export function ProductForm({ product, groups, onSuccess }: ProductFormProps) {
                   <Input 
                     type="number"
                     {...field}
-                    onChange={(e) => field.onChange(e.target.value)}
                   />
                 </FormControl>
                 <FormMessage />
@@ -233,62 +218,6 @@ export function ProductForm({ product, groups, onSuccess }: ProductFormProps) {
             )}
           />
 
-          <FormField
-            control={form.control}
-            name="minimumQuantity"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>الحد الأدنى</FormLabel>
-                <FormControl>
-                  <Input 
-                    type="number"
-                    {...field}
-                    onChange={(e) => field.onChange(e.target.value)}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2">
-          <FormField
-            control={form.control}
-            name="productionDate"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>تاريخ الإنتاج</FormLabel>
-                <FormControl>
-                  <Input 
-                    type="date" 
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="expiryDate"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>تاريخ الانتهاء</FormLabel>
-                <FormControl>
-                  <Input 
-                    type="date" 
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2">
           <FormField
             control={form.control}
             name="costPrice"
@@ -299,14 +228,15 @@ export function ProductForm({ product, groups, onSuccess }: ProductFormProps) {
                   <Input 
                     type="number"
                     {...field}
-                    onChange={(e) => field.onChange(e.target.value)}
                   />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
+        </div>
 
+        <div className="grid gap-4 md:grid-cols-2">
           <FormField
             control={form.control}
             name="sellingPrice"
@@ -317,16 +247,13 @@ export function ProductForm({ product, groups, onSuccess }: ProductFormProps) {
                   <Input 
                     type="number"
                     {...field}
-                    onChange={(e) => field.onChange(e.target.value)}
                   />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
-        </div>
 
-        <div className="space-y-4">
           {!isNewGroup ? (
             <FormField
               control={form.control}
@@ -334,7 +261,7 @@ export function ProductForm({ product, groups, onSuccess }: ProductFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>المجموعة</FormLabel>
-                  <Select onValueChange={(value) => field.onChange(parseInt(value))} defaultValue={field.value?.toString()}>
+                  <Select onValueChange={(value) => field.onChange(Number(value))} defaultValue={field.value?.toString()}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="اختر مجموعة" />
@@ -377,7 +304,7 @@ export function ProductForm({ product, groups, onSuccess }: ProductFormProps) {
             <FormItem className="flex flex-row items-center justify-between space-x-2 rounded-lg border p-3">
               <div className="space-y-0.5">
                 <FormLabel>منتج وزني</FormLabel>
-                <FormDescription className="text-xs">
+                <FormDescription>
                   تفعيل القراءة المباشرة للوزن عند المسح
                 </FormDescription>
               </div>

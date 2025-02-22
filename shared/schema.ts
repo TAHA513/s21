@@ -61,11 +61,11 @@ export const insertUserSchema = createInsertSchema(users)
     username: z.string().min(3, "اسم المستخدم يجب أن يكون 3 أحرف على الأقل"),
     name: baseSchemas.name,
   })
-  .omit({ 
-    lastLogin: true, 
-    isActive: true, 
-    createdAt: true, 
-    updatedAt: true 
+  .omit({
+    lastLogin: true,
+    isActive: true,
+    createdAt: true,
+    updatedAt: true,
   });
 
 export const insertCustomerSchema = createInsertSchema(customers)
@@ -74,10 +74,10 @@ export const insertCustomerSchema = createInsertSchema(customers)
     email: baseSchemas.email,
     name: baseSchemas.name,
   })
-  .omit({ 
-    isActive: true, 
-    createdAt: true, 
-    updatedAt: true 
+  .omit({
+    isActive: true,
+    createdAt: true,
+    updatedAt: true,
   });
 
 // تحديث أنواع البيانات
@@ -350,14 +350,16 @@ export const insertProductGroupSchema = createInsertSchema(productGroups).pick({
   description: true,
 });
 
+// تحديث مخطط المنتج للتعامل مع القيم الرقمية
 export const insertProductSchema = createInsertSchema(products).extend({
   barcode: z.string().optional(),
   type: z.enum(["piece", "weight"]),
-  quantity: z.number().min(0),
-  costPrice: z.number().min(0),
-  sellingPrice: z.number().min(0),
-  groupId: z.number(),
+  quantity: z.coerce.number().min(0, "الكمية يجب أن تكون أكبر من أو تساوي صفر"),
+  costPrice: z.coerce.number().min(0, "سعر التكلفة يجب أن يكون أكبر من أو يساوي صفر"),
+  sellingPrice: z.coerce.number().min(0, "سعر البيع يجب أن يكون أكبر من أو يساوي صفر"),
+  groupId: z.coerce.number(),
   isWeighted: z.boolean(),
+  status: z.enum(["active", "inactive"]).default("active"),
 });
 
 export const insertInvoiceSchema = createInsertSchema(invoices).extend({
