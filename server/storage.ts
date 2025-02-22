@@ -1,11 +1,10 @@
 import { Pool } from '@neondatabase/serverless';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 import { db } from './db';
 import * as schema from '@shared/schema';
 import session from "express-session";
 import createMemoryStore from "memorystore";
 import connectPg from "connect-pg-simple";
-import { DatabaseError } from './errors';
 
 const PostgresSessionStore = connectPg(session);
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
@@ -156,867 +155,509 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
-  // Helper method for error handling
-  private handleDatabaseError(error: unknown, operation: string): never {
-    console.error(`Database error during ${operation}:`, error);
-    throw new DatabaseError(`Error during ${operation}`);
-  }
-
-  // User operations with improved error handling
+  // User operations
   async getUser(id: number): Promise<schema.User | undefined> {
-    try {
-      const [user] = await db.select().from(schema.users).where(eq(schema.users.id, id));
-      return user;
-    } catch (error) {
-      this.handleDatabaseError(error, 'getUser');
-    }
+    const [user] = await db.select().from(schema.users).where(eq(schema.users.id, id));
+    return user;
   }
 
   async getUserByUsername(username: string): Promise<schema.User | undefined> {
-    try {
-      const [user] = await db.select().from(schema.users).where(eq(schema.users.username, username));
-      return user;
-    } catch (error) {
-      this.handleDatabaseError(error, 'getUserByUsername');
-    }
+    const [user] = await db.select().from(schema.users).where(eq(schema.users.username, username));
+    return user;
   }
 
   async createUser(user: schema.InsertUser): Promise<schema.User> {
-    try {
-      const [newUser] = await db.insert(schema.users).values(user).returning();
-      return newUser;
-    } catch (error) {
-      this.handleDatabaseError(error, 'createUser');
-    }
+    const [newUser] = await db.insert(schema.users).values(user).returning();
+    return newUser;
   }
 
-  // Customer operations with improved error handling and validation
+  // Customer operations
   async getCustomers(): Promise<schema.Customer[]> {
-    try {
-      return await db.select().from(schema.customers).where(eq(schema.customers.isActive, true));
-    } catch (error) {
-      this.handleDatabaseError(error, 'getCustomers');
-    }
+    return await db.select().from(schema.customers);
   }
 
   async getCustomer(id: number): Promise<schema.Customer | undefined> {
-    try {
-      const [customer] = await db
-        .select()
-        .from(schema.customers)
-        .where(and(
-          eq(schema.customers.id, id),
-          eq(schema.customers.isActive, true)
-        ));
-      return customer;
-    } catch (error) {
-      this.handleDatabaseError(error, 'getCustomer');
-    }
+    const [customer] = await db.select().from(schema.customers).where(eq(schema.customers.id, id));
+    return customer;
   }
 
   async createCustomer(customer: schema.InsertCustomer): Promise<schema.Customer> {
-    try {
-      const [newCustomer] = await db.insert(schema.customers).values(customer).returning();
-      return newCustomer;
-    } catch (error) {
-      this.handleDatabaseError(error, 'createCustomer');
-    }
+    const [newCustomer] = await db.insert(schema.customers).values(customer).returning();
+    return newCustomer;
   }
 
   async updateCustomer(id: number, customer: Partial<schema.InsertCustomer>): Promise<schema.Customer> {
-    try {
-      const [updatedCustomer] = await db
-        .update(schema.customers)
-        .set({
-          ...customer,
-          updatedAt: new Date()
-        })
-        .where(and(
-          eq(schema.customers.id, id),
-          eq(schema.customers.isActive, true)
-        ))
-        .returning();
-      return updatedCustomer;
-    } catch (error) {
-      this.handleDatabaseError(error, 'updateCustomer');
-    }
+    const [updatedCustomer] = await db
+      .update(schema.customers)
+      .set(customer)
+      .where(eq(schema.customers.id, id))
+      .returning();
+    return updatedCustomer;
   }
 
   async deleteCustomer(id: number): Promise<void> {
-    try {
-      await db
-        .update(schema.customers)
-        .set({ 
-          isActive: false,
-          updatedAt: new Date()
-        })
-        .where(eq(schema.customers.id, id));
-    } catch (error) {
-      this.handleDatabaseError(error, 'deleteCustomer');
-    }
+    await db.delete(schema.customers).where(eq(schema.customers.id, id));
   }
+
+  // Appointment operations
   async getAppointments(): Promise<schema.Appointment[]> {
-    try {
-      return await db.select().from(schema.appointments);
-    } catch (error) {
-      this.handleDatabaseError(error, 'getAppointments');
-    }
+    return await db.select().from(schema.appointments);
   }
 
   async getAppointment(id: number): Promise<schema.Appointment | undefined> {
-    try {
-      const [appointment] = await db.select().from(schema.appointments).where(eq(schema.appointments.id, id));
-      return appointment;
-    } catch (error) {
-      this.handleDatabaseError(error, 'getAppointment');
-    }
+    const [appointment] = await db.select().from(schema.appointments).where(eq(schema.appointments.id, id));
+    return appointment;
   }
 
   async createAppointment(appointment: schema.InsertAppointment): Promise<schema.Appointment> {
-    try {
-      const [newAppointment] = await db.insert(schema.appointments).values(appointment).returning();
-      return newAppointment;
-    } catch (error) {
-      this.handleDatabaseError(error, 'createAppointment');
-    }
+    const [newAppointment] = await db.insert(schema.appointments).values(appointment).returning();
+    return newAppointment;
   }
 
   async updateAppointment(id: number, updates: Partial<schema.InsertAppointment>): Promise<schema.Appointment> {
-    try {
-      const [updatedAppointment] = await db
-        .update(schema.appointments)
-        .set(updates)
-        .where(eq(schema.appointments.id, id))
-        .returning();
-      return updatedAppointment;
-    } catch (error) {
-      this.handleDatabaseError(error, 'updateAppointment');
-    }
+    const [updatedAppointment] = await db
+      .update(schema.appointments)
+      .set(updates)
+      .where(eq(schema.appointments.id, id))
+      .returning();
+    return updatedAppointment;
   }
 
   async deleteAppointment(id: number): Promise<void> {
-    try {
-      await db.delete(schema.appointments).where(eq(schema.appointments.id, id));
-    } catch (error) {
-      this.handleDatabaseError(error, 'deleteAppointment');
-    }
+    await db.delete(schema.appointments).where(eq(schema.appointments.id, id));
   }
 
   // Staff operations
   async getStaff(): Promise<schema.Staff[]> {
-    try {
-      return await db.select().from(schema.staff);
-    } catch (error) {
-      this.handleDatabaseError(error, 'getStaff');
-    }
+    return await db.select().from(schema.staff);
   }
 
   async getStaffMember(id: number): Promise<schema.Staff | undefined> {
-    try {
-      const [staff] = await db.select().from(schema.staff).where(eq(schema.staff.id, id));
-      return staff;
-    } catch (error) {
-      this.handleDatabaseError(error, 'getStaffMember');
-    }
+    const [staff] = await db.select().from(schema.staff).where(eq(schema.staff.id, id));
+    return staff;
   }
 
   async createStaff(staff: schema.InsertStaff): Promise<schema.Staff> {
-    try {
-      const [newStaff] = await db.insert(schema.staff).values(staff).returning();
-      return newStaff;
-    } catch (error) {
-      this.handleDatabaseError(error, 'createStaff');
-    }
+    const [newStaff] = await db.insert(schema.staff).values(staff).returning();
+    return newStaff;
   }
 
   async updateStaff(id: number, updates: Partial<schema.InsertStaff>): Promise<schema.Staff> {
-    try {
-      const [updatedStaff] = await db
-        .update(schema.staff)
-        .set(updates)
-        .where(eq(schema.staff.id, id))
-        .returning();
-      return updatedStaff;
-    } catch (error) {
-      this.handleDatabaseError(error, 'updateStaff');
-    }
+    const [updatedStaff] = await db
+      .update(schema.staff)
+      .set(updates)
+      .where(eq(schema.staff.id, id))
+      .returning();
+    return updatedStaff;
   }
 
   async deleteStaff(id: number): Promise<void> {
-    try {
-      await db.delete(schema.staff).where(eq(schema.staff.id, id));
-    } catch (error) {
-      this.handleDatabaseError(error, 'deleteStaff');
-    }
+    await db.delete(schema.staff).where(eq(schema.staff.id, id));
   }
 
   // Settings operations
   async getSetting(key: string): Promise<schema.Setting | undefined> {
-    try {
-      const [setting] = await db.select().from(schema.settings).where(eq(schema.settings.key, key));
-      return setting;
-    } catch (error) {
-      this.handleDatabaseError(error, 'getSetting');
-    }
+    const [setting] = await db.select().from(schema.settings).where(eq(schema.settings.key, key));
+    return setting;
   }
 
   async getSettings(): Promise<schema.Setting[]> {
-    try {
-      return await db.select().from(schema.settings);
-    } catch (error) {
-      this.handleDatabaseError(error, 'getSettings');
-    }
+    return await db.select().from(schema.settings);
   }
 
   async setSetting(key: string, value: string): Promise<schema.Setting> {
-    try {
-      const [setting] = await db
-        .insert(schema.settings)
-        .values({ key, value })
-        .onConflictDoUpdate({
-          target: schema.settings.key,
-          set: { value, updatedAt: new Date() },
-        })
-        .returning();
-      return setting;
-    } catch (error) {
-      this.handleDatabaseError(error, 'setSetting');
-    }
+    const [setting] = await db
+      .insert(schema.settings)
+      .values({ key, value })
+      .onConflictDoUpdate({
+        target: schema.settings.key,
+        set: { value, updatedAt: new Date() },
+      })
+      .returning();
+    return setting;
   }
 
   // Marketing Campaign operations
   async getCampaigns(): Promise<schema.MarketingCampaign[]> {
-    try {
-      return await db.select().from(schema.marketingCampaigns);
-    } catch (error) {
-      this.handleDatabaseError(error, 'getCampaigns');
-    }
+    return await db.select().from(schema.marketingCampaigns);
   }
 
   async getCampaign(id: number): Promise<schema.MarketingCampaign | undefined> {
-    try {
-      const [campaign] = await db.select().from(schema.marketingCampaigns).where(eq(schema.marketingCampaigns.id, id));
-      return campaign;
-    } catch (error) {
-      this.handleDatabaseError(error, 'getCampaign');
-    }
+    const [campaign] = await db.select().from(schema.marketingCampaigns).where(eq(schema.marketingCampaigns.id, id));
+    return campaign;
   }
 
   async createCampaign(campaign: schema.InsertMarketingCampaign): Promise<schema.MarketingCampaign> {
-    try {
-      const [newCampaign] = await db.insert(schema.marketingCampaigns).values(campaign).returning();
-      return newCampaign;
-    } catch (error) {
-      this.handleDatabaseError(error, 'createCampaign');
-    }
+    const [newCampaign] = await db.insert(schema.marketingCampaigns).values(campaign).returning();
+    return newCampaign;
   }
 
   async updateCampaign(id: number, updates: Partial<schema.InsertMarketingCampaign>): Promise<schema.MarketingCampaign> {
-    try {
-      const [updatedCampaign] = await db
-        .update(schema.marketingCampaigns)
-        .set(updates)
-        .where(eq(schema.marketingCampaigns.id, id))
-        .returning();
-      return updatedCampaign;
-    } catch (error) {
-      this.handleDatabaseError(error, 'updateCampaign');
-    }
+    const [updatedCampaign] = await db
+      .update(schema.marketingCampaigns)
+      .set(updates)
+      .where(eq(schema.marketingCampaigns.id, id))
+      .returning();
+    return updatedCampaign;
   }
 
   async deleteCampaign(id: number): Promise<void> {
-    try {
-      await db.delete(schema.marketingCampaigns).where(eq(schema.marketingCampaigns.id, id));
-    } catch (error) {
-      this.handleDatabaseError(error, 'deleteCampaign');
-    }
+    await db.delete(schema.marketingCampaigns).where(eq(schema.marketingCampaigns.id, id));
   }
 
   // Promotion operations
   async getPromotions(): Promise<schema.Promotion[]> {
-    try {
-      return await db.select().from(schema.promotions);
-    } catch (error) {
-      this.handleDatabaseError(error, 'getPromotions');
-    }
+    return await db.select().from(schema.promotions);
   }
 
   async getPromotion(id: number): Promise<schema.Promotion | undefined> {
-    try {
-      const [promotion] = await db.select().from(schema.promotions).where(eq(schema.promotions.id, id));
-      return promotion;
-    } catch (error) {
-      this.handleDatabaseError(error, 'getPromotion');
-    }
+    const [promotion] = await db.select().from(schema.promotions).where(eq(schema.promotions.id, id));
+    return promotion;
   }
 
   async createPromotion(promotion: schema.InsertPromotion): Promise<schema.Promotion> {
-    try {
-      const [newPromotion] = await db.insert(schema.promotions).values(promotion).returning();
-      return newPromotion;
-    } catch (error) {
-      this.handleDatabaseError(error, 'createPromotion');
-    }
+    const [newPromotion] = await db.insert(schema.promotions).values(promotion).returning();
+    return newPromotion;
   }
 
   async updatePromotion(id: number, updates: Partial<schema.InsertPromotion>): Promise<schema.Promotion> {
-    try {
-      const [updatedPromotion] = await db
-        .update(schema.promotions)
-        .set(updates)
-        .where(eq(schema.promotions.id, id))
-        .returning();
-      return updatedPromotion;
-    } catch (error) {
-      this.handleDatabaseError(error, 'updatePromotion');
-    }
+    const [updatedPromotion] = await db
+      .update(schema.promotions)
+      .set(updates)
+      .where(eq(schema.promotions.id, id))
+      .returning();
+    return updatedPromotion;
   }
 
   async deletePromotion(id: number): Promise<void> {
-    try {
-      await db.delete(schema.promotions).where(eq(schema.promotions.id, id));
-    } catch (error) {
-      this.handleDatabaseError(error, 'deletePromotion');
-    }
+    await db.delete(schema.promotions).where(eq(schema.promotions.id, id));
   }
 
   // Discount Code operations
   async getDiscountCodes(): Promise<schema.DiscountCode[]> {
-    try {
-      return await db.select().from(schema.discountCodes);
-    } catch (error) {
-      this.handleDatabaseError(error, 'getDiscountCodes');
-    }
+    return await db.select().from(schema.discountCodes);
   }
 
   async getDiscountCode(id: number): Promise<schema.DiscountCode | undefined> {
-    try {
-      const [discountCode] = await db.select().from(schema.discountCodes).where(eq(schema.discountCodes.id, id));
-      return discountCode;
-    } catch (error) {
-      this.handleDatabaseError(error, 'getDiscountCode');
-    }
+    const [discountCode] = await db.select().from(schema.discountCodes).where(eq(schema.discountCodes.id, id));
+    return discountCode;
   }
 
   async getDiscountCodeByCode(code: string): Promise<schema.DiscountCode | undefined> {
-    try {
-      const [discountCode] = await db.select().from(schema.discountCodes).where(eq(schema.discountCodes.code, code));
-      return discountCode;
-    } catch (error) {
-      this.handleDatabaseError(error, 'getDiscountCodeByCode');
-    }
+    const [discountCode] = await db.select().from(schema.discountCodes).where(eq(schema.discountCodes.code, code));
+    return discountCode;
   }
 
   async createDiscountCode(code: schema.InsertDiscountCode): Promise<schema.DiscountCode> {
-    try {
-      const [newDiscountCode] = await db.insert(schema.discountCodes).values(code).returning();
-      return newDiscountCode;
-    } catch (error) {
-      this.handleDatabaseError(error, 'createDiscountCode');
-    }
+    const [newDiscountCode] = await db.insert(schema.discountCodes).values(code).returning();
+    return newDiscountCode;
   }
 
   async updateDiscountCode(id: number, updates: Partial<schema.InsertDiscountCode>): Promise<schema.DiscountCode> {
-    try {
-      const [updatedDiscountCode] = await db
-        .update(schema.discountCodes)
-        .set(updates)
-        .where(eq(schema.discountCodes.id, id))
-        .returning();
-      return updatedDiscountCode;
-    } catch (error) {
-      this.handleDatabaseError(error, 'updateDiscountCode');
-    }
+    const [updatedDiscountCode] = await db
+      .update(schema.discountCodes)
+      .set(updates)
+      .where(eq(schema.discountCodes.id, id))
+      .returning();
+    return updatedDiscountCode;
   }
 
   async deleteDiscountCode(id: number): Promise<void> {
-    try {
-      await db.delete(schema.discountCodes).where(eq(schema.discountCodes.id, id));
-    } catch (error) {
-      this.handleDatabaseError(error, 'deleteDiscountCode');
-    }
+    await db.delete(schema.discountCodes).where(eq(schema.discountCodes.id, id));
   }
 
   // Social Media Account operations
   async getSocialMediaAccounts(): Promise<schema.SocialMediaAccount[]> {
-    try {
-      return await db.select().from(schema.socialMediaAccounts);
-    } catch (error) {
-      this.handleDatabaseError(error, 'getSocialMediaAccounts');
-    }
+    return await db.select().from(schema.socialMediaAccounts);
   }
 
   async getSocialMediaAccount(id: number): Promise<schema.SocialMediaAccount | undefined> {
-    try {
-      const [account] = await db.select().from(schema.socialMediaAccounts).where(eq(schema.socialMediaAccounts.id, id));
-      return account;
-    } catch (error) {
-      this.handleDatabaseError(error, 'getSocialMediaAccount');
-    }
+    const [account] = await db.select().from(schema.socialMediaAccounts).where(eq(schema.socialMediaAccounts.id, id));
+    return account;
   }
 
   async createSocialMediaAccount(account: schema.InsertSocialMediaAccount): Promise<schema.SocialMediaAccount> {
-    try {
-      const [newAccount] = await db.insert(schema.socialMediaAccounts).values(account).returning();
-      return newAccount;
-    } catch (error) {
-      this.handleDatabaseError(error, 'createSocialMediaAccount');
-    }
+    const [newAccount] = await db.insert(schema.socialMediaAccounts).values(account).returning();
+    return newAccount;
   }
 
   async updateSocialMediaAccount(id: number, updates: Partial<schema.InsertSocialMediaAccount>): Promise<schema.SocialMediaAccount> {
-    try {
-      const [updatedAccount] = await db
-        .update(schema.socialMediaAccounts)
-        .set(updates)
-        .where(eq(schema.socialMediaAccounts.id, id))
-        .returning();
-      return updatedAccount;
-    } catch (error) {
-      this.handleDatabaseError(error, 'updateSocialMediaAccount');
-    }
+    const [updatedAccount] = await db
+      .update(schema.socialMediaAccounts)
+      .set(updates)
+      .where(eq(schema.socialMediaAccounts.id, id))
+      .returning();
+    return updatedAccount;
   }
 
   async deleteSocialMediaAccount(id: number): Promise<void> {
-    try {
-      await db.delete(schema.socialMediaAccounts).where(eq(schema.socialMediaAccounts.id, id));
-    } catch (error) {
-      this.handleDatabaseError(error, 'deleteSocialMediaAccount');
-    }
+    await db.delete(schema.socialMediaAccounts).where(eq(schema.socialMediaAccounts.id, id));
   }
 
   // Product Group operations
   async getProductGroups(): Promise<schema.ProductGroup[]> {
-    try {
-      return await db.select().from(schema.productGroups);
-    } catch (error) {
-      this.handleDatabaseError(error, 'getProductGroups');
-    }
+    return await db.select().from(schema.productGroups);
   }
 
   async getProductGroup(id: number): Promise<schema.ProductGroup | undefined> {
-    try {
-      const [group] = await db.select().from(schema.productGroups).where(eq(schema.productGroups.id, id));
-      return group;
-    } catch (error) {
-      this.handleDatabaseError(error, 'getProductGroup');
-    }
+    const [group] = await db.select().from(schema.productGroups).where(eq(schema.productGroups.id, id));
+    return group;
   }
 
   async createProductGroup(group: schema.InsertProductGroup): Promise<schema.ProductGroup> {
-    try {
-      const [newGroup] = await db.insert(schema.productGroups).values(group).returning();
-      return newGroup;
-    } catch (error) {
-      this.handleDatabaseError(error, 'createProductGroup');
-    }
+    const [newGroup] = await db.insert(schema.productGroups).values(group).returning();
+    return newGroup;
   }
 
   async updateProductGroup(id: number, updates: Partial<schema.InsertProductGroup>): Promise<schema.ProductGroup> {
-    try {
-      const [updatedGroup] = await db
-        .update(schema.productGroups)
-        .set(updates)
-        .where(eq(schema.productGroups.id, id))
-        .returning();
-      return updatedGroup;
-    } catch (error) {
-      this.handleDatabaseError(error, 'updateProductGroup');
-    }
+    const [updatedGroup] = await db
+      .update(schema.productGroups)
+      .set(updates)
+      .where(eq(schema.productGroups.id, id))
+      .returning();
+    return updatedGroup;
   }
 
   async deleteProductGroup(id: number): Promise<void> {
-    try {
-      await db.delete(schema.productGroups).where(eq(schema.productGroups.id, id));
-    } catch (error) {
-      this.handleDatabaseError(error, 'deleteProductGroup');
-    }
+    await db.delete(schema.productGroups).where(eq(schema.productGroups.id, id));
   }
 
   // Product operations
   async getProducts(): Promise<schema.Product[]> {
-    try {
-      return await db.select().from(schema.products);
-    } catch (error) {
-      this.handleDatabaseError(error, 'getProducts');
-    }
+    return await db.select().from(schema.products);
   }
 
   async getProduct(id: number): Promise<schema.Product | undefined> {
-    try {
-      const [product] = await db.select().from(schema.products).where(eq(schema.products.id, id));
-      return product;
-    } catch (error) {
-      this.handleDatabaseError(error, 'getProduct');
-    }
+    const [product] = await db.select().from(schema.products).where(eq(schema.products.id, id));
+    return product;
   }
 
   async getProductByBarcode(barcode: string): Promise<schema.Product | undefined> {
-    try {
-      const [product] = await db.select().from(schema.products).where(eq(schema.products.barcode, barcode));
-      return product;
-    } catch (error) {
-      this.handleDatabaseError(error, 'getProductByBarcode');
-    }
+    const [product] = await db.select().from(schema.products).where(eq(schema.products.barcode, barcode));
+    return product;
   }
 
   async createProduct(product: schema.InsertProduct): Promise<schema.Product> {
-    try {
-      const productWithStringNumbers = {
-        ...product,
-        costPrice: product.costPrice.toString(),
-        sellingPrice: product.sellingPrice.toString(),
-        quantity: product.quantity.toString(),
-      };
-      const [newProduct] = await db.insert(schema.products).values(productWithStringNumbers).returning();
-      return newProduct;
-    } catch (error) {
-      this.handleDatabaseError(error, 'createProduct');
-    }
+    const productWithStringNumbers = {
+      ...product,
+      costPrice: product.costPrice.toString(),
+      sellingPrice: product.sellingPrice.toString(),
+      quantity: product.quantity.toString(),
+    };
+    const [newProduct] = await db.insert(schema.products).values(productWithStringNumbers).returning();
+    return newProduct;
   }
 
   async updateProduct(id: number, updates: Partial<schema.InsertProduct>): Promise<schema.Product> {
-    try {
-      const updatesWithStringNumbers = {
-        ...updates,
-        ...(updates.costPrice && { costPrice: updates.costPrice.toString() }),
-        ...(updates.sellingPrice && { sellingPrice: updates.sellingPrice.toString() }),
-        ...(updates.quantity && { quantity: updates.quantity.toString() }),
-      };
-      const [updatedProduct] = await db
-        .update(schema.products)
-        .set(updatesWithStringNumbers)
-        .where(eq(schema.products.id, id))
-        .returning();
-      return updatedProduct;
-    } catch (error) {
-      this.handleDatabaseError(error, 'updateProduct');
-    }
+    const updatesWithStringNumbers = {
+      ...updates,
+      ...(updates.costPrice && { costPrice: updates.costPrice.toString() }),
+      ...(updates.sellingPrice && { sellingPrice: updates.sellingPrice.toString() }),
+      ...(updates.quantity && { quantity: updates.quantity.toString() }),
+    };
+    const [updatedProduct] = await db
+      .update(schema.products)
+      .set(updatesWithStringNumbers)
+      .where(eq(schema.products.id, id))
+      .returning();
+    return updatedProduct;
   }
 
   async deleteProduct(id: number): Promise<void> {
-    try {
-      await db.delete(schema.products).where(eq(schema.products.id, id));
-    } catch (error) {
-      this.handleDatabaseError(error, 'deleteProduct');
-    }
+    await db.delete(schema.products).where(eq(schema.products.id, id));
   }
 
   // Invoice operations
   async getInvoices(): Promise<schema.Invoice[]> {
-    try {
-      return await db.select().from(schema.invoices);
-    } catch (error) {
-      this.handleDatabaseError(error, 'getInvoices');
-    }
+    return await db.select().from(schema.invoices);
   }
 
   async getInvoice(id: number): Promise<schema.Invoice | undefined> {
-    try {
-      const [invoice] = await db.select().from(schema.invoices).where(eq(schema.invoices.id, id));
-      return invoice;
-    } catch (error) {
-      this.handleDatabaseError(error, 'getInvoice');
-    }
+    const [invoice] = await db.select().from(schema.invoices).where(eq(schema.invoices.id, id));
+    return invoice;
   }
 
   async createInvoice(invoice: schema.InsertInvoice): Promise<schema.Invoice> {
-    try {
-      const invoiceWithStringNumbers = {
-        ...invoice,
-        subtotal: invoice.subtotal.toString(),
-        discount: invoice.discount.toString(),
-        discountAmount: invoice.discountAmount.toString(),
-        finalTotal: invoice.finalTotal.toString(),
-      };
-      const [newInvoice] = await db.insert(schema.invoices).values([invoiceWithStringNumbers]).returning();
-      return newInvoice;
-    } catch (error) {
-      this.handleDatabaseError(error, 'createInvoice');
-    }
+    const invoiceWithStringNumbers = {
+      ...invoice,
+      subtotal: invoice.subtotal.toString(),
+      discount: invoice.discount.toString(),
+      discountAmount: invoice.discountAmount.toString(),
+      finalTotal: invoice.finalTotal.toString(),
+    };
+    const [newInvoice] = await db.insert(schema.invoices).values([invoiceWithStringNumbers]).returning();
+    return newInvoice;
   }
 
   // Store Settings operations
   async getStoreSettings(): Promise<schema.StoreSetting | undefined> {
-    try {
-      const [settings] = await db.select().from(schema.storeSettings);
-      return settings;
-    } catch (error) {
-      this.handleDatabaseError(error, 'getStoreSettings');
-    }
+    const [settings] = await db.select().from(schema.storeSettings);
+    return settings;
   }
 
   async updateStoreSettings(settings: {
     storeName: string;
     storeLogo?: string;
   }): Promise<schema.StoreSetting> {
-    try {
-      const [updatedSettings] = await db
-        .insert(schema.storeSettings)
-        .values({
-          ...settings,
-          id: 1,
-        })
-        .onConflictDoUpdate({
-          target: schema.storeSettings.id,
-          set: { ...settings, updatedAt: new Date() },
-        })
-        .returning();
-      return updatedSettings;
-    } catch (error) {
-      this.handleDatabaseError(error, 'updateStoreSettings');
-    }
+    const [updatedSettings] = await db
+      .insert(schema.storeSettings)
+      .values({
+        ...settings,
+        id: 1,
+      })
+      .onConflictDoUpdate({
+        target: schema.storeSettings.id,
+        set: { ...settings, updatedAt: new Date() },
+      })
+      .returning();
+    return updatedSettings;
   }
 
   // Supplier operations
   async getSuppliers(): Promise<schema.Supplier[]> {
-    try {
-      return await db.select().from(schema.suppliers);
-    } catch (error) {
-      this.handleDatabaseError(error, 'getSuppliers');
-    }
+    return await db.select().from(schema.suppliers);
   }
   async getSupplier(id: number): Promise<schema.Supplier | undefined> {
-    try {
-      const [supplier] = await db.select().from(schema.suppliers).where(eq(schema.suppliers.id, id));
-      return supplier;
-    } catch (error) {
-      this.handleDatabaseError(error, 'getSupplier');
-    }
+    const [supplier] = await db.select().from(schema.suppliers).where(eq(schema.suppliers.id, id));
+    return supplier;
   }
   async createSupplier(supplier: schema.InsertSupplier): Promise<schema.Supplier> {
-    try {
-      const [newSupplier] = await db.insert(schema.suppliers).values(supplier).returning();
-      return newSupplier;
-    } catch (error) {
-      this.handleDatabaseError(error, 'createSupplier');
-    }
+    const [newSupplier] = await db.insert(schema.suppliers).values(supplier).returning();
+    return newSupplier;
   }
   async updateSupplier(id: number, supplier: Partial<schema.InsertSupplier>): Promise<schema.Supplier> {
-    try {
-      const [updatedSupplier] = await db
-        .update(schema.suppliers)
-        .set(supplier)
-        .where(eq(schema.suppliers.id, id))
-        .returning();
-      return updatedSupplier;
-    } catch (error) {
-      this.handleDatabaseError(error, 'updateSupplier');
-    }
+    const [updatedSupplier] = await db
+      .update(schema.suppliers)
+      .set(supplier)
+      .where(eq(schema.suppliers.id, id))
+      .returning();
+    return updatedSupplier;
   }
   async deleteSupplier(id: number): Promise<void> {
-    try {
-      await db.delete(schema.suppliers).where(eq(schema.suppliers.id, id));
-    } catch (error) {
-      this.handleDatabaseError(error, 'deleteSupplier');
-    }
+    await db.delete(schema.suppliers).where(eq(schema.suppliers.id, id));
   }
 
   // Purchase operations
   async getPurchaseOrders(): Promise<schema.PurchaseOrder[]> {
-    try {
-      return await db.select().from(schema.purchaseOrders);
-    } catch (error) {
-      this.handleDatabaseError(error, 'getPurchaseOrders');
-    }
+    return await db.select().from(schema.purchaseOrders);
   }
   async getPurchaseOrder(id: number): Promise<schema.PurchaseOrder | undefined> {
-    try {
-      const [purchaseOrder] = await db.select().from(schema.purchaseOrders).where(eq(schema.purchaseOrders.id, id));
-      return purchaseOrder;
-    } catch (error) {
-      this.handleDatabaseError(error, 'getPurchaseOrder');
-    }
+    const [purchaseOrder] = await db.select().from(schema.purchaseOrders).where(eq(schema.purchaseOrders.id, id));
+    return purchaseOrder;
   }
   async createPurchaseOrder(purchase: schema.InsertPurchaseOrder): Promise<schema.PurchaseOrder> {
-    try {
-      const purchaseWithStringNumbers = {
-        ...purchase,
-        totalAmount: purchase.totalAmount.toString(),
-        paid: purchase.paid.toString(),
-        remaining: purchase.remaining.toString(),
-      };
-      const [newPurchaseOrder] = await db.insert(schema.purchaseOrders).values([purchaseWithStringNumbers]).returning();
-      return newPurchaseOrder;
-    } catch (error) {
-      this.handleDatabaseError(error, 'createPurchaseOrder');
-    }
+    const purchaseWithStringNumbers = {
+      ...purchase,
+      totalAmount: purchase.totalAmount.toString(),
+      paid: purchase.paid.toString(),
+      remaining: purchase.remaining.toString(),
+    };
+    const [newPurchaseOrder] = await db.insert(schema.purchaseOrders).values([purchaseWithStringNumbers]).returning();
+    return newPurchaseOrder;
   }
   async updatePurchaseOrder(id: number, updates: Partial<schema.InsertPurchaseOrder>): Promise<schema.PurchaseOrder> {
-    try {
-      const updatesWithStringNumbers = {
-        ...updates,
-        ...(updates.totalAmount && { totalAmount: updates.totalAmount.toString() }),
-        ...(updates.paid && { paid: updates.paid.toString() }),
-        ...(updates.remaining && { remaining: updates.remaining.toString() }),
-      };
-      const [updatedPurchaseOrder] = await db
-        .update(schema.purchaseOrders)
-        .set({ ...updatesWithStringNumbers })
-        .where(eq(schema.purchaseOrders.id, id))
-        .returning();
-      return updatedPurchaseOrder;
-    } catch (error) {
-      this.handleDatabaseError(error, 'updatePurchaseOrder');
-    }
+    const updatesWithStringNumbers = {
+      ...updates,
+      ...(updates.totalAmount && { totalAmount: updates.totalAmount.toString() }),
+      ...(updates.paid && { paid: updates.paid.toString() }),
+      ...(updates.remaining && { remaining: updates.remaining.toString() }),
+    };
+    const [updatedPurchaseOrder] = await db
+      .update(schema.purchaseOrders)
+      .set({ ...updatesWithStringNumbers })
+      .where(eq(schema.purchaseOrders.id, id))
+      .returning();
+    return updatedPurchaseOrder;
   }
   async deletePurchaseOrder(id: number): Promise<void> {
-    try {
-      await db.delete(schema.purchaseOrders).where(eq(schema.purchaseOrders.id, id));
-    } catch (error) {
-      this.handleDatabaseError(error, 'deletePurchaseOrder');
-    }
+    await db.delete(schema.purchaseOrders).where(eq(schema.purchaseOrders.id, id));
   }
   async getPurchaseItems(purchaseId: number): Promise<schema.PurchaseItem[]> {
-    try {
-      return await db.select().from(schema.purchaseItems).where(eq(schema.purchaseItems.purchaseId, purchaseId));
-    } catch (error) {
-      this.handleDatabaseError(error, 'getPurchaseItems');
-    }
+    return await db.select().from(schema.purchaseItems).where(eq(schema.purchaseItems.purchaseId, purchaseId));
   }
 
   // Expense Category operations
   async getExpenseCategories(): Promise<schema.ExpenseCategory[]> {
-    try {
-      return await db.select().from(schema.expenseCategories);
-    } catch (error) {
-      this.handleDatabaseError(error, 'getExpenseCategories');
-    }
+    return await db.select().from(schema.expenseCategories);
   }
   async getExpenseCategory(id: number): Promise<schema.ExpenseCategory | undefined> {
-    try {
-      const [expenseCategory] = await db.select().from(schema.expenseCategories).where(eq(schema.expenseCategories.id, id));
-      return expenseCategory;
-    } catch (error) {
-      this.handleDatabaseError(error, 'getExpenseCategory');
-    }
+    const [expenseCategory] = await db.select().from(schema.expenseCategories).where(eq(schema.expenseCategories.id, id));
+    return expenseCategory;
   }
   async createExpenseCategory(category: schema.InsertExpenseCategory): Promise<schema.ExpenseCategory> {
-    try {
-      const [newExpenseCategory] = await db.insert(schema.expenseCategories).values(category).returning();
-      return newExpenseCategory;
-    } catch (error) {
-      this.handleDatabaseError(error, 'createExpenseCategory');
-    }
+    const [newExpenseCategory] = await db.insert(schema.expenseCategories).values(category).returning();
+    return newExpenseCategory;
   }
   async updateExpenseCategory(id: number, category: Partial<schema.InsertExpenseCategory>): Promise<schema.ExpenseCategory> {
-    try {
-      const [updatedExpenseCategory] = await db
-        .update(schema.expenseCategories)
-        .set(category)
-        .where(eq(schema.expenseCategories.id, id))
-        .returning();
-      return updatedExpenseCategory;
-    } catch (error) {
-      this.handleDatabaseError(error, 'updateExpenseCategory');
-    }
+    const [updatedExpenseCategory] = await db
+      .update(schema.expenseCategories)
+      .set(category)
+      .where(eq(schema.expenseCategories.id, id))
+      .returning();
+    return updatedExpenseCategory;
   }
   async deleteExpenseCategory(id: number): Promise<void> {
-    try {
-      await db.delete(schema.expenseCategories).where(eq(schema.expenseCategories.id, id));
-    } catch (error) {
-      this.handleDatabaseError(error, 'deleteExpenseCategory');
-    }
+    await db.delete(schema.expenseCategories).where(eq(schema.expenseCategories.id, id));
   }
 
   // Expense operations
   async getExpenses(): Promise<schema.Expense[]> {
-    try {
-      return await db.select().from(schema.expenses);
-    } catch (error) {
-      this.handleDatabaseError(error, 'getExpenses');
-    }
+    return await db.select().from(schema.expenses);
   }
   async getExpense(id: number): Promise<schema.Expense | undefined> {
-    try {
-      const [expense] = await db.select().from(schema.expenses).where(eq(schema.expenses.id, id));
-      return expense;
-    } catch (error) {
-      this.handleDatabaseError(error, 'getExpense');
-    }
+    const [expense] = await db.select().from(schema.expenses).where(eq(schema.expenses.id, id));
+    return expense;
   }
   async createExpense(expense: schema.InsertExpense): Promise<schema.Expense> {
-    try {
-      const expenseWithStringNumbers = {
-        ...expense,
-        amount: expense.amount.toString(),
-      };
-      const [newExpense] = await db.insert(schema.expenses).values([expenseWithStringNumbers]).returning();
-      return newExpense;
-    } catch (error) {
-      this.handleDatabaseError(error, 'createExpense');
-    }
+    const expenseWithStringNumbers = {
+      ...expense,
+      amount: expense.amount.toString(),
+    };
+    const [newExpense] = await db.insert(schema.expenses).values([expenseWithStringNumbers]).returning();
+    return newExpense;
   }
   async updateExpense(id: number, updates: Partial<schema.InsertExpense>): Promise<schema.Expense> {
-    try {
-      const updatesWithStringNumbers = {
-        ...updates,
-        ...(updates.amount && { amount: updates.amount.toString() }),
-      };
-      const [updatedExpense] = await db
-        .update(schema.expenses)
-        .set({ ...updatesWithStringNumbers })
-        .where(eq(schema.expenses.id, id))
-        .returning();
-      return updatedExpense;
-    } catch (error) {
-      this.handleDatabaseError(error, 'updateExpense');
-    }
+    const updatesWithStringNumbers = {
+      ...updates,
+      ...(updates.amount && { amount: updates.amount.toString() }),
+    };
+    const [updatedExpense] = await db
+      .update(schema.expenses)
+      .set({ ...updatesWithStringNumbers })
+      .where(eq(schema.expenses.id, id))
+      .returning();
+    return updatedExpense;
   }
   async deleteExpense(id: number): Promise<void> {
-    try {
-      await db.delete(schema.expenses).where(eq(schema.expenses.id, id));
-    } catch (error) {
-      this.handleDatabaseError(error, 'deleteExpense');
-    }
+    await db.delete(schema.expenses).where(eq(schema.expenses.id, id));
   }
 
   // Database connection operations
   async getDatabaseConnections(): Promise<schema.DatabaseConnection[]> {
-    try {
-      return await db.select().from(schema.databaseConnections);
-    } catch (error) {
-      this.handleDatabaseError(error, 'getDatabaseConnections');
-    }
+    return await db.select().from(schema.databaseConnections);
   }
 
   async getDatabaseConnection(id: number): Promise<schema.DatabaseConnection | undefined> {
-    try {
-      const [connection] = await db.select().from(schema.databaseConnections).where(eq(schema.databaseConnections.id, id));
-      return connection;
-    } catch (error) {
-      this.handleDatabaseError(error, 'getDatabaseConnection');
-    }
+    const [connection] = await db.select().from(schema.databaseConnections).where(eq(schema.databaseConnections.id, id));
+    return connection;
   }
 
   async createDatabaseConnection(connection: schema.InsertDatabaseConnection): Promise<schema.DatabaseConnection> {
-    try {
-      const [newConnection] = await db.insert(schema.databaseConnections).values(connection).returning();
-      return newConnection;
-    } catch (error) {
-      this.handleDatabaseError(error, 'createDatabaseConnection');
-    }
+    const [newConnection] = await db.insert(schema.databaseConnections).values(connection).returning();
+    return newConnection;
   }
 
   async updateDatabaseConnection(id: number, connection: Partial<schema.InsertDatabaseConnection>): Promise<schema.DatabaseConnection> {
-    try {
-      const [updatedConnection] = await db
-        .update(schema.databaseConnections)
-        .set({ ...connection, updatedAt: new Date() })
-        .where(eq(schema.databaseConnections.id, id))
-        .returning();
-      return updatedConnection;
-    } catch (error) {
-      this.handleDatabaseError(error, 'updateDatabaseConnection');
-    }
+    const [updatedConnection] = await db
+      .update(schema.databaseConnections)
+      .set({ ...connection, updatedAt: new Date() })
+      .where(eq(schema.databaseConnections.id, id))
+      .returning();
+    return updatedConnection;
   }
 
   async deleteDatabaseConnection(id: number): Promise<void> {
-    try {
-      await db.delete(schema.databaseConnections).where(eq(schema.databaseConnections.id, id));
-    } catch (error) {
-      this.handleDatabaseError(error, 'deleteDatabaseConnection');
-    }
+    await db.delete(schema.databaseConnections).where(eq(schema.databaseConnections.id, id));
   }
 
   async testDatabaseConnection(connection: schema.InsertDatabaseConnection): Promise<boolean> {
@@ -1026,106 +667,74 @@ export class DatabaseStorage implements IStorage {
 
   // Campaign Notification operations
   async getCampaignNotifications(campaignId: number): Promise<schema.CampaignNotification[]> {
-    try {
-      return await db
-        .select()
-        .from(schema.campaignNotifications)
-        .where(eq(schema.campaignNotifications.campaignId, campaignId));
-    } catch (error) {
-      this.handleDatabaseError(error, 'getCampaignNotifications');
-    }
+    return await db
+      .select()
+      .from(schema.campaignNotifications)
+      .where(eq(schema.campaignNotifications.campaignId, campaignId));
   }
 
   async createCampaignNotification(notification: schema.InsertCampaignNotification): Promise<schema.CampaignNotification> {
-    try {
-      const [newNotification] = await db
-        .insert(schema.campaignNotifications)
-        .values(notification)
-        .returning();
-      return newNotification;
-    } catch (error) {
-      this.handleDatabaseError(error, 'createCampaignNotification');
-    }
+    const [newNotification] = await db
+      .insert(schema.campaignNotifications)
+      .values(notification)
+      .returning();
+    return newNotification;
   }
 
   async updateCampaignNotification(
     id: number,
     notification: Partial<schema.InsertCampaignNotification>
   ): Promise<schema.CampaignNotification> {
-    try {
-      const [updatedNotification] = await db
-        .update(schema.campaignNotifications)
-        .set(notification)
-        .where(eq(schema.campaignNotifications.id, id))
-        .returning();
-      return updatedNotification;
-    } catch (error) {
-      this.handleDatabaseError(error, 'updateCampaignNotification');
-    }
+    const [updatedNotification] = await db
+      .update(schema.campaignNotifications)
+      .set(notification)
+      .where(eq(schema.campaignNotifications.id, id))
+      .returning();
+    return updatedNotification;
   }
 
   async getPendingNotifications(): Promise<schema.CampaignNotification[]> {
-    try {
-      return await db
-        .select()
-        .from(schema.campaignNotifications)
-        .where(eq(schema.campaignNotifications.status, 'pending'))
-        .orderBy(schema.campaignNotifications.scheduledFor);
-    } catch (error) {
-      this.handleDatabaseError(error, 'getPendingNotifications');
-    }
+    return await db
+      .select()
+      .from(schema.campaignNotifications)
+      .where(eq(schema.campaignNotifications.status, 'pending'))
+      .orderBy(schema.campaignNotifications.scheduledFor);
   }
 
   // Scheduled Post operations
   async getScheduledPosts(campaignId: number): Promise<schema.ScheduledPost[]> {
-    try {
-      return await db
-        .select()
-        .from(schema.scheduledPosts)
-        .where(eq(schema.scheduledPosts.campaignId, campaignId));
-    } catch (error) {
-      this.handleDatabaseError(error, 'getScheduledPosts');
-    }
+    return await db
+      .select()
+      .from(schema.scheduledPosts)
+      .where(eq(schema.scheduledPosts.campaignId, campaignId));
   }
 
   async createScheduledPost(post: schema.InsertScheduledPost): Promise<schema.ScheduledPost> {
-    try {
-      const [newPost] = await db
-        .insert(schema.scheduledPosts)
-        .values(post)
-        .returning();
-      return newPost;
-    } catch (error) {
-      this.handleDatabaseError(error, 'createScheduledPost');
-    }
+    const [newPost] = await db
+      .insert(schema.scheduledPosts)
+      .values(post)
+      .returning();
+    return newPost;
   }
 
   async updateScheduledPost(
     id: number,
     post: Partial<schema.InsertScheduledPost>
   ): Promise<schema.ScheduledPost> {
-    try {
-      const [updatedPost] = await db
-        .update(schema.scheduledPosts)
-        .set(post)
-        .where(eq(schema.scheduledPosts.id, id))
-        .returning();
-      return updatedPost;
-    } catch (error) {
-      this.handleDatabaseError(error, 'updateScheduledPost');
-    }
+    const [updatedPost] = await db
+      .update(schema.scheduledPosts)
+      .set(post)
+      .where(eq(schema.scheduledPosts.id, id))
+      .returning();
+    return updatedPost;
   }
 
   async getPendingScheduledPosts(): Promise<schema.ScheduledPost[]> {
-    try {
-      return await db
-        .select()
-        .from(schema.scheduledPosts)
-        .where(eq(schema.scheduledPosts.status, 'pending'))
-        .orderBy(schema.scheduledPosts.scheduledTime);
-    } catch (error) {
-      this.handleDatabaseError(error, 'getPendingScheduledPosts');
-    }
+    return await db
+      .select()
+      .from(schema.scheduledPosts)
+      .where(eq(schema.scheduledPosts.status, 'pending'))
+      .orderBy(schema.scheduledPosts.scheduledTime);
   }
 }
 
