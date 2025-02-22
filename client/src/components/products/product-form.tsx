@@ -50,29 +50,40 @@ export function ProductForm({ product, groups, onSuccess }: ProductFormProps) {
       groupId: product?.groupId ?? groups[0]?.id ?? 0,
       isWeighted: product?.isWeighted ?? false,
       status: product?.status ?? "active",
-      productionDate: product?.productionDate ?? "",
-      expiryDate: product?.expiryDate ?? "",
+      productionDate: product?.productionDate ? new Date(product.productionDate).toISOString().split('T')[0] : "",
+      expiryDate: product?.expiryDate ? new Date(product.expiryDate).toISOString().split('T')[0] : "",
     },
   });
 
   const productMutation = useMutation({
     mutationFn: async (values: any) => {
       try {
-        // Convert string values to numbers
+        // تحويل القيم النصية إلى أرقام وتنسيق البيانات
         const formattedData = {
           ...values,
           quantity: Number(values.quantity),
           costPrice: Number(values.costPrice),
           sellingPrice: Number(values.sellingPrice),
-          groupId: Number(values.groupId)
+          groupId: Number(values.groupId),
+          // تنسيق التواريخ
+          productionDate: values.productionDate ? new Date(values.productionDate).toISOString() : null,
+          expiryDate: values.expiryDate ? new Date(values.expiryDate).toISOString() : null,
         };
 
         if (product) {
-          const res = await apiRequest("PATCH", `/api/products/${product.id}`, formattedData);
-          return res.json();
+          const response = await apiRequest("PATCH", `/api/products/${product.id}`, formattedData);
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          const data = await response.json();
+          return data;
         } else {
-          const res = await apiRequest("POST", "/api/products", formattedData);
-          return res.json();
+          const response = await apiRequest("POST", "/api/products", formattedData);
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          const data = await response.json();
+          return data;
         }
       } catch (error) {
         console.error("Error in product mutation:", error);
@@ -88,11 +99,11 @@ export function ProductForm({ product, groups, onSuccess }: ProductFormProps) {
       onSuccess?.();
       form.reset();
     },
-    onError: (error: Error) => {
+    onError: (error: any) => {
       console.error("Product mutation error:", error);
       toast({
-        title: "خطأ",
-        description: "حدث خطأ أثناء " + (product ? "تحديث" : "إضافة") + " المنتج",
+        title: "خطأ في " + (product ? "تحديث" : "إضافة") + " المنتج",
+        description: error.message || "حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.",
         variant: "destructive",
       });
     },
@@ -100,11 +111,14 @@ export function ProductForm({ product, groups, onSuccess }: ProductFormProps) {
 
   const groupMutation = useMutation({
     mutationFn: async (name: string) => {
-      const res = await apiRequest("POST", "/api/product-groups", {
+      const response = await apiRequest("POST", "/api/product-groups", {
         name,
         description: "",
       });
-      return res.json();
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      return response.json();
     },
     onSuccess: (newGroup) => {
       queryClient.invalidateQueries({ queryKey: ["/api/product-groups"] });
@@ -114,6 +128,13 @@ export function ProductForm({ product, groups, onSuccess }: ProductFormProps) {
       toast({
         title: "تم إنشاء المجموعة",
         description: "تم إنشاء المجموعة الجديدة بنجاح",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "خطأ في إنشاء المجموعة",
+        description: error.message || "حدث خطأ أثناء إنشاء المجموعة الجديدة",
+        variant: "destructive",
       });
     },
   });
@@ -163,7 +184,7 @@ export function ProductForm({ product, groups, onSuccess }: ProductFormProps) {
                           <Scan className="h-4 w-4" />
                         </Button>
                       </DialogTrigger>
-                      <DialogContent className="sm:max-w-[400px]">
+                      <DialogContent>
                         <DialogHeader>
                           <DialogTitle>مسح الباركود</DialogTitle>
                         </DialogHeader>
@@ -212,6 +233,8 @@ export function ProductForm({ product, groups, onSuccess }: ProductFormProps) {
                 <FormControl>
                   <Input 
                     type="number"
+                    min="0"
+                    step="0.01"
                     {...field}
                   />
                 </FormControl>
@@ -229,6 +252,8 @@ export function ProductForm({ product, groups, onSuccess }: ProductFormProps) {
                 <FormControl>
                   <Input 
                     type="number"
+                    min="0"
+                    step="0.01"
                     {...field}
                   />
                 </FormControl>
@@ -248,6 +273,8 @@ export function ProductForm({ product, groups, onSuccess }: ProductFormProps) {
                 <FormControl>
                   <Input 
                     type="number"
+                    min="0"
+                    step="0.01"
                     {...field}
                   />
                 </FormControl>
@@ -310,6 +337,7 @@ export function ProductForm({ product, groups, onSuccess }: ProductFormProps) {
                   <Input 
                     type="date"
                     {...field}
+                    value={field.value || ""}
                   />
                 </FormControl>
                 <FormMessage />
@@ -327,6 +355,7 @@ export function ProductForm({ product, groups, onSuccess }: ProductFormProps) {
                   <Input 
                     type="date"
                     {...field}
+                    value={field.value || ""}
                   />
                 </FormControl>
                 <FormMessage />
