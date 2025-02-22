@@ -61,11 +61,11 @@ export const insertUserSchema = createInsertSchema(users)
     username: z.string().min(3, "اسم المستخدم يجب أن يكون 3 أحرف على الأقل"),
     name: baseSchemas.name,
   })
-  .omit({
-    lastLogin: true,
-    isActive: true,
-    createdAt: true,
-    updatedAt: true,
+  .omit({ 
+    lastLogin: true, 
+    isActive: true, 
+    createdAt: true, 
+    updatedAt: true 
   });
 
 export const insertCustomerSchema = createInsertSchema(customers)
@@ -74,10 +74,10 @@ export const insertCustomerSchema = createInsertSchema(customers)
     email: baseSchemas.email,
     name: baseSchemas.name,
   })
-  .omit({
-    isActive: true,
-    createdAt: true,
-    updatedAt: true,
+  .omit({ 
+    isActive: true, 
+    createdAt: true, 
+    updatedAt: true 
   });
 
 // تحديث أنواع البيانات
@@ -238,8 +238,6 @@ export const products = pgTable("products", {
   groupId: integer("group_id").notNull(),
   isWeighted: boolean("is_weighted").notNull().default(false),
   status: text("status").notNull().default("active"),
-  productionDate: timestamp("production_date"),
-  expiryDate: timestamp("expiry_date"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -352,18 +350,14 @@ export const insertProductGroupSchema = createInsertSchema(productGroups).pick({
   description: true,
 });
 
-// تحديث مخطط المنتج للتعامل مع القيم الرقمية
 export const insertProductSchema = createInsertSchema(products).extend({
   barcode: z.string().optional(),
   type: z.enum(["piece", "weight"]),
-  quantity: z.coerce.number().min(0, "الكمية يجب أن تكون أكبر من أو تساوي صفر"),
-  costPrice: z.coerce.number().min(0, "سعر التكلفة يجب أن يكون أكبر من أو يساوي صفر"),
-  sellingPrice: z.coerce.number().min(0, "سعر البيع يجب أن يكون أكبر من أو يساوي صفر"),
-  groupId: z.coerce.number(),
+  quantity: z.number().min(0),
+  costPrice: z.number().min(0),
+  sellingPrice: z.number().min(0),
+  groupId: z.number(),
   isWeighted: z.boolean(),
-  status: z.enum(["active", "inactive"]).default("active"),
-  productionDate: z.string().optional(),
-  expiryDate: z.string().optional(),
 });
 
 export const insertInvoiceSchema = createInsertSchema(invoices).extend({
@@ -561,34 +555,3 @@ export const insertDatabaseConnectionSchema = createInsertSchema(databaseConnect
 
 export type DatabaseConnection = typeof databaseConnections.$inferSelect;
 export type InsertDatabaseConnection = z.infer<typeof insertDatabaseConnectionSchema>;
-
-// تحديث أنواع البيانات لجميع الكيانات
-export type Product = typeof products.$inferSelect;
-export type InsertProduct = z.infer<typeof insertProductSchema>;
-export type Supplier = typeof suppliers.$inferSelect;
-export type InsertSupplier = z.infer<typeof insertSupplierSchema>;
-export type PurchaseOrder = typeof purchaseOrders.$inferSelect;
-export type InsertPurchaseOrder = z.infer<typeof insertPurchaseOrderSchema>;
-export type Setting = typeof settings.$inferSelect;
-export type InsertSetting = z.infer<typeof insertSettingSchema>;
-export type StoreSetting = typeof storeSettings.$inferSelect;
-export type InsertStoreSetting = z.infer<typeof insertStoreSettingsSchema>;
-export type MarketingCampaign = typeof marketingCampaigns.$inferSelect;
-export type InsertMarketingCampaign = z.infer<typeof insertMarketingCampaignSchema>;
-export type Promotion = typeof promotions.$inferSelect;
-export type InsertPromotion = z.infer<typeof insertPromotionSchema>;
-export type DiscountCode = typeof discountCodes.$inferSelect;
-export type InsertDiscountCode = z.infer<typeof insertDiscountCodeSchema>;
-export type SocialMediaAccount = typeof socialMediaAccounts.$inferSelect;
-export type InsertSocialMediaAccount = z.infer<typeof insertSocialMediaAccountSchema>;
-export type ProductGroup = typeof productGroups.$inferSelect;
-export type Invoice = typeof invoices.$inferSelect;
-export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;
-export type Staff = typeof staff.$inferSelect;
-export type InsertStaff = z.infer<typeof insertStaffSchema>;
-export type Appointment = typeof appointments.$inferSelect;
-export type InsertAppointment = z.infer<typeof insertAppointmentSchema>;
-export type CampaignNotification = typeof campaignNotifications.$inferSelect;
-export type InsertCampaignNotification = z.infer<typeof insertCampaignNotificationSchema>;
-export type ScheduledPost = typeof scheduledPosts.$inferSelect;
-export type InsertScheduledPost = z.infer<typeof insertScheduledPostSchema>;
