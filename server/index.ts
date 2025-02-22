@@ -1,11 +1,16 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { WebSocketServer } from 'ws';
+import { createServer } from 'http';
 
 const app = express();
+const server = createServer(app);
+
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));
 
+// Logging middleware
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -36,13 +41,30 @@ app.use((req, res, next) => {
   next();
 });
 
+// WebSocket server
+const wss = new WebSocketServer({ 
+  server,
+  path: '/ws'
+});
+
+wss.on('connection', (ws) => {
+  console.log('WebSocket client connected');
+
+  ws.on('message', (message) => {
+    console.log('Received:', message);
+  });
+
+  ws.on('close', () => {
+    console.log('Client disconnected');
+  });
+});
+
 (async () => {
-  const server = await registerRoutes(app);
+  await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
-
     res.status(status).json({ message });
     throw err;
   });
@@ -55,6 +77,6 @@ app.use((req, res, next) => {
 
   const PORT = 5000;
   server.listen(PORT, "0.0.0.0", () => {
-    log(`serving on port ${PORT}`);
+    log(`Server running at http://0.0.0.0:${PORT}`);
   });
 })();
