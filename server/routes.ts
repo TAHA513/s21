@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import express from 'express';
 import multer from 'multer';
 import { backupService } from './services/backup-service';
+import { WebSocketServer } from 'ws';
 
 const upload = multer({ dest: 'uploads/' });
 
@@ -210,5 +211,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
+
+  // Initialize WebSocket server with explicit port
+  const wss = new WebSocketServer({ 
+    server: httpServer,
+    path: '/ws'
+  });
+
+  wss.on('connection', (ws) => {
+    console.log('New WebSocket connection established');
+
+    ws.on('message', (message) => {
+      console.log('Received:', message);
+    });
+
+    ws.on('close', () => {
+      console.log('Client disconnected');
+    });
+  });
+
+  // Set port explicitly for both HTTP and WebSocket
+  const port = process.env.PORT || 5000;
+  app.set('port', port);
+
   return httpServer;
 }
