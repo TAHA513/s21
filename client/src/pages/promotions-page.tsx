@@ -40,12 +40,18 @@ export default function PromotionsPage() {
   const [isDiscountCodeDialogOpen, setIsDiscountCodeDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
+  // Add debug console logs
+  console.log('Rendering PromotionsPage');
+
   const { 
     data: promotions = [], 
     isLoading: promotionsLoading,
     error: promotionsError
   } = useQuery<Promotion[]>({
     queryKey: ["/api/promotions"],
+    onError: (error) => {
+      console.error('Error fetching promotions:', error);
+    }
   });
 
   const { 
@@ -54,7 +60,16 @@ export default function PromotionsPage() {
     error: codesError
   } = useQuery<DiscountCode[]>({
     queryKey: ["/api/discount-codes"],
+    onError: (error) => {
+      console.error('Error fetching discount codes:', error);
+    }
   });
+
+  // Add debug logs
+  console.log('Promotions:', promotions);
+  console.log('Discount Codes:', discountCodes);
+  console.log('Loading states:', { promotionsLoading, codesLoading });
+  console.log('Errors:', { promotionsError, codesError });
 
   // Duplicate promotion mutation
   const duplicatePromotion = useMutation({
@@ -105,10 +120,25 @@ export default function PromotionsPage() {
   });
 
   if (promotionsError || codesError) {
+    console.error('Render error:', { promotionsError, codesError });
     return (
       <DashboardLayout>
-        <div className="text-red-500">
-          حدث خطأ أثناء تحميل البيانات. الرجاء المحاولة مرة أخرى.
+        <div className="p-8">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <h3 className="text-red-800 font-medium mb-2">حدث خطأ أثناء تحميل البيانات</h3>
+            <p className="text-red-600 text-sm">
+              {promotionsError ? String(promotionsError) : String(codesError)}
+            </p>
+            <Button 
+              className="mt-4"
+              onClick={() => {
+                queryClient.invalidateQueries({ queryKey: ["/api/promotions"] });
+                queryClient.invalidateQueries({ queryKey: ["/api/discount-codes"] });
+              }}
+            >
+              إعادة المحاولة
+            </Button>
+          </div>
         </div>
       </DashboardLayout>
     );
@@ -117,7 +147,12 @@ export default function PromotionsPage() {
   if (promotionsLoading || codesLoading) {
     return (
       <DashboardLayout>
-        <div className="text-center py-8">جاري التحميل...</div>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">جاري تحميل البيانات...</p>
+          </div>
+        </div>
       </DashboardLayout>
     );
   }
