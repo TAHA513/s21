@@ -15,6 +15,14 @@ export function createWebSocket(): WebSocket {
     const wsUrl = getWebSocketUrl();
     const ws = new WebSocket(wsUrl);
 
+    // Connection timeout handler
+    const connectionTimeout = setTimeout(() => {
+      if (ws.readyState === WebSocket.CONNECTING) {
+        console.error('WebSocket connection timeout');
+        ws.close();
+      }
+    }, 5000);
+
     // Log WebSocket state changes
     const logState = () => {
       const states = ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED'];
@@ -22,6 +30,7 @@ export function createWebSocket(): WebSocket {
     };
 
     ws.onopen = () => {
+      clearTimeout(connectionTimeout);
       console.log('WebSocket connection established successfully');
       logState();
       try {
@@ -36,6 +45,7 @@ export function createWebSocket(): WebSocket {
     };
 
     ws.onclose = (event) => {
+      clearTimeout(connectionTimeout);
       console.log('WebSocket connection closed:', {
         code: event.code,
         reason: event.reason,
@@ -45,6 +55,7 @@ export function createWebSocket(): WebSocket {
     };
 
     ws.onerror = (error) => {
+      clearTimeout(connectionTimeout);
       console.error('WebSocket error:', error);
       logState();
     };

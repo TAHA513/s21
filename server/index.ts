@@ -58,22 +58,30 @@ app.use((req, res, next) => {
   next();
 });
 
-// Set default PORT if not provided
+// Ensure PORT is set and valid
 const PORT = process.env.PORT || '5000';
 process.env.PORT = PORT;
 
 logger.info(`Server will run on port ${PORT}`);
 
-// WebSocket server setup with explicit port
+// WebSocket server setup with enhanced error handling
 const wss = new WebSocketServer({ 
   server,
   path: '/ws',
-  perMessageDeflate: false
+  perMessageDeflate: false,
+  clientTracking: true // Enable client tracking
 });
+
+// Track active connections
+const connections = new Set();
 
 wss.on('connection', (ws, req) => {
   const clientIp = req.socket.remoteAddress;
   logger.info(`WebSocket client connected from ${clientIp}`);
+
+  // Add to active connections
+  connections.add(ws);
+  logger.info(`Active WebSocket connections: ${connections.size}`);
 
   ws.on('message', (message) => {
     logger.debug('Received:', message.toString());
@@ -86,10 +94,16 @@ wss.on('connection', (ws, req) => {
 
   ws.on('error', (error) => {
     logger.error('WebSocket error:', error);
+    try {
+      ws.close();
+    } catch (closeError) {
+      logger.error('Error closing WebSocket after error:', closeError);
+    }
   });
 
   ws.on('close', (code, reason) => {
-    logger.info(`Client disconnected. Code: ${code}, Reason: ${reason}`);
+    connections.delete(ws);
+    logger.info(`Client disconnected. Code: ${code}, Reason: ${reason}, Active connections: ${connections.size}`);
   });
 
   // Send initial connection confirmation
@@ -98,6 +112,11 @@ wss.on('connection', (ws, req) => {
   } catch (error) {
     logger.error('Error sending welcome message:', error);
   }
+});
+
+// Handle WebSocket server errors
+wss.on('error', (error) => {
+  logger.error('WebSocket server error:', error);
 });
 
 (async () => {
@@ -130,9 +149,18 @@ wss.on('connection', (ws, req) => {
       serveStatic(app);
     }
 
+    // Start server with enhanced error handling
     server.listen(Number(PORT), "0.0.0.0", () => {
       logger.info(`Server running at http://0.0.0.0:${PORT}`);
       logger.info(`WebSocket server available at ws://0.0.0.0:${PORT}/ws`);
+    }).on('error', (error: NodeJS.ErrnoException) => {
+      if (error.code === 'EADDRINUSE') {
+        logger.error(`Port ${PORT} is already in use. Please choose a different port.`);
+        process.exit(1);
+      } else {
+        logger.error('Server failed to start:', error);
+        process.exit(1);
+      }
     });
   } catch (error) {
     logger.error('Failed to start server:', error);
