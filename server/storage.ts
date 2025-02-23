@@ -1,3 +1,6 @@
+const convertToString = (value: number | string): string => value.toString();
+const convertToNumber = (value: string | number): number => typeof value === 'string' ? parseFloat(value) : value;
+
 import { Pool } from '@neondatabase/serverless';
 import { eq, and, sql } from 'drizzle-orm';
 import { db } from './db';
@@ -738,14 +741,15 @@ export class DatabaseStorage implements IStorage {
     }
     return await measureQueryTime(async () => {
       const invoices = await db.select().from(schema.invoices);
-      cache.set(cacheKey, invoices);
-      return invoices.map(invoice => ({
+      const convertedInvoices = invoices.map(invoice => ({
         ...invoice,
-        subtotal: Number(invoice.subtotal),
-        discount: Number(invoice.discount),
-        discountAmount: Number(invoice.discountAmount),
-        finalTotal: Number(invoice.finalTotal),
+        subtotal: convertToNumber(invoice.subtotal),
+        discount: convertToNumber(invoice.discount),
+        discountAmount: convertToNumber(invoice.discountAmount),
+        finalTotal: convertToNumber(invoice.finalTotal),
       }));
+      cache.set(cacheKey, convertedInvoices);
+      return convertedInvoices;
     }, 'getInvoices');
   }
 
@@ -769,10 +773,10 @@ export class DatabaseStorage implements IStorage {
     return await measureQueryTime(async () => {
       const invoiceWithStringNumbers = {
         ...invoice,
-        subtotal: invoice.subtotal.toString(),
-        discount: invoice.discount.toString(),
-        discountAmount: invoice.discountAmount.toString(),
-        finalTotal: invoice.finalTotal.toString(),
+        subtotal: convertToString(invoice.subtotal),
+        discount: convertToString(invoice.discount),
+        discountAmount: convertToString(invoice.discountAmount),
+        finalTotal: convertToString(invoice.finalTotal),
       };
 
       const [newInvoice] = await db.insert(schema.invoices)
@@ -781,10 +785,10 @@ export class DatabaseStorage implements IStorage {
 
       return {
         ...newInvoice,
-        subtotal: Number(newInvoice.subtotal),
-        discount: Number(newInvoice.discount),
-        discountAmount: Number(newInvoice.discountAmount),
-        finalTotal: Number(newInvoice.finalTotal),
+        subtotal: convertToNumber(newInvoice.subtotal),
+        discount: convertToNumber(newInvoice.discount),
+        discountAmount: convertToNumber(newInvoice.discountAmount),
+        finalTotal: convertToNumber(newInvoice.finalTotal),
       };
     }, 'createInvoice');
   }
@@ -922,9 +926,9 @@ export class DatabaseStorage implements IStorage {
     return await measureQueryTime(async () => {
       const purchaseWithStringNumbers = {
         ...purchase,
-        totalAmount: purchase.totalAmount.toString(),
-        paid: purchase.paid.toString(),
-        remaining: purchase.remaining.toString(),
+        totalAmount: convertToString(purchase.totalAmount),
+        paid: convertToString(purchase.paid),
+        remaining: convertToString(purchase.remaining),
       };
       const [newPurchaseOrder] = await db.insert(schema.purchaseOrders).values([purchaseWithStringNumbers]).returning();
       cache.del('purchaseOrders:all');
@@ -936,9 +940,9 @@ export class DatabaseStorage implements IStorage {
     return await measureQueryTime(async () => {
       const updatesWithStringNumbers = {
         ...updates,
-        ...(updates.totalAmount && { totalAmount: updates.totalAmount.toString() }),
-        ...(updates.paid && { paid: updates.paid.toString() }),
-        ...(updates.remaining && { remaining: updates.remaining.toString() }),
+        ...(updates.totalAmount && { totalAmount: convertToString(updates.totalAmount) }),
+        ...(updates.paid && { paid: convertToString(updates.paid) }),
+        ...(updates.remaining && { remaining: convertToString(updates.remaining) }),
       };
       const [updatedPurchaseOrder] = await db
         .update(schema.purchaseOrders)
@@ -1060,7 +1064,7 @@ export class DatabaseStorage implements IStorage {
     return await measureQueryTime(async () => {
       const expenseWithStringNumbers = {
         ...expense,
-        amount: expense.amount.toString(),
+        amount: convertToString(expense.amount),
       };
       const [newExpense] = await db.insert(schema.expenses).values([expenseWithStringNumbers]).returning();
       cache.del('expenses:all');
@@ -1072,7 +1076,7 @@ export class DatabaseStorage implements IStorage {
     return await measureQueryTime(async () => {
       const updatesWithStringNumbers = {
         ...updates,
-        ...(updates.amount && { amount: updates.amount.toString() }),
+        ...(updates.amount && { amount: convertToString(updates.amount) }),
       };
       const [updatedExpense] = await db
         .update(schema.expenses)
