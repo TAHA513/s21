@@ -24,10 +24,20 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { DiscountCodeForm } from "@/components/marketing/discount-code-form";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 export default function PromotionsPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [isDiscountCodeDialogOpen, setIsDiscountCodeDialogOpen] = useState(false);
 
   const { data: promotions } = useQuery<Promotion[]>({
     queryKey: ["/api/promotions"],
@@ -99,10 +109,23 @@ export default function PromotionsPage() {
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold">العروض والخصومات</h1>
           <div className="space-x-4">
-            <Button variant="outline">
-              <Tag className="h-4 w-4 ml-2" />
-              إنشاء كود خصم
-            </Button>
+            <Dialog open={isDiscountCodeDialogOpen} onOpenChange={setIsDiscountCodeDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  <Tag className="h-4 w-4 ml-2" />
+                  إنشاء كود خصم
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>إنشاء كود خصم جديد</DialogTitle>
+                  <DialogDescription>
+                    أدخل بيانات كود الخصم الجديد
+                  </DialogDescription>
+                </DialogHeader>
+                <DiscountCodeForm onSuccess={() => setIsDiscountCodeDialogOpen(false)} />
+              </DialogContent>
+            </Dialog>
             <Button>
               <Ticket className="h-4 w-4 ml-2" />
               عرض جديد
