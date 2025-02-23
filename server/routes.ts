@@ -217,7 +217,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.set('port', port);
 
   // Initialize WebSocket server
-  const wss = new WebSocketServer({ 
+  console.log('Initializing WebSocket server on port:', port);
+  const wss = new WebSocketServer({
     server: httpServer,
     path: '/ws'
   });
@@ -226,15 +227,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log('New WebSocket connection established');
 
     ws.on('message', (message) => {
-      console.log('Received:', message);
+      console.log('Received message:', message.toString());
     });
 
     ws.on('close', () => {
       console.log('Client disconnected');
     });
 
+    ws.on('error', (error) => {
+      console.error('WebSocket server error:', error);
+    });
+
     // Send initial message to confirm connection
     ws.send('Connected to WebSocket server');
+  });
+
+  // Log when the WebSocket server is ready
+  wss.on('listening', () => {
+    console.log('WebSocket server is listening on path: /ws');
   });
 
   return httpServer;
