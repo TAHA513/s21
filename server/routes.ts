@@ -212,7 +212,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   const httpServer = createServer(app);
 
-  // Initialize WebSocket server with explicit port
+  // Set port explicitly for both HTTP and WebSocket
+  const port = process.env.PORT || 5000;
+  app.set('port', port);
+
+  // Initialize WebSocket server
   const wss = new WebSocketServer({ 
     server: httpServer,
     path: '/ws'
@@ -228,11 +232,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     ws.on('close', () => {
       console.log('Client disconnected');
     });
-  });
 
-  // Set port explicitly for both HTTP and WebSocket
-  const port = process.env.PORT || 5000;
-  app.set('port', port);
+    // Send initial message to confirm connection
+    ws.send('Connected to WebSocket server');
+  });
 
   return httpServer;
 }

@@ -6,22 +6,31 @@ export function getWebSocketUrl(): string {
 }
 
 export function createWebSocket(): WebSocket {
-  const wsUrl = getWebSocketUrl();
-  console.log('Connecting to WebSocket at:', wsUrl);
-  
-  const ws = new WebSocket(wsUrl);
-  
-  ws.onopen = () => {
-    console.log('WebSocket connection established');
-  };
-  
-  ws.onclose = () => {
-    console.log('WebSocket connection closed');
-  };
-  
-  ws.onerror = (error) => {
-    console.error('WebSocket error:', error);
-  };
-  
-  return ws;
+  try {
+    const wsUrl = getWebSocketUrl();
+    console.log('Connecting to WebSocket at:', wsUrl);
+
+    const ws = new WebSocket(wsUrl);
+
+    ws.onopen = () => {
+      console.log('WebSocket connection established');
+    };
+
+    ws.onmessage = (event) => {
+      console.log('Received message:', event.data);
+    };
+
+    ws.onclose = () => {
+      console.log('WebSocket connection closed');
+    };
+
+    ws.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
+
+    return ws;
+  } catch (error) {
+    console.error('Error creating WebSocket:', error);
+    throw error;
+  }
 }
