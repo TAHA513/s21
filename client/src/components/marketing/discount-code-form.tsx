@@ -24,6 +24,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+// Extend the schema to make promotionId optional and add Arabic messages
+const discountCodeFormSchema = insertDiscountCodeSchema.extend({
+  promotionId: insertDiscountCodeSchema.shape.promotionId.optional(),
+}).refine((data) => {
+  if (!data.promotionId) return true;
+  return typeof data.promotionId === 'number';
+}, {
+  message: "الرجاء اختيار عرض صالح",
+  path: ["promotionId"],
+});
+
 export function DiscountCodeForm({ onSuccess }: { onSuccess?: () => void }) {
   const { toast } = useToast();
 
@@ -32,7 +43,15 @@ export function DiscountCodeForm({ onSuccess }: { onSuccess?: () => void }) {
   });
 
   const form = useForm<InsertDiscountCode>({
-    resolver: zodResolver(insertDiscountCodeSchema),
+    resolver: zodResolver(discountCodeFormSchema, {
+      // Add Arabic validation messages
+      errorMap: (error, _ctx) => {
+        if (error.code === "invalid_type") {
+          return { message: "هذا الحقل مطلوب" };
+        }
+        return { message: error.message };
+      },
+    }),
     defaultValues: {
       code: "",
       promotionId: undefined,
@@ -44,6 +63,7 @@ export function DiscountCodeForm({ onSuccess }: { onSuccess?: () => void }) {
 
   const onSubmit = async (data: InsertDiscountCode) => {
     try {
+      console.log('Submitting form data:', data); // Debug log
       await apiRequest("POST", "/api/discount-codes", data);
 
       queryClient.invalidateQueries({ queryKey: ["/api/discount-codes"] });
