@@ -24,20 +24,28 @@ export function AppointmentForm({ onSuccess }: { onSuccess?: () => void }) {
   const form = useForm<AppointmentFormData>({
     resolver: zodResolver(insertAppointmentSchema),
     defaultValues: {
-      customerName: "",
-      customerPhone: "",
-      startTime: new Date().toISOString().slice(0, 16),
+      customerId: 1, // Temporary default value
+      staffId: 1, // Temporary default value
+      startTime: new Date(),
+      endTime: new Date(Date.now() + 60 * 60 * 1000), // 1 hour from now
       status: "pending",
+      notes: ""
     },
   });
 
   const mutation = useMutation({
     mutationFn: async (data: AppointmentFormData) => {
-      return apiRequest("POST", "/api/appointments", data);
+      // Convert date strings to Date objects
+      const formattedData = {
+        ...data,
+        startTime: new Date(data.startTime),
+        endTime: new Date(data.endTime),
+      };
+      return apiRequest("POST", "/api/appointments", formattedData);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/appointments'] });
-      
+
       toast({
         title: "تم بنجاح",
         description: "تم إضافة الموعد بنجاح",
@@ -60,40 +68,50 @@ export function AppointmentForm({ onSuccess }: { onSuccess?: () => void }) {
       <form onSubmit={form.handleSubmit((data) => mutation.mutate(data))} className="space-y-4">
         <FormField
           control={form.control}
-          name="customerName"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>اسم العميل</FormLabel>
-              <FormControl>
-                <Input {...field} placeholder="أدخل اسم العميل" />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="customerPhone"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>رقم الهاتف</FormLabel>
-              <FormControl>
-                <Input {...field} type="tel" placeholder="أدخل رقم الهاتف" dir="ltr" />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
           name="startTime"
           render={({ field }) => (
             <FormItem>
               <FormLabel>وقت الموعد</FormLabel>
               <FormControl>
-                <Input {...field} type="datetime-local" />
+                <Input 
+                  type="datetime-local" 
+                  {...field} 
+                  value={field.value instanceof Date ? field.value.toISOString().slice(0, 16) : field.value}
+                  onChange={(e) => field.onChange(new Date(e.target.value))}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="endTime"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>وقت انتهاء الموعد</FormLabel>
+              <FormControl>
+                <Input 
+                  type="datetime-local" 
+                  {...field}
+                  value={field.value instanceof Date ? field.value.toISOString().slice(0, 16) : field.value}
+                  onChange={(e) => field.onChange(new Date(e.target.value))}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="notes"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>ملاحظات</FormLabel>
+              <FormControl>
+                <Input {...field} placeholder="أدخل أي ملاحظات إضافية" />
               </FormControl>
               <FormMessage />
             </FormItem>
