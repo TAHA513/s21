@@ -7,7 +7,9 @@ export function getWebSocketUrl(): string {
     protocol: window.location.protocol,
     host: window.location.host,
     hostname: window.location.hostname,
-    port: window.location.port
+    port: window.location.port,
+    pathname: window.location.pathname,
+    href: window.location.href
   });
 
   // For Replit environment, use the current host
@@ -21,8 +23,21 @@ export function createWebSocket(): WebSocket {
     const wsUrl = getWebSocketUrl();
     const ws = new WebSocket(wsUrl);
 
+    // Log WebSocket state changes
+    const logState = () => {
+      const states = ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED'];
+      console.log('WebSocket state:', states[ws.readyState]);
+    };
+
     ws.onopen = () => {
       console.log('WebSocket connection established successfully');
+      logState();
+      // Try to send a test message
+      try {
+        ws.send('Test message from client');
+      } catch (error) {
+        console.error('Error sending test message:', error);
+      }
     };
 
     ws.onmessage = (event) => {
@@ -30,7 +45,12 @@ export function createWebSocket(): WebSocket {
     };
 
     ws.onclose = (event) => {
-      console.log('WebSocket connection closed:', event.code, event.reason);
+      console.log('WebSocket connection closed:', {
+        code: event.code,
+        reason: event.reason,
+        wasClean: event.wasClean
+      });
+      logState();
     };
 
     ws.onerror = (error) => {
@@ -40,9 +60,14 @@ export function createWebSocket(): WebSocket {
         url: wsUrl,
         readyState: ws.readyState,
         protocol: ws.protocol,
-        extensions: ws.extensions
+        extensions: ws.extensions,
+        state: ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED'][ws.readyState]
       });
+      logState();
     };
+
+    // Log initial state
+    logState();
 
     return ws;
   } catch (error) {

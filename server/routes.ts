@@ -223,28 +223,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     path: '/ws'
   });
 
-  wss.on('connection', (ws) => {
-    console.log('New WebSocket connection established');
+  // Log total number of clients
+  setInterval(() => {
+    console.log('Active WebSocket connections:', wss.clients.size);
+  }, 5000);
+
+  wss.on('connection', (ws, req) => {
+    console.log('New WebSocket connection established from:', req.socket.remoteAddress);
+    console.log('Connection URL:', req.url);
+    console.log('Connection headers:', req.headers);
 
     ws.on('message', (message) => {
       console.log('Received message:', message.toString());
+      // Echo the message back to confirm server received it
+      ws.send(`Server received: ${message}`);
     });
 
-    ws.on('close', () => {
-      console.log('Client disconnected');
+    ws.on('close', (code, reason) => {
+      console.log('Client disconnected:', {
+        code,
+        reason: reason.toString()
+      });
     });
 
     ws.on('error', (error) => {
       console.error('WebSocket server error:', error);
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack
+      });
     });
 
     // Send initial message to confirm connection
-    ws.send('Connected to WebSocket server');
+    try {
+      ws.send('Connected to WebSocket server');
+    } catch (error) {
+      console.error('Error sending welcome message:', error);
+    }
   });
 
   // Log when the WebSocket server is ready
   wss.on('listening', () => {
     console.log('WebSocket server is listening on path: /ws');
+  });
+
+  // Log any server-level errors
+  wss.on('error', (error) => {
+    console.error('WebSocket server error:', error);
   });
 
   return httpServer;
