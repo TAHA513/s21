@@ -18,7 +18,6 @@ import { ar } from "date-fns/locale";
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,25 +39,12 @@ export default function PromotionsPage() {
   const queryClient = useQueryClient();
   const [isDiscountCodeDialogOpen, setIsDiscountCodeDialogOpen] = useState(false);
 
-  // Add debug logs to check data fetching
-  const { data: promotions = [], isLoading: promotionsLoading } = useQuery<Promotion[]>({
+  const { data: promotions } = useQuery<Promotion[]>({
     queryKey: ["/api/promotions"],
-    onSuccess: (data) => {
-      console.log('Fetched promotions:', data);
-    },
-    onError: (error) => {
-      console.error('Error fetching promotions:', error);
-    }
   });
 
-  const { data: discountCodes = [], isLoading: codesLoading } = useQuery<DiscountCode[]>({
+  const { data: discountCodes } = useQuery<DiscountCode[]>({
     queryKey: ["/api/discount-codes"],
-    onSuccess: (data) => {
-      console.log('Fetched discount codes:', data);
-    },
-    onError: (error) => {
-      console.error('Error fetching discount codes:', error);
-    }
   });
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -66,9 +52,13 @@ export default function PromotionsPage() {
   // Duplicate promotion mutation
   const duplicatePromotion = useMutation({
     mutationFn: async (promotion: Promotion) => {
-      const response = await apiRequest("POST", "/api/promotions/duplicate", { id: promotion.id });
+      const response = await fetch('/api/promotions/duplicate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: promotion.id }),
+      });
       if (!response.ok) throw new Error('Failed to duplicate promotion');
-      return response;
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/promotions'] });
@@ -82,9 +72,13 @@ export default function PromotionsPage() {
   // Save as template mutation
   const saveAsTemplate = useMutation({
     mutationFn: async (promotion: Promotion) => {
-      const response = await apiRequest("POST", "/api/promotion-templates", { promotionId: promotion.id });
+      const response = await fetch('/api/promotion-templates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ promotionId: promotion.id }),
+      });
       if (!response.ok) throw new Error('Failed to save template');
-      return response;
+      return response.json();
     },
     onSuccess: () => {
       toast({
@@ -108,14 +102,6 @@ export default function PromotionsPage() {
     const searchLower = searchTerm.toLowerCase();
     return code.code.toLowerCase().includes(searchLower);
   });
-
-  if (promotionsLoading || codesLoading) {
-    return (
-      <DashboardLayout>
-        <div>جاري التحميل...</div>
-      </DashboardLayout>
-    );
-  }
 
   return (
     <DashboardLayout>
@@ -256,27 +242,24 @@ export default function PromotionsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredDiscountCodes?.map((code) => {
-                  const linkedPromotion = promotions.find(p => p.id === code.promotionId);
-                  return (
-                    <TableRow key={code.id}>
-                      <TableCell className="font-medium">{code.code}</TableCell>
-                      <TableCell>{linkedPromotion?.name ?? 'غير مرتبط'}</TableCell>
-                      <TableCell>{code.usageLimit}</TableCell>
-                      <TableCell>{code.usageCount}</TableCell>
-                      <TableCell>
-                        {code.expiresAt
-                          ? format(new Date(code.expiresAt), 'dd MMMM yyyy', { locale: ar })
-                          : 'غير محدد'}
-                      </TableCell>
-                      <TableCell>
-                        <Button variant="ghost" size="sm">
-                          تعديل
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
+                {filteredDiscountCodes?.map((code) => (
+                  <TableRow key={code.id}>
+                    <TableCell className="font-medium">{code.code}</TableCell>
+                    <TableCell>{code.promotionId}</TableCell>
+                    <TableCell>{code.usageLimit}</TableCell>
+                    <TableCell>{code.usageCount}</TableCell>
+                    <TableCell>
+                      {code.expiresAt
+                        ? format(new Date(code.expiresAt), 'dd MMMM yyyy', { locale: ar })
+                        : 'غير محدد'}
+                    </TableCell>
+                    <TableCell>
+                      <Button variant="ghost" size="sm">
+                        تعديل
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
                 {filteredDiscountCodes?.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
