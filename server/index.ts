@@ -58,27 +58,46 @@ app.use((req, res, next) => {
   next();
 });
 
-// WebSocket server setup
+// Set default PORT if not provided
+const PORT = process.env.PORT || '5000';
+process.env.PORT = PORT;
+
+logger.info(`Server will run on port ${PORT}`);
+
+// WebSocket server setup with explicit port
 const wss = new WebSocketServer({ 
   server,
   path: '/ws',
   perMessageDeflate: false
 });
 
-wss.on('connection', (ws) => {
-  logger.info('WebSocket client connected');
+wss.on('connection', (ws, req) => {
+  const clientIp = req.socket.remoteAddress;
+  logger.info(`WebSocket client connected from ${clientIp}`);
 
   ws.on('message', (message) => {
     logger.debug('Received:', message.toString());
+    try {
+      ws.send(`Server received: ${message}`);
+    } catch (error) {
+      logger.error('Error sending message:', error);
+    }
   });
 
   ws.on('error', (error) => {
     logger.error('WebSocket error:', error);
   });
 
-  ws.on('close', () => {
-    logger.info('Client disconnected');
+  ws.on('close', (code, reason) => {
+    logger.info(`Client disconnected. Code: ${code}, Reason: ${reason}`);
   });
+
+  // Send initial connection confirmation
+  try {
+    ws.send('تم الاتصال بنجاح بخادم WebSocket');
+  } catch (error) {
+    logger.error('Error sending welcome message:', error);
+  }
 });
 
 (async () => {
@@ -111,9 +130,9 @@ wss.on('connection', (ws) => {
       serveStatic(app);
     }
 
-    const PORT = Number(process.env.PORT) || 5000;
-    server.listen(PORT, "0.0.0.0", () => {
+    server.listen(Number(PORT), "0.0.0.0", () => {
       logger.info(`Server running at http://0.0.0.0:${PORT}`);
+      logger.info(`WebSocket server available at ws://0.0.0.0:${PORT}/ws`);
     });
   } catch (error) {
     logger.error('Failed to start server:', error);
