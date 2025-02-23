@@ -1,8 +1,8 @@
 // Helper to get WebSocket URL based on current environment
 export function getWebSocketUrl(): string {
+  // Always use the same protocol as the page
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   const host = window.location.hostname;
-  const port = '5000'; // Use explicit port for WebSocket server
 
   // Log debugging information
   console.log('Current location:', {
@@ -14,8 +14,8 @@ export function getWebSocketUrl(): string {
     href: window.location.href
   });
 
-  // Build WebSocket URL with explicit port
-  const wsUrl = `${protocol}//${host}:${port}/ws`;
+  // For Replit environment, use the hostname without port
+  const wsUrl = `${protocol}//${host}/ws`;
   console.log('WebSocket URL:', wsUrl);
   return wsUrl;
 }
