@@ -10,15 +10,19 @@ import {
 import { Input } from "@/components/ui/input";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Customer, insertCustomerSchema } from "@shared/schema";
+import { insertCustomerSchema } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import { Textarea } from "@/components/ui/textarea";
+import { useMutation } from "@tanstack/react-query";
+import type { z } from "zod";
+
+type CustomerFormData = z.infer<typeof insertCustomerSchema>;
 
 export function CustomerForm({ onSuccess }: { onSuccess?: () => void }) {
   const { toast } = useToast();
-  const form = useForm({
+  const form = useForm<CustomerFormData>({
     resolver: zodResolver(insertCustomerSchema),
     defaultValues: {
       name: "",
@@ -28,11 +32,13 @@ export function CustomerForm({ onSuccess }: { onSuccess?: () => void }) {
     },
   });
 
-  const onSubmit = async (data: Customer) => {
-    try {
-      await apiRequest("POST", "/api/customers", data);
+  const mutation = useMutation({
+    mutationFn: async (data: CustomerFormData) => {
+      return apiRequest("POST", "/api/customers", data);
+    },
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/customers'] });
-      
+
       toast({
         title: "تم بنجاح",
         description: "تم إضافة العميل بنجاح",
@@ -41,18 +47,19 @@ export function CustomerForm({ onSuccess }: { onSuccess?: () => void }) {
 
       form.reset();
       onSuccess?.();
-    } catch (error) {
+    },
+    onError: () => {
       toast({
         title: "خطأ",
         description: "حدث خطأ أثناء إضافة العميل",
         variant: "destructive",
       });
-    }
-  };
+    },
+  });
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit((data) => mutation.mutate(data))} className="space-y-4">
         <FormField
           control={form.control}
           name="name"
@@ -109,8 +116,8 @@ export function CustomerForm({ onSuccess }: { onSuccess?: () => void }) {
           )}
         />
 
-        <Button type="submit" className="w-full">
-          إضافة العميل
+        <Button type="submit" className="w-full" disabled={mutation.isPending}>
+          {mutation.isPending ? "جاري الإضافة..." : "إضافة العميل"}
         </Button>
       </form>
     </Form>
