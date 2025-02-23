@@ -16,6 +16,15 @@ import { ar } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
 import { SearchInput } from "@/components/ui/search-input";
 import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { AppointmentForm } from "@/components/appointments/appointment-form";
 
 const statusMap = {
   scheduled: { label: "مجدول", color: "bg-blue-100 text-blue-800" },
@@ -24,6 +33,7 @@ const statusMap = {
 };
 
 export default function AppointmentsPage() {
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { data: appointments } = useQuery<Appointment[]>({
     queryKey: ["/api/appointments"],
   });
@@ -70,10 +80,23 @@ export default function AppointmentsPage() {
       <div className="space-y-8">
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold">المواعيد</h1>
-          <Button>
-            <CalendarPlus className="h-4 w-4 ml-2" />
-            موعد جديد
-          </Button>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <CalendarPlus className="h-4 w-4 ml-2" />
+                موعد جديد
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>إضافة موعد جديد</DialogTitle>
+                <DialogDescription>
+                  أدخل بيانات الموعد الجديد
+                </DialogDescription>
+              </DialogHeader>
+              <AppointmentForm onSuccess={() => setIsDialogOpen(false)} />
+            </DialogContent>
+          </Dialog>
         </div>
 
         <div className="max-w-sm">
