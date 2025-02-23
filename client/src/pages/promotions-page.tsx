@@ -8,7 +8,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Promotion, DiscountCode } from "@shared/schema";
 import { Ticket, Tag, Copy, BookTemplate } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -18,7 +18,7 @@ import { ar } from "date-fns/locale";
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,31 +37,24 @@ import {
 
 export default function PromotionsPage() {
   const { toast } = useToast();
-  const queryClient = useQueryClient();
   const [isDiscountCodeDialogOpen, setIsDiscountCodeDialogOpen] = useState(false);
-
-  // Add debug logs to check data fetching
-  const { data: promotions = [], isLoading: promotionsLoading } = useQuery<Promotion[]>({
-    queryKey: ["/api/promotions"],
-    onSuccess: (data) => {
-      console.log('Fetched promotions:', data);
-    },
-    onError: (error) => {
-      console.error('Error fetching promotions:', error);
-    }
-  });
-
-  const { data: discountCodes = [], isLoading: codesLoading } = useQuery<DiscountCode[]>({
-    queryKey: ["/api/discount-codes"],
-    onSuccess: (data) => {
-      console.log('Fetched discount codes:', data);
-    },
-    onError: (error) => {
-      console.error('Error fetching discount codes:', error);
-    }
-  });
-
   const [searchTerm, setSearchTerm] = useState("");
+
+  const { 
+    data: promotions = [], 
+    isLoading: promotionsLoading,
+    error: promotionsError
+  } = useQuery<Promotion[]>({
+    queryKey: ["/api/promotions"],
+  });
+
+  const { 
+    data: discountCodes = [], 
+    isLoading: codesLoading,
+    error: codesError
+  } = useQuery<DiscountCode[]>({
+    queryKey: ["/api/discount-codes"],
+  });
 
   // Duplicate promotion mutation
   const duplicatePromotion = useMutation({
@@ -94,7 +87,8 @@ export default function PromotionsPage() {
     },
   });
 
-  const filteredPromotions = promotions?.filter((promotion) => {
+  const filteredPromotions = promotions.filter((promotion) => {
+    if (!searchTerm) return true;
     const searchLower = searchTerm.toLowerCase();
     return (
       promotion.name.toLowerCase().includes(searchLower) ||
@@ -104,15 +98,26 @@ export default function PromotionsPage() {
     );
   });
 
-  const filteredDiscountCodes = discountCodes?.filter((code) => {
+  const filteredDiscountCodes = discountCodes.filter((code) => {
+    if (!searchTerm) return true;
     const searchLower = searchTerm.toLowerCase();
     return code.code.toLowerCase().includes(searchLower);
   });
 
+  if (promotionsError || codesError) {
+    return (
+      <DashboardLayout>
+        <div className="text-red-500">
+          حدث خطأ أثناء تحميل البيانات. الرجاء المحاولة مرة أخرى.
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   if (promotionsLoading || codesLoading) {
     return (
       <DashboardLayout>
-        <div>جاري التحميل...</div>
+        <div className="text-center py-8">جاري التحميل...</div>
       </DashboardLayout>
     );
   }
@@ -180,59 +185,60 @@ export default function PromotionsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredPromotions?.map((promotion) => (
-                  <TableRow key={promotion.id}>
-                    <TableCell className="font-medium">
-                      {promotion.name}
-                      {promotion.description && (
-                        <p className="text-sm text-muted-foreground">{promotion.description}</p>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {promotion.discountType === "percentage" ? "نسبة مئوية" : "قيمة ثابتة"}
-                    </TableCell>
-                    <TableCell>
-                      {promotion.discountType === "percentage"
-                        ? `${promotion.discountValue}%`
-                        : `${promotion.discountValue} ريال`}
-                    </TableCell>
-                    <TableCell>
-                      {format(new Date(promotion.startDate), 'dd MMMM yyyy', { locale: ar })}
-                    </TableCell>
-                    <TableCell>
-                      {format(new Date(promotion.endDate), 'dd MMMM yyyy', { locale: ar })}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        className={promotion.status === 'active'
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-gray-100 text-gray-800'}
-                      >
-                        {promotion.status === 'active' ? 'نشط' : 'غير نشط'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            المزيد
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent>
-                          <DropdownMenuItem onClick={() => duplicatePromotion.mutate(promotion)}>
-                            <Copy className="h-4 w-4 ml-2" />
-                            نسخ العرض
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => saveAsTemplate.mutate(promotion)}>
-                            <BookTemplate className="h-4 w-4 ml-2" />
-                            حفظ كقالب
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {filteredPromotions?.length === 0 && (
+                {filteredPromotions.length > 0 ? (
+                  filteredPromotions.map((promotion) => (
+                    <TableRow key={promotion.id}>
+                      <TableCell className="font-medium">
+                        {promotion.name}
+                        {promotion.description && (
+                          <p className="text-sm text-muted-foreground">{promotion.description}</p>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {promotion.discountType === "percentage" ? "نسبة مئوية" : "قيمة ثابتة"}
+                      </TableCell>
+                      <TableCell>
+                        {promotion.discountType === "percentage"
+                          ? `${promotion.discountValue}%`
+                          : `${promotion.discountValue} ريال`}
+                      </TableCell>
+                      <TableCell>
+                        {format(new Date(promotion.startDate), 'dd MMMM yyyy', { locale: ar })}
+                      </TableCell>
+                      <TableCell>
+                        {format(new Date(promotion.endDate), 'dd MMMM yyyy', { locale: ar })}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          className={promotion.status === 'active'
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-gray-100 text-gray-800'}
+                        >
+                          {promotion.status === 'active' ? 'نشط' : 'غير نشط'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              المزيد
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent>
+                            <DropdownMenuItem onClick={() => duplicatePromotion.mutate(promotion)}>
+                              <Copy className="h-4 w-4 ml-2" />
+                              نسخ العرض
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => saveAsTemplate.mutate(promotion)}>
+                              <BookTemplate className="h-4 w-4 ml-2" />
+                              حفظ كقالب
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                       لا توجد نتائج للبحث
@@ -256,28 +262,29 @@ export default function PromotionsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredDiscountCodes?.map((code) => {
-                  const linkedPromotion = promotions.find(p => p.id === code.promotionId);
-                  return (
-                    <TableRow key={code.id}>
-                      <TableCell className="font-medium">{code.code}</TableCell>
-                      <TableCell>{linkedPromotion?.name ?? 'غير مرتبط'}</TableCell>
-                      <TableCell>{code.usageLimit}</TableCell>
-                      <TableCell>{code.usageCount}</TableCell>
-                      <TableCell>
-                        {code.expiresAt
-                          ? format(new Date(code.expiresAt), 'dd MMMM yyyy', { locale: ar })
-                          : 'غير محدد'}
-                      </TableCell>
-                      <TableCell>
-                        <Button variant="ghost" size="sm">
-                          تعديل
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-                {filteredDiscountCodes?.length === 0 && (
+                {filteredDiscountCodes.length > 0 ? (
+                  filteredDiscountCodes.map((code) => {
+                    const linkedPromotion = promotions.find(p => p.id === code.promotionId);
+                    return (
+                      <TableRow key={code.id}>
+                        <TableCell className="font-medium">{code.code}</TableCell>
+                        <TableCell>{linkedPromotion?.name ?? 'غير مرتبط'}</TableCell>
+                        <TableCell>{code.usageLimit}</TableCell>
+                        <TableCell>{code.usageCount}</TableCell>
+                        <TableCell>
+                          {code.expiresAt
+                            ? format(new Date(code.expiresAt), 'dd MMMM yyyy', { locale: ar })
+                            : 'غير محدد'}
+                        </TableCell>
+                        <TableCell>
+                          <Button variant="ghost" size="sm">
+                            تعديل
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                ) : (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                       لا توجد نتائج للبحث
