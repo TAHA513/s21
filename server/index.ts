@@ -18,8 +18,7 @@ app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', origin);
   }
   res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Headers', 'Content-Type');
   next();
 });
 
@@ -54,7 +53,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// WebSocket server setup with explicit port
+// WebSocket server setup
 const wss = new WebSocketServer({ 
   server,
   path: '/ws',
@@ -93,7 +92,7 @@ wss.on('connection', (ws) => {
     serveStatic(app);
   }
 
-  const PORT = process.env.PORT || 5000;
+  const PORT = Number(process.env.PORT) || 5000;
   server.listen(PORT, "0.0.0.0", () => {
     log(`Server running at http://0.0.0.0:${PORT}`);
   });

@@ -26,7 +26,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log('Creating product with data:', req.body);
 
-      // Convert numeric strings to actual numbers for validation
       const productData = {
         ...req.body,
         quantity: parseInt(req.body.quantity, 10),
@@ -46,6 +45,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Product Groups routes
   app.get("/api/product-groups", async (_req, res) => {
     try {
       const groups = await storage.getProductGroups();
@@ -124,6 +124,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Today's Appointments
   app.get("/api/appointments/today", async (_req, res) => {
     try {
       const today = new Date();
@@ -155,6 +156,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Low Stock Products
   app.get("/api/products/low-stock", async (_req, res) => {
     try {
       const products = await storage.getProducts();
@@ -177,6 +179,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Quick Stats
   app.get("/api/staff/quick-stats", async (_req, res) => {
     try {
       const today = new Date();
@@ -212,30 +215,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   const httpServer = createServer(app);
 
-  // Set port explicitly for both HTTP and WebSocket
-  const port = process.env.PORT || 5000;
-  app.set('port', port);
-
   // Initialize WebSocket server
-  console.log('Initializing WebSocket server on port:', port);
+  console.log('Initializing WebSocket server');
   const wss = new WebSocketServer({
     server: httpServer,
     path: '/ws'
   });
 
-  // Log total number of clients
-  setInterval(() => {
-    console.log('Active WebSocket connections:', wss.clients.size);
-  }, 5000);
-
   wss.on('connection', (ws, req) => {
     console.log('New WebSocket connection established from:', req.socket.remoteAddress);
-    console.log('Connection URL:', req.url);
-    console.log('Connection headers:', req.headers);
 
     ws.on('message', (message) => {
       console.log('Received message:', message.toString());
-      // Echo the message back to confirm server received it
       ws.send(`Server received: ${message}`);
     });
 
@@ -247,29 +238,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
 
     ws.on('error', (error) => {
-      console.error('WebSocket server error:', error);
-      console.error('Error details:', {
-        message: error.message,
-        stack: error.stack
-      });
+      console.error('WebSocket error:', error);
     });
 
-    // Send initial message to confirm connection
     try {
       ws.send('Connected to WebSocket server');
     } catch (error) {
       console.error('Error sending welcome message:', error);
     }
-  });
-
-  // Log when the WebSocket server is ready
-  wss.on('listening', () => {
-    console.log('WebSocket server is listening on path: /ws');
-  });
-
-  // Log any server-level errors
-  wss.on('error', (error) => {
-    console.error('WebSocket server error:', error);
   });
 
   return httpServer;
