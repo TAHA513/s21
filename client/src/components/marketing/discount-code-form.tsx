@@ -23,16 +23,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { z } from "zod";
 
-// Extend the schema to make promotionId optional and add Arabic messages
+// Create a modified schema for the form
 const discountCodeFormSchema = insertDiscountCodeSchema.extend({
-  promotionId: insertDiscountCodeSchema.shape.promotionId.optional(),
-}).refine((data) => {
-  if (!data.promotionId) return true;
-  return typeof data.promotionId === 'number';
-}, {
-  message: "الرجاء اختيار عرض صالح",
-  path: ["promotionId"],
+  promotionId: z.number({
+    required_error: "الرجاء اختيار عرض",
+    invalid_type_error: "الرجاء اختيار عرض صحيح",
+  }),
+  code: z.string().min(1, "الرجاء إدخال كود الخصم"),
+  usageLimit: z.number().min(1, "يجب أن يكون حد الاستخدام 1 على الأقل"),
 });
 
 export function DiscountCodeForm({ onSuccess }: { onSuccess?: () => void }) {
@@ -43,15 +43,7 @@ export function DiscountCodeForm({ onSuccess }: { onSuccess?: () => void }) {
   });
 
   const form = useForm<InsertDiscountCode>({
-    resolver: zodResolver(discountCodeFormSchema, {
-      // Add Arabic validation messages
-      errorMap: (error, _ctx) => {
-        if (error.code === "invalid_type") {
-          return { message: "هذا الحقل مطلوب" };
-        }
-        return { message: error.message };
-      },
-    }),
+    resolver: zodResolver(discountCodeFormSchema),
     defaultValues: {
       code: "",
       promotionId: undefined,
@@ -63,7 +55,7 @@ export function DiscountCodeForm({ onSuccess }: { onSuccess?: () => void }) {
 
   const onSubmit = async (data: InsertDiscountCode) => {
     try {
-      console.log('Submitting form data:', data); // Debug log
+      console.log('Submitting form data:', data);
       await apiRequest("POST", "/api/discount-codes", data);
 
       queryClient.invalidateQueries({ queryKey: ["/api/discount-codes"] });
@@ -71,6 +63,15 @@ export function DiscountCodeForm({ onSuccess }: { onSuccess?: () => void }) {
       toast({
         title: "تم إضافة الكود",
         description: "تم إضافة كود الخصم بنجاح",
+      });
+
+      // Reset form
+      form.reset({
+        code: "",
+        promotionId: undefined,
+        usageLimit: 1,
+        usageCount: 0,
+        expiresAt: undefined,
       });
 
       // Only call onSuccess after successful submission
@@ -125,6 +126,7 @@ export function DiscountCodeForm({ onSuccess }: { onSuccess?: () => void }) {
                   ))}
                 </SelectContent>
               </Select>
+              <FormDescription>اختر العرض الذي سيتم تطبيق كود الخصم عليه</FormDescription>
               <FormMessage />
             </FormItem>
           )}

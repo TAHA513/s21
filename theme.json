@@ -1,8 +1,6 @@
 {
   "variant": "tint",
   "primary": "#0ea5e9",
-  "appearance": "dark",
-  "radius": 1,
-  "fontSize": "large",
-  "fontFamily": "tajawal"
+  "appearance": "light",
+  "radius": 1
 }
