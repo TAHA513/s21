@@ -73,6 +73,7 @@ export function DiscountCodeForm({ onSuccess }: { onSuccess?: () => void }) {
         description: "تم إضافة كود الخصم بنجاح",
       });
 
+      // Only call onSuccess after successful submission
       onSuccess?.();
     } catch (error) {
       console.error('Error creating discount code:', error);

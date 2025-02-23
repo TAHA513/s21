@@ -123,7 +123,12 @@ export default function PromotionsPage() {
                     أدخل بيانات كود الخصم الجديد
                   </DialogDescription>
                 </DialogHeader>
-                <DiscountCodeForm onSuccess={() => setIsDiscountCodeDialogOpen(false)} />
+                <DiscountCodeForm
+                  onSuccess={() => {
+                    setIsDiscountCodeDialogOpen(false);
+                    queryClient.invalidateQueries({ queryKey: ["/api/discount-codes"] });
+                  }}
+                />
               </DialogContent>
             </Dialog>
             <Button>
