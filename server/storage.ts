@@ -461,16 +461,8 @@ export class DatabaseStorage implements IStorage {
         .from(schema.products)
         .leftJoin(schema.productGroups, eq(schema.products.groupId, schema.productGroups.id));
 
-      console.log('Products fetched with groups:', products);
-
-      // Convert string numbers to actual numbers
-      return products.map(product => ({
-        ...product,
-        quantity: Number(product.quantity),
-        minimumQuantity: Number(product.minimumQuantity),
-        costPrice: Number(product.costPrice),
-        sellingPrice: Number(product.sellingPrice),
-      }));
+      console.log('Raw products from database:', products);
+      return products;
     } catch (error) {
       console.error('Error fetching products:', error);
       throw new Error(`Failed to fetch products: ${(error as Error).message}`);
@@ -490,22 +482,9 @@ export class DatabaseStorage implements IStorage {
   async createProduct(product: schema.InsertProduct): Promise<schema.Product> {
     try {
       console.log('Creating product with data:', product);
-      const [newProduct] = await db.insert(schema.products).values({
-        ...product,
-        quantity: product.quantity.toString(),
-        minimumQuantity: product.minimumQuantity.toString(),
-        costPrice: product.costPrice.toString(),
-        sellingPrice: product.sellingPrice.toString(),
-      }).returning();
-
+      const [newProduct] = await db.insert(schema.products).values(product).returning();
       console.log('Product created successfully:', newProduct);
-      return {
-        ...newProduct,
-        quantity: Number(newProduct.quantity),
-        minimumQuantity: Number(newProduct.minimumQuantity),
-        costPrice: Number(newProduct.costPrice),
-        sellingPrice: Number(newProduct.sellingPrice),
-      };
+      return newProduct;
     } catch (error) {
       console.error('Error creating product:', error);
       throw new Error(`Failed to create product: ${(error as Error).message}`);
@@ -513,27 +492,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateProduct(id: number, updates: Partial<schema.InsertProduct>): Promise<schema.Product> {
-    const updatesWithStringNumbers = {
-      ...updates,
-      ...(updates.quantity && { quantity: updates.quantity.toString() }),
-      ...(updates.minimumQuantity && { minimumQuantity: updates.minimumQuantity.toString() }),
-      ...(updates.costPrice && { costPrice: updates.costPrice.toString() }),
-      ...(updates.sellingPrice && { sellingPrice: updates.sellingPrice.toString() }),
-    };
-
     const [updatedProduct] = await db
       .update(schema.products)
-      .set(updatesWithStringNumbers)
+      .set(updates)
       .where(eq(schema.products.id, id))
       .returning();
-
-    return {
-      ...updatedProduct,
-      quantity: Number(updatedProduct.quantity),
-      minimumQuantity: Number(updatedProduct.minimumQuantity),
-      costPrice: Number(updatedProduct.costPrice),
-      sellingPrice: Number(updatedProduct.sellingPrice),
-    };
+    return updatedProduct;
   }
 
   async deleteProduct(id: number): Promise<void> {
@@ -812,7 +776,7 @@ export class DatabaseStorage implements IStorage {
     return await db
       .select()
       .from(schema.campaignNotifications)
-      .where(eq(schema.campaignNotifications.status, 'pending'))
+            .where(eq(schema.campaignNotifications.status, 'pending'))
       .orderBy(schema.campaignNotifications.scheduledFor);
   }
 

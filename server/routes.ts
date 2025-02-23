@@ -11,8 +11,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // API routes for CRUD operations
   app.get("/api/products", async (_req, res) => {
     try {
+      console.log('Fetching products...');
       const products = await storage.getProducts();
-      console.log('Sending products to client:', products);
+      console.log('Products fetched successfully:', products);
       res.json(products);
     } catch (error) {
       console.error('Error fetching products:', error);
@@ -22,9 +23,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/products", async (req, res) => {
     try {
-      console.log('Received product data:', req.body);
-      const product = await storage.createProduct(req.body);
-      console.log('Created product:', product);
+      console.log('Creating product with data:', req.body);
+
+      // Convert numeric strings to actual numbers for validation
+      const productData = {
+        ...req.body,
+        quantity: parseInt(req.body.quantity, 10),
+        minimumQuantity: parseInt(req.body.minimumQuantity, 10),
+        costPrice: parseFloat(req.body.costPrice),
+        sellingPrice: parseFloat(req.body.sellingPrice)
+      };
+
+      console.log('Processed product data:', productData);
+
+      const product = await storage.createProduct(productData);
+      console.log('Product created successfully:', product);
       res.json(product);
     } catch (error) {
       console.error('Error creating product:', error);
