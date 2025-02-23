@@ -13,8 +13,18 @@ import { Customer } from "@shared/schema";
 import { UserPlus } from "lucide-react";
 import { SearchInput } from "@/components/ui/search-input";
 import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { CustomerForm } from "@/components/customers/customer-form";
 
 export default function CustomersPage() {
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { data: customers } = useQuery<Customer[]>({
     queryKey: ["/api/customers"],
   });
@@ -36,10 +46,23 @@ export default function CustomersPage() {
       <div className="space-y-8">
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold">العملاء</h1>
-          <Button>
-            <UserPlus className="h-4 w-4 ml-2" />
-            إضافة عميل
-          </Button>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <UserPlus className="h-4 w-4 ml-2" />
+                إضافة عميل
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>إضافة عميل جديد</DialogTitle>
+                <DialogDescription>
+                  أدخل بيانات العميل الجديد
+                </DialogDescription>
+              </DialogHeader>
+              <CustomerForm onSuccess={() => setIsDialogOpen(false)} />
+            </DialogContent>
+          </Dialog>
         </div>
 
         <div className="max-w-sm">
