@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { insertDiscountCodeSchema, type InsertDiscountCode } from "@shared/schema";
+import { insertDiscountCodeSchema, type InsertDiscountCode, type Promotion } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { DialogClose } from "@/components/ui/dialog";
 import { useQuery } from "@tanstack/react-query";
@@ -27,7 +27,7 @@ import {
 export function DiscountCodeForm({ onSuccess }: { onSuccess?: () => void }) {
   const { toast } = useToast();
 
-  const { data: promotions } = useQuery({
+  const { data: promotions = [] } = useQuery<Promotion[]>({
     queryKey: ["/api/promotions"],
   });
 
@@ -45,9 +45,9 @@ export function DiscountCodeForm({ onSuccess }: { onSuccess?: () => void }) {
   const onSubmit = async (data: InsertDiscountCode) => {
     try {
       await apiRequest("POST", "/api/discount-codes", data);
-      
+
       queryClient.invalidateQueries({ queryKey: ["/api/discount-codes"] });
-      
+
       toast({
         title: "تم إضافة الكود",
         description: "تم إضافة كود الخصم بنجاح",
@@ -55,6 +55,7 @@ export function DiscountCodeForm({ onSuccess }: { onSuccess?: () => void }) {
 
       onSuccess?.();
     } catch (error) {
+      console.error('Error creating discount code:', error);
       toast({
         title: "خطأ",
         description: "حدث خطأ أثناء إضافة كود الخصم",
@@ -96,7 +97,7 @@ export function DiscountCodeForm({ onSuccess }: { onSuccess?: () => void }) {
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {promotions?.map((promotion) => (
+                  {promotions.map((promotion) => (
                     <SelectItem key={promotion.id} value={promotion.id.toString()}>
                       {promotion.name}
                     </SelectItem>
