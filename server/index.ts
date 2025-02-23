@@ -1,10 +1,10 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import { WebSocketServer } from 'ws';
 import { createServer } from 'http';
 import { logger, checkDatabaseConnection } from './db';
 import session from 'express-session';
+import { WebSocketHandler } from './websocket';
 
 const app = express();
 const server = createServer(app);
@@ -64,60 +64,8 @@ process.env.PORT = PORT;
 
 logger.info(`Server will run on port ${PORT}`);
 
-// WebSocket server setup with enhanced error handling
-const wss = new WebSocketServer({ 
-  server,
-  path: '/ws',
-  perMessageDeflate: false,
-  clientTracking: true // Enable client tracking
-});
-
-// Track active connections
-const connections = new Set();
-
-wss.on('connection', (ws, req) => {
-  const clientIp = req.socket.remoteAddress;
-  logger.info(`WebSocket client connected from ${clientIp}`);
-
-  // Add to active connections
-  connections.add(ws);
-  logger.info(`Active WebSocket connections: ${connections.size}`);
-
-  ws.on('message', (message) => {
-    logger.debug('Received:', message.toString());
-    try {
-      ws.send(`Server received: ${message}`);
-    } catch (error) {
-      logger.error('Error sending message:', error);
-    }
-  });
-
-  ws.on('error', (error) => {
-    logger.error('WebSocket error:', error);
-    try {
-      ws.close();
-    } catch (closeError) {
-      logger.error('Error closing WebSocket after error:', closeError);
-    }
-  });
-
-  ws.on('close', (code, reason) => {
-    connections.delete(ws);
-    logger.info(`Client disconnected. Code: ${code}, Reason: ${reason}, Active connections: ${connections.size}`);
-  });
-
-  // Send initial connection confirmation
-  try {
-    ws.send('تم الاتصال بنجاح بخادم WebSocket');
-  } catch (error) {
-    logger.error('Error sending welcome message:', error);
-  }
-});
-
-// Handle WebSocket server errors
-wss.on('error', (error) => {
-  logger.error('WebSocket server error:', error);
-});
+// Initialize WebSocket handler
+const wsHandler = new WebSocketHandler(server);
 
 (async () => {
   try {
