@@ -210,8 +210,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  const httpServer = createServer(app);
+  // Add routes for promotions and discount codes
+  app.get("/api/promotions", async (_req, res) => {
+    try {
+      console.log('Fetching promotions...');
+      const promotions = await storage.getPromotions();
+      console.log('Promotions fetched:', promotions);
+      res.json(promotions);
+    } catch (error) {
+      console.error('Error fetching promotions:', error);
+      res.status(500).json({ error: 'حدث خطأ أثناء جلب العروض' });
+    }
+  });
 
+  app.post("/api/promotions", async (req, res) => {
+    try {
+      console.log('Creating promotion with data:', req.body);
+      const promotion = await storage.createPromotion(req.body);
+      console.log('Created promotion:', promotion);
+      res.json(promotion);
+    } catch (error) {
+      console.error('Error creating promotion:', error);
+      res.status(500).json({ error: 'حدث خطأ أثناء إنشاء العرض' });
+    }
+  });
+
+  app.get("/api/discount-codes", async (_req, res) => {
+    try {
+      console.log('Fetching discount codes...');
+      const discountCodes = await storage.getDiscountCodes();
+      console.log('Discount codes fetched:', discountCodes);
+      res.json(discountCodes);
+    } catch (error) {
+      console.error('Error fetching discount codes:', error);
+      res.status(500).json({ error: 'حدث خطأ أثناء جلب أكواد الخصم' });
+    }
+  });
+
+  app.post("/api/discount-codes", async (req, res) => {
+    try {
+      console.log('Creating discount code with data:', req.body);
+      const discountCode = await storage.createDiscountCode(req.body);
+      console.log('Created discount code:', discountCode);
+      res.json(discountCode);
+    } catch (error) {
+      console.error('Error creating discount code:', error);
+      res.status(500).json({ error: 'حدث خطأ أثناء إنشاء كود الخصم' });
+    }
+  });
+
+  const httpServer = createServer(app);
   // Set port explicitly for both HTTP and WebSocket
   const port = process.env.PORT || 5000;
   app.set('port', port);
