@@ -42,22 +42,33 @@ export function setupAuth(app: Express) {
       }
 
       logger.info('Login successful for user:', username);
-      return done(null, user);
+      // Send user without password
+      const { password: _, ...userWithoutPassword } = user;
+      return done(null, userWithoutPassword);
     } catch (error) {
       logger.error('Login error:', error);
       return done(error);
     }
   }));
 
-  passport.serializeUser((user: User, done) => {
+  passport.serializeUser((user, done) => {
+    logger.info('Serializing user:', user.id);
     done(null, user.id);
   });
 
   passport.deserializeUser(async (id: number, done) => {
     try {
       const user = await storage.getUser(id);
-      done(null, user);
+      if (!user) {
+        logger.error('User not found during deserialization:', id);
+        return done(null, false);
+      }
+      // Send user without password
+      const { password: _, ...userWithoutPassword } = user;
+      logger.info('Deserialized user:', id);
+      done(null, userWithoutPassword);
     } catch (error) {
+      logger.error('Deserialization error:', error);
       done(error);
     }
   });
@@ -78,13 +89,16 @@ export function setupAuth(app: Express) {
         password: hashedPassword,
       });
 
-      req.login(user, (err) => {
+      // Send user without password
+      const { password: _, ...userWithoutPassword } = user;
+
+      req.login(userWithoutPassword, (err) => {
         if (err) {
           logger.error('Error during login after registration:', err);
           return res.status(500).json({ message: "حدث خطأ أثناء تسجيل الدخول" });
         }
         logger.info('User registered and logged in successfully:', user.username);
-        res.status(201).json(user);
+        res.status(201).json(userWithoutPassword);
       });
     } catch (error) {
       logger.error('Registration error:', error);
@@ -131,8 +145,10 @@ export function setupAuth(app: Express) {
   // User info route
   app.get("/api/user", (req, res) => {
     if (!req.isAuthenticated()) {
+      logger.info('Unauthenticated user info request');
       return res.status(401).json({ message: "غير مصرح" });
     }
+    logger.info('User info requested for:', (req.user as User).username);
     res.json(req.user);
   });
 }

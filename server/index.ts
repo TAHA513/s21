@@ -20,16 +20,17 @@ storage.clearAllData().catch(error => {
   logger.error('Failed to clear data:', error);
 });
 
-// Simple session configuration
+// Session configuration with proper settings
 app.use(session({
   secret: process.env.SESSION_SECRET || 'your-secret-key',
   resave: false,
   saveUninitialized: false,
   store: storage.sessionStore,
   cookie: {
-    secure: false, // Set to false for development
+    secure: false, // Set to true in production
     httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    sameSite: 'lax'
   }
 }));
 
@@ -37,9 +38,10 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Simple CORS configuration
+// Proper CORS configuration for handling credentials
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', 'http://localhost:5000');
+  const origin = req.get('origin') || 'http://localhost:5000';
+  res.header('Access-Control-Allow-Origin', origin);
   res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.header('Access-Control-Allow-Credentials', 'true');
