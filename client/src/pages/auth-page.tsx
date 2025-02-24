@@ -8,6 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { insertUserSchema, type InsertUser } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
 
 // مخطط تسجيل الدخول البسيط
 const loginSchema = z.object({
@@ -18,9 +19,20 @@ const loginSchema = z.object({
 type LoginData = z.infer<typeof loginSchema>;
 
 export default function AuthPage() {
+  console.log("AuthPage rendering");
   const [isLogin, setIsLogin] = useState(true);
-  const { loginMutation, registerMutation } = useAuth();
+  const { loginMutation, registerMutation, user } = useAuth();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
+
+  console.log("AuthPage state:", { isLogin, user });
+
+  // التوجيه إذا كان المستخدم مسجل دخوله
+  if (user) {
+    console.log("User already logged in, redirecting to /");
+    setLocation("/");
+    return null;
+  }
 
   // نموذج تسجيل الدخول
   const loginForm = useForm<LoginData>({
@@ -43,12 +55,14 @@ export default function AuthPage() {
   // معالجة النموذج
   const onSubmit = async (data: LoginData | InsertUser) => {
     try {
+      console.log("Form submitted:", { isLogin, data });
       if (isLogin) {
         await loginMutation.mutateAsync(data as LoginData);
       } else {
         await registerMutation.mutateAsync(data as InsertUser);
       }
     } catch (error) {
+      console.error("Auth error:", error);
       toast({
         title: isLogin ? "فشل تسجيل الدخول" : "فشل إنشاء الحساب",
         description: error instanceof Error ? error.message : "حدث خطأ غير متوقع",
