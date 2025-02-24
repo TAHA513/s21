@@ -5,9 +5,30 @@ import { z } from "zod";
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
-  password: text("password").notNull(),
-  role: text("role").notNull().default("staff"),
+  email: text("email").notNull().unique(),
+  phone: text("phone").notNull(),
   name: text("name").notNull(),
+  password: text("password").notNull(),
+  verificationCode: text("verification_code"),
+  isVerified: boolean("is_verified").notNull().default(false),
+  role: text("role").notNull().default("staff"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Update the insertion schema with new fields
+export const insertUserSchema = createInsertSchema(users).extend({
+  email: z.string().email("عنوان البريد الإلكتروني غير صالح"),
+  phone: z.string().min(10, "رقم الهاتف يجب أن لا يقل عن 10 أرقام"),
+  name: z.string().min(2, "الاسم يجب أن يكون على الأقل حرفين"),
+  password: z.string().min(6, "كلمة المرور يجب أن تكون على الأقل 6 أحرف"),
+  verificationCode: z.string().optional(),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  isVerified: true,
+  role: true,
 });
 
 export const customers = pgTable("customers", {
@@ -216,12 +237,6 @@ export const installmentPayments = pgTable("installment_payments", {
   status: text("status").notNull().default("paid"),
   notes: text("notes"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
-
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
-  name: true,
 });
 
 export const insertCustomerSchema = createInsertSchema(customers);

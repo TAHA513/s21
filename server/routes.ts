@@ -3,12 +3,15 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import express from 'express';
 import multer from 'multer';
-import { backupService } from './services/backup-service';
 import { WebSocketServer } from 'ws';
+import { setupAuth } from './auth';
 
 const upload = multer({ dest: 'uploads/' });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Set up authentication routes
+  setupAuth(app);
+
   // API routes for CRUD operations
   app.get("/api/products", async (_req, res) => {
     try {
