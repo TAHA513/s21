@@ -5,12 +5,26 @@ import { createServer } from 'http';
 import { logger, checkDatabaseConnection } from './db';
 import session from 'express-session';
 import { WebSocketHandler } from './websocket';
+import { storage } from './storage';
 
 const app = express();
 const server = createServer(app);
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));
+
+// Session configuration
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'your-secret-key',
+  resave: false,
+  saveUninitialized: false,
+  store: storage.sessionStore,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
+}));
 
 // CORS middleware with specific origins
 app.use((req, res, next) => {
@@ -21,6 +35,7 @@ app.use((req, res, next) => {
   }
   res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
   res.header('Access-Control-Allow-Headers', 'Content-Type');
+  res.header('Access-Control-Allow-Credentials', 'true');
   next();
 });
 
@@ -69,13 +84,6 @@ const wsHandler = new WebSocketHandler(server);
 
 (async () => {
   try {
-    // Check database connection before starting the server
-    const isDbConnected = await checkDatabaseConnection();
-    if (!isDbConnected) {
-      logger.error('Failed to connect to database. Exiting...');
-      process.exit(1);
-    }
-
     await registerRoutes(app);
 
     // Enhanced error handling middleware

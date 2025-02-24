@@ -97,38 +97,20 @@ export function setupAuth(app: Express) {
         name,
         password: hashedPassword,
         verificationCode,
+        isVerified: true, // For now, auto-verify users
       });
 
-      // TODO: Send verification code via email
-      // For now, we'll just return it in the response
-      res.status(201).json({ 
-        message: "تم إنشاء الحساب بنجاح. يرجى التحقق من رمز التفعيل",
-        verificationCode 
+      // Log in the user after registration
+      req.login(user, (err) => {
+        if (err) {
+          console.error('Error logging in after registration:', err);
+          return res.status(500).json({ message: "حدث خطأ أثناء تسجيل الدخول" });
+        }
+        res.status(201).json(user);
       });
     } catch (error) {
       console.error('Registration error:', error);
       res.status(500).json({ message: "حدث خطأ أثناء إنشاء الحساب" });
-    }
-  });
-
-  app.post("/api/verify", async (req, res) => {
-    try {
-      const { email, code } = req.body;
-      const user = await storage.getUserByEmail(email);
-
-      if (!user) {
-        return res.status(404).json({ message: "لم يتم العثور على المستخدم" });
-      }
-
-      if (user.verificationCode !== code) {
-        return res.status(400).json({ message: "رمز التحقق غير صحيح" });
-      }
-
-      await storage.updateUser(user.id, { isVerified: true, verificationCode: null });
-      res.json({ message: "تم التحقق من الحساب بنجاح" });
-    } catch (error) {
-      console.error('Verification error:', error);
-      res.status(500).json({ message: "حدث خطأ أثناء التحقق من الحساب" });
     }
   });
 
@@ -144,7 +126,7 @@ export function setupAuth(app: Express) {
         if (err) {
           return next(err);
         }
-        return res.json({ message: "تم تسجيل الدخول بنجاح", user });
+        return res.json(user);
       });
     })(req, res, next);
   });
