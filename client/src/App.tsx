@@ -1,10 +1,6 @@
 import { Switch, Route } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
-import { AuthProvider } from "@/hooks/use-auth";
-import { Navbar } from "@/components/Navbar";
-import { ProtectedRoute } from "@/lib/protected-route";
-import AuthPage from "@/pages/auth-page";
 import NotFound from "@/pages/not-found";
 import DashboardPage from "@/pages/dashboard-page";
 import StaffDashboard from "@/pages/staff/dashboard";
@@ -44,48 +40,36 @@ function Router() {
   }, []);
 
   return (
-    <div>
-      <Navbar />
-      <main className="container mx-auto px-4 py-8">
-        <Switch>
-          {/* Only one auth route */}
-          <Route path="/auth" component={AuthPage} />
-
-          {/* Protected Routes */}
-          <Route path="/" component={() => <ProtectedRoute component={DashboardPage} />} />
-          <Route path="/staff" component={() => <ProtectedRoute component={StaffDashboard} />} />
-          <Route path="/purchases" component={() => <ProtectedRoute component={PurchasesPage} />} />
-          <Route path="/suppliers" component={() => <ProtectedRoute component={SuppliersPage} />} />
-          <Route path="/customers" component={() => <ProtectedRoute component={CustomersPage} />} />
-          <Route path="/appointments" component={() => <ProtectedRoute component={AppointmentsPage} />} />
-          <Route path="/staff-management" component={() => <ProtectedRoute component={StaffPage} />} />
-          <Route path="/marketing" component={() => <ProtectedRoute component={MarketingPage} />} />
-          <Route path="/promotions" component={() => <ProtectedRoute component={PromotionsPage} />} />
-          <Route path="/products" component={() => <ProtectedRoute component={ProductsPage} />} />
-          <Route path="/invoices" component={() => <ProtectedRoute component={InvoicesPage} />} />
-          <Route path="/installments" component={() => <ProtectedRoute component={InstallmentsPage} />} />
-          <Route path="/expenses" component={() => <ProtectedRoute component={ExpensesPage} />} />
-          <Route path="/expense-categories" component={() => <ProtectedRoute component={ExpenseCategoriesPage} />} />
-          <Route path="/reports" component={() => <ProtectedRoute component={ReportsPage} />} />
-          <Route path="/inventory-reports" component={() => <ProtectedRoute component={InventoryReportsPage} />} />
-          <Route path="/barcodes" component={() => <ProtectedRoute component={BarcodesPage} />} />
-          <Route path="/settings" component={() => <ProtectedRoute component={SettingsPage} />} />
-
-          {/* 404 Route */}
-          <Route component={NotFound} />
-        </Switch>
-      </main>
-    </div>
+    <Switch>
+      {/* المسارات الرئيسية */}
+      <Route path="/" component={DashboardPage} />
+      <Route path="/staff" component={StaffDashboard} />
+      <Route path="/purchases" component={PurchasesPage} />
+      <Route path="/suppliers" component={SuppliersPage} />
+      <Route path="/customers" component={CustomersPage} />
+      <Route path="/appointments" component={AppointmentsPage} />
+      <Route path="/staff-management" component={StaffPage} />
+      <Route path="/marketing" component={MarketingPage} />
+      <Route path="/promotions" component={PromotionsPage} />
+      <Route path="/products" component={ProductsPage} />
+      <Route path="/invoices" component={InvoicesPage} />
+      <Route path="/installments" component={InstallmentsPage} />
+      <Route path="/expenses" component={ExpensesPage} />
+      <Route path="/expense-categories" component={ExpenseCategoriesPage} />
+      <Route path="/reports" component={ReportsPage} />
+      <Route path="/inventory-reports" component={InventoryReportsPage} />
+      <Route path="/barcodes" component={BarcodesPage} />
+      <Route path="/settings" component={SettingsPage} />
+      <Route component={NotFound} />
+    </Switch>
   );
 }
 
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <Router />
-        <Toaster />
-      </AuthProvider>
+      <Router />
+      <Toaster />
     </QueryClientProvider>
   );
 }

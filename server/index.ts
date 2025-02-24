@@ -1,69 +1,94 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
-import { setupVite, serveStatic } from "./vite";
+import { setupVite, serveStatic, log } from "./vite";
 import { createServer } from 'http';
-import { logger } from './db';
+import { logger, checkDatabaseConnection } from './db';
 import session from 'express-session';
-import { storage } from './storage';
-import passport from 'passport';
-import { setupAuth } from "./auth";
+import { WebSocketHandler } from './websocket';
 
 const app = express();
 const server = createServer(app);
 
-// مسح البيانات المؤقتة وتخزين الجلسة
-storage.clearAllData().catch(error => {
-  logger.error('Failed to clear data:', error);
-});
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: false, limit: '50mb' }));
 
-// Basic middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-// Session configuration with proper settings
-app.use(session({
-  secret: process.env.SESSION_SECRET || 'your-secret-key',
-  resave: false,
-  saveUninitialized: false,
-  store: storage.sessionStore,
-  cookie: {
-    secure: false, // Set to true in production
-    httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    sameSite: 'lax'
-  }
-}));
-
-// Initialize Passport
-app.use(passport.initialize());
-app.use(passport.session());
-
-// Proper CORS configuration for handling credentials
+// CORS middleware with specific origins
 app.use((req, res, next) => {
-  const origin = req.get('origin') || 'http://localhost:5000';
-  res.header('Access-Control-Allow-Origin', origin);
-  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.header('Access-Control-Allow-Credentials', 'true');
-
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(200);
+  const allowedOrigins = ['http://localhost:5000', 'https://localhost:5000'];
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
   }
+  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
+  res.header('Access-Control-Allow-Headers', 'Content-Type');
   next();
 });
 
-// Setup authentication first
-setupAuth(app);
+// Enhanced logging middleware
+app.use((req, res, next) => {
+  const start = Date.now();
+  const path = req.path;
+  let capturedJsonResponse: Record<string, any> | undefined = undefined;
 
-// Register routes
+  const originalResJson = res.json;
+  res.json = function (bodyJson, ...args) {
+    capturedJsonResponse = bodyJson;
+    return originalResJson.apply(res, [bodyJson, ...args]);
+  };
+
+  res.on("finish", () => {
+    const duration = Date.now() - start;
+    if (path.startsWith("/api")) {
+      const logData = {
+        method: req.method,
+        path,
+        statusCode: res.statusCode,
+        duration: `${duration}ms`,
+        response: capturedJsonResponse
+      };
+
+      if (res.statusCode >= 400) {
+        logger.error(logData, 'API Request Failed');
+      } else {
+        logger.info(logData, 'API Request Completed');
+      }
+    }
+  });
+
+  next();
+});
+
+// Ensure PORT is set and valid
+const PORT = process.env.PORT || '5000';
+process.env.PORT = PORT;
+
+logger.info(`Server will run on port ${PORT}`);
+
+// Initialize WebSocket handler
+const wsHandler = new WebSocketHandler(server);
+
 (async () => {
   try {
+    // Check database connection before starting the server
+    const isDbConnected = await checkDatabaseConnection();
+    if (!isDbConnected) {
+      logger.error('Failed to connect to database. Exiting...');
+      process.exit(1);
+    }
+
     await registerRoutes(app);
 
-    // Error handling
+    // Enhanced error handling middleware
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-      logger.error('Server Error:', err);
-      res.status(500).json({ message: "حدث خطأ في الخادم" });
+      logger.error({
+        error: err,
+        stack: err.stack,
+        message: err.message
+      }, 'Server Error');
+
+      const status = err.status || err.statusCode || 500;
+      const message = err.message || "Internal Server Error";
+      res.status(status).json({ message });
     });
 
     if (app.get("env") === "development") {
@@ -72,11 +97,19 @@ setupAuth(app);
       serveStatic(app);
     }
 
-    const PORT = process.env.PORT || '5000';
+    // Start server with enhanced error handling
     server.listen(Number(PORT), "0.0.0.0", () => {
       logger.info(`Server running at http://0.0.0.0:${PORT}`);
+      logger.info(`WebSocket server available at ws://0.0.0.0:${PORT}/ws`);
+    }).on('error', (error: NodeJS.ErrnoException) => {
+      if (error.code === 'EADDRINUSE') {
+        logger.error(`Port ${PORT} is already in use. Please choose a different port.`);
+        process.exit(1);
+      } else {
+        logger.error('Server failed to start:', error);
+        process.exit(1);
+      }
     });
-
   } catch (error) {
     logger.error('Failed to start server:', error);
     process.exit(1);
