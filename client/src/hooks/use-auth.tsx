@@ -1,11 +1,26 @@
 import { createContext, ReactNode, useContext } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { type User, type InsertUser } from "@shared/schema";
-import { getQueryFn, apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
+import { apiRequest } from "@/lib/queryClient";
 
-type LoginData = Pick<InsertUser, "username" | "password">;
+type User = {
+  id: number;
+  username: string;
+  name: string;
+  role: string;
+};
+
+type LoginData = {
+  username: string;
+  password: string;
+};
+
+type RegisterData = LoginData & {
+  name: string;
+  email: string;
+  phone: string;
+};
 
 type AuthContextType = {
   user: User | null;
@@ -27,16 +42,12 @@ function useLoginMutation() {
       const res = await apiRequest("POST", "/api/login", credentials);
       if (!res.ok) {
         const error = await res.json();
-        throw new Error(error.message || "فشل تسجيل الدخول");
+        throw new Error(error.message);
       }
       return res.json();
     },
     onSuccess: () => {
-      // Instead of setting user data directly, invalidate the query to fetch fresh data
-      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-      toast({
-        title: "تم تسجيل الدخول بنجاح",
-      });
+      toast({ title: "تم تسجيل الدخول بنجاح" });
       setLocation("/");
     },
   });
@@ -47,19 +58,16 @@ function useRegisterMutation() {
   const [, setLocation] = useLocation();
 
   return useMutation({
-    mutationFn: async (data: InsertUser) => {
+    mutationFn: async (data: RegisterData) => {
       const res = await apiRequest("POST", "/api/register", data);
       if (!res.ok) {
         const error = await res.json();
-        throw new Error(error.message || "فشل إنشاء الحساب");
+        throw new Error(error.message);
       }
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-      toast({
-        title: "تم إنشاء الحساب بنجاح",
-      });
+      toast({ title: "تم إنشاء الحساب بنجاح" });
       setLocation("/");
     },
   });
@@ -74,14 +82,11 @@ function useLogoutMutation() {
       const res = await apiRequest("POST", "/api/logout");
       if (!res.ok) {
         const error = await res.json();
-        throw new Error(error.message || "فشل تسجيل الخروج");
+        throw new Error(error.message);
       }
     },
     onSuccess: () => {
-      queryClient.setQueryData(["/api/user"], null);
-      toast({
-        title: "تم تسجيل الخروج بنجاح",
-      });
+      toast({ title: "تم تسجيل الخروج بنجاح" });
       setLocation("/auth");
     },
   });
@@ -94,7 +99,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isLoading,
   } = useQuery<User | null>({
     queryKey: ["/api/user"],
-    queryFn: getQueryFn({ on401: "returnNull" }),
+    queryFn: async () => {
+      const res = await fetch("/api/user");
+      if (res.status === 401) return null;
+      if (!res.ok) throw new Error("فشل جلب بيانات المستخدم");
+      return res.json();
+    },
   });
 
   const loginMutation = useLoginMutation();
@@ -104,7 +114,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return (
     <AuthContext.Provider
       value={{
-        user: user ?? null,
+        user,
         isLoading,
         error,
         loginMutation,
