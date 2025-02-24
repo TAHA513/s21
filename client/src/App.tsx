@@ -52,24 +52,24 @@ function Router() {
           <Route path="/auth" component={AuthPage} />
 
           {/* Protected Routes */}
-          <ProtectedRoute path="/" component={DashboardPage} />
-          <ProtectedRoute path="/staff" component={StaffDashboard} />
-          <ProtectedRoute path="/purchases" component={PurchasesPage} />
-          <ProtectedRoute path="/suppliers" component={SuppliersPage} />
-          <ProtectedRoute path="/customers" component={CustomersPage} />
-          <ProtectedRoute path="/appointments" component={AppointmentsPage} />
-          <ProtectedRoute path="/staff-management" component={StaffPage} />
-          <ProtectedRoute path="/marketing" component={MarketingPage} />
-          <ProtectedRoute path="/promotions" component={PromotionsPage} />
-          <ProtectedRoute path="/products" component={ProductsPage} />
-          <ProtectedRoute path="/invoices" component={InvoicesPage} />
-          <ProtectedRoute path="/installments" component={InstallmentsPage} />
-          <ProtectedRoute path="/expenses" component={ExpensesPage} />
-          <ProtectedRoute path="/expense-categories" component={ExpenseCategoriesPage} />
-          <ProtectedRoute path="/reports" component={ReportsPage} />
-          <ProtectedRoute path="/inventory-reports" component={InventoryReportsPage} />
-          <ProtectedRoute path="/barcodes" component={BarcodesPage} />
-          <ProtectedRoute path="/settings" component={SettingsPage} />
+          <Route path="/" component={() => <ProtectedRoute component={DashboardPage} />} />
+          <Route path="/staff" component={() => <ProtectedRoute component={StaffDashboard} />} />
+          <Route path="/purchases" component={() => <ProtectedRoute component={PurchasesPage} />} />
+          <Route path="/suppliers" component={() => <ProtectedRoute component={SuppliersPage} />} />
+          <Route path="/customers" component={() => <ProtectedRoute component={CustomersPage} />} />
+          <Route path="/appointments" component={() => <ProtectedRoute component={AppointmentsPage} />} />
+          <Route path="/staff-management" component={() => <ProtectedRoute component={StaffPage} />} />
+          <Route path="/marketing" component={() => <ProtectedRoute component={MarketingPage} />} />
+          <Route path="/promotions" component={() => <ProtectedRoute component={PromotionsPage} />} />
+          <Route path="/products" component={() => <ProtectedRoute component={ProductsPage} />} />
+          <Route path="/invoices" component={() => <ProtectedRoute component={InvoicesPage} />} />
+          <Route path="/installments" component={() => <ProtectedRoute component={InstallmentsPage} />} />
+          <Route path="/expenses" component={() => <ProtectedRoute component={ExpensesPage} />} />
+          <Route path="/expense-categories" component={() => <ProtectedRoute component={ExpenseCategoriesPage} />} />
+          <Route path="/reports" component={() => <ProtectedRoute component={ReportsPage} />} />
+          <Route path="/inventory-reports" component={() => <ProtectedRoute component={InventoryReportsPage} />} />
+          <Route path="/barcodes" component={() => <ProtectedRoute component={BarcodesPage} />} />
+          <Route path="/settings" component={() => <ProtectedRoute component={SettingsPage} />} />
 
           {/* 404 Route */}
           <Route component={NotFound} />
