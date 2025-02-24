@@ -1,35 +1,69 @@
-import { pgTable, text, serial, integer, boolean, timestamp, decimal, json } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, boolean, timestamp, integer, json, decimal } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Basic user schema for authentication
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
+  password: text("password").notNull(),
+  name: text("name").notNull(),
   email: text("email").notNull().unique(),
   phone: text("phone").notNull(),
-  name: text("name").notNull(),
-  password: text("password").notNull(),
-  verificationCode: text("verification_code"),
-  isVerified: boolean("is_verified").notNull().default(false),
   role: text("role").notNull().default("staff"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-// Update the insertion schema with new fields
-export const insertUserSchema = createInsertSchema(users).extend({
-  email: z.string().email("عنوان البريد الإلكتروني غير صالح"),
-  phone: z.string().min(10, "رقم الهاتف يجب أن لا يقل عن 10 أرقام"),
-  name: z.string().min(2, "الاسم يجب أن يكون على الأقل حرفين"),
-  password: z.string().min(6, "كلمة المرور يجب أن تكون على الأقل 6 أحرف"),
-  verificationCode: z.string().optional(),
-}).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-  isVerified: true,
-  role: true,
+export const insertUserSchema = createInsertSchema(users)
+  .extend({
+    password: z.string().min(6, "كلمة المرور يجب أن تكون على الأقل 6 أحرف"),
+    email: z.string().email("عنوان البريد الإلكتروني غير صالح"),
+    phone: z.string().min(10, "رقم الهاتف يجب أن لا يقل عن 10 أرقام"),
+    name: z.string().min(2, "الاسم يجب أن يكون على الأقل حرفين"),
+  })
+  .omit({
+    id: true,
+    createdAt: true,
+    role: true,
+  });
+
+export type User = typeof users.$inferSelect;
+export type InsertUser = z.infer<typeof insertUserSchema>;
+
+// Basic invoice schema
+export const invoices = pgTable("invoices", {
+  id: serial("id").primaryKey(),
+  customerName: text("customer_name"),
+  items: json("items").$type<{
+    productId: number;
+    quantity: number;
+    price: number;
+    total: number;
+  }[]>().notNull(),
+  subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
+  discount: decimal("discount", { precision: 10, scale: 2 }).notNull().default("0"),
+  discountAmount: decimal("discount_amount", { precision: 10, scale: 2 }).notNull().default("0"),
+  finalTotal: decimal("final_total", { precision: 10, scale: 2 }).notNull(),
+  note: text("note"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
+
+export const insertInvoiceSchema = createInsertSchema(invoices).extend({
+  items: z.array(z.object({
+    productId: z.number(),
+    quantity: z.number(),
+    price: z.number(),
+    total: z.number()
+  })),
+  subtotal: z.number(),
+  discount: z.number(),
+  discountAmount: z.number(),
+  finalTotal: z.number(),
+  note: z.string().optional()
+});
+
+export type Invoice = typeof invoices.$inferSelect;
+export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;
 
 export const customers = pgTable("customers", {
   id: serial("id").primaryKey(),
@@ -189,23 +223,6 @@ export const products = pgTable("products", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
-export const invoices = pgTable("invoices", {
-  id: serial("id").primaryKey(),
-  customerName: text("customer_name"),
-  items: json("items").$type<{
-    productId: number;
-    quantity: number;
-    price: number;
-    total: number;
-  }[]>().notNull(),
-  subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
-  discount: decimal("discount", { precision: 10, scale: 2 }).notNull().default("0"),
-  discountAmount: decimal("discount_amount", { precision: 10, scale: 2 }).notNull().default("0"),
-  finalTotal: decimal("final_total", { precision: 10, scale: 2 }).notNull(),
-  note: text("note"),
-  date: timestamp("date").notNull().defaultNow(),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-});
 
 // Installment Sales Tables
 export const installmentPlans = pgTable("installment_plans", {
@@ -309,20 +326,6 @@ export const insertProductSchema = createInsertSchema(products).extend({
   isWeighted: z.boolean(),
 });
 
-export const insertInvoiceSchema = createInsertSchema(invoices).extend({
-  items: z.array(z.object({
-    productId: z.number(),
-    quantity: z.number(),
-    price: z.number(),
-    total: z.number()
-  })),
-  subtotal: z.number(),
-  discount: z.number(),
-  discountAmount: z.number(),
-  finalTotal: z.number(),
-  note: z.string().optional(),
-});
-
 export const insertInstallmentPlanSchema = createInsertSchema(installmentPlans).extend({
   totalAmount: z.number().min(0),
   downPayment: z.number().min(0),
@@ -350,8 +353,6 @@ export const insertScheduledPostSchema = createInsertSchema(scheduledPosts).exte
 });
 
 
-export type User = typeof users.$inferSelect;
-export type InsertUser = z.infer<typeof insertUserSchema>;
 export type Customer = typeof customers.$inferSelect;
 export type InsertCustomer = z.infer<typeof insertCustomerSchema>;
 export type Appointment = typeof appointments.$inferSelect;
