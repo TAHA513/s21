@@ -54,6 +54,7 @@ export const queryClient = new QueryClient({
       refetchOnWindowFocus: true,
       retry: false,
       staleTime: 0,
+      gcTime: 0,
     },
     mutations: {
       retry: false,

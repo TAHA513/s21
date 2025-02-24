@@ -28,11 +28,8 @@ function useLoginMutation() {
   return useMutation({
     mutationFn: async (credentials: LoginData) => {
       const res = await apiRequest("POST", "/api/login", credentials);
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "فشل تسجيل الدخول");
-      }
-      return res.json();
+      const data = await res.json();
+      return data;
     },
     onSuccess: (user: User) => {
       queryClient.setQueryData(["/api/user"], user);
@@ -60,11 +57,8 @@ function useRegisterMutation() {
   return useMutation({
     mutationFn: async (data: InsertUser) => {
       const res = await apiRequest("POST", "/api/register", data);
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "فشل إنشاء الحساب");
-      }
-      return res.json();
+      const userData = await res.json();
+      return userData;
     },
     onSuccess: (user: User) => {
       queryClient.setQueryData(["/api/user"], user);
@@ -91,14 +85,11 @@ function useLogoutMutation() {
 
   return useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/logout");
-      if (!res.ok) {
-        throw new Error("فشل تسجيل الخروج");
-      }
+      await apiRequest("POST", "/api/logout");
     },
     onSuccess: () => {
-      queryClient.removeQueries({ queryKey: ["/api/user"] });
       queryClient.setQueryData(["/api/user"], null);
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
       toast({
         title: "تم تسجيل الخروج بنجاح",
       });
@@ -122,6 +113,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   } = useQuery<User | null>({
     queryKey: ["/api/user"],
     queryFn: getQueryFn({ on401: "returnNull" }),
+    staleTime: 0,
+    cacheTime: 0,
   });
 
   const loginMutation = useLoginMutation();

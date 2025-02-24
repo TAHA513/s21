@@ -11,14 +11,14 @@ import { setupAuth } from "./auth";
 const app = express();
 const server = createServer(app);
 
-// Basic middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
 // Clear existing data and session store
 storage.clearAllData().catch(error => {
   logger.error('Failed to clear data:', error);
 });
+
+// Basic middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Session configuration with proper settings
 app.use(session({
