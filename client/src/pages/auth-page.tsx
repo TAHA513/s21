@@ -6,8 +6,15 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertUserSchema } from "@shared/schema";
-import type { InsertUser } from "@shared/schema";
+import { z } from "zod";
+import { insertUserSchema, type InsertUser } from "@shared/schema";
+
+const loginSchema = z.object({
+  username: z.string().min(1, "اسم المستخدم مطلوب"),
+  password: z.string().min(1, "كلمة المرور مطلوبة"),
+});
+
+type LoginData = z.infer<typeof loginSchema>;
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -20,7 +27,15 @@ export default function AuthPage() {
     return null;
   }
 
-  const form = useForm<InsertUser>({
+  const loginForm = useForm<LoginData>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      username: "",
+      password: "",
+    },
+  });
+
+  const registerForm = useForm<InsertUser>({
     resolver: zodResolver(insertUserSchema),
     defaultValues: {
       username: "",
@@ -31,16 +46,17 @@ export default function AuthPage() {
     },
   });
 
-  const onSubmit = form.handleSubmit((data) => {
-    if (isLogin) {
-      loginMutation.mutate({
-        username: data.username,
-        password: data.password,
-      });
-    } else {
-      registerMutation.mutate(data);
+  const onSubmit = async (data: LoginData | InsertUser) => {
+    try {
+      if (isLogin) {
+        await loginMutation.mutateAsync(data as LoginData);
+      } else {
+        await registerMutation.mutateAsync(data as InsertUser);
+      }
+    } catch (error) {
+      console.error('Auth error:', error);
     }
-  });
+  };
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -49,17 +65,24 @@ export default function AuthPage() {
           {isLogin ? "تسجيل الدخول" : "إنشاء حساب جديد"}
         </h1>
 
-        <form onSubmit={onSubmit} className="space-y-4">
+        <form onSubmit={isLogin ? loginForm.handleSubmit(onSubmit) : registerForm.handleSubmit(onSubmit)} className="space-y-4">
           <div>
             <Input
               placeholder="اسم المستخدم"
-              {...form.register("username")}
+              {...(isLogin ? loginForm.register("username") : registerForm.register("username"))}
             />
-            {form.formState.errors.username && (
-              <p className="text-red-500 text-sm mt-1">
-                {form.formState.errors.username.message}
-              </p>
-            )}
+            {isLogin 
+              ? loginForm.formState.errors.username && (
+                <p className="text-red-500 text-sm mt-1">
+                  {loginForm.formState.errors.username.message}
+                </p>
+              )
+              : registerForm.formState.errors.username && (
+                <p className="text-red-500 text-sm mt-1">
+                  {registerForm.formState.errors.username.message}
+                </p>
+              )
+            }
           </div>
 
           {!isLogin && (
@@ -68,11 +91,11 @@ export default function AuthPage() {
                 <Input
                   placeholder="البريد الإلكتروني"
                   type="email"
-                  {...form.register("email")}
+                  {...registerForm.register("email")}
                 />
-                {form.formState.errors.email && (
+                {registerForm.formState.errors.email && (
                   <p className="text-red-500 text-sm mt-1">
-                    {form.formState.errors.email.message}
+                    {registerForm.formState.errors.email.message}
                   </p>
                 )}
               </div>
@@ -80,22 +103,22 @@ export default function AuthPage() {
                 <Input
                   placeholder="رقم الهاتف"
                   type="tel"
-                  {...form.register("phone")}
+                  {...registerForm.register("phone")}
                 />
-                {form.formState.errors.phone && (
+                {registerForm.formState.errors.phone && (
                   <p className="text-red-500 text-sm mt-1">
-                    {form.formState.errors.phone.message}
+                    {registerForm.formState.errors.phone.message}
                   </p>
                 )}
               </div>
               <div>
                 <Input
                   placeholder="الاسم"
-                  {...form.register("name")}
+                  {...registerForm.register("name")}
                 />
-                {form.formState.errors.name && (
+                {registerForm.formState.errors.name && (
                   <p className="text-red-500 text-sm mt-1">
-                    {form.formState.errors.name.message}
+                    {registerForm.formState.errors.name.message}
                   </p>
                 )}
               </div>
@@ -106,21 +129,31 @@ export default function AuthPage() {
             <Input
               placeholder="كلمة المرور"
               type="password"
-              {...form.register("password")}
+              {...(isLogin ? loginForm.register("password") : registerForm.register("password"))}
             />
-            {form.formState.errors.password && (
-              <p className="text-red-500 text-sm mt-1">
-                {form.formState.errors.password.message}
-              </p>
-            )}
+            {isLogin
+              ? loginForm.formState.errors.password && (
+                <p className="text-red-500 text-sm mt-1">
+                  {loginForm.formState.errors.password.message}
+                </p>
+              )
+              : registerForm.formState.errors.password && (
+                <p className="text-red-500 text-sm mt-1">
+                  {registerForm.formState.errors.password.message}
+                </p>
+              )
+            }
           </div>
 
           <Button
             type="submit"
             className="w-full"
-            disabled={loginMutation.isPending || registerMutation.isPending}
+            disabled={isLogin ? loginMutation.isPending : registerMutation.isPending}
           >
-            {isLogin ? "تسجيل الدخول" : "إنشاء حساب"}
+            {isLogin 
+              ? (loginMutation.isPending ? "جاري تسجيل الدخول..." : "تسجيل الدخول")
+              : (registerMutation.isPending ? "جاري إنشاء الحساب..." : "إنشاء حساب")
+            }
           </Button>
 
           <p className="text-center mt-4">
