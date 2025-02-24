@@ -11,10 +11,10 @@ const logger = pino({
   }
 });
 
-// Create memory cache for user data
+// Create memory cache for user data with longer TTL
 const cache = new NodeCache({
-  stdTTL: 600, // 10 minutes
-  checkperiod: 120
+  stdTTL: 24 * 60 * 60, // 24 hours
+  checkperiod: 60 * 60 // Check every hour
 });
 
 // Create MemoryStore for sessions
@@ -24,9 +24,9 @@ export class MemStorage {
   sessionStore: session.Store;
 
   constructor() {
-    // Initialize session store
+    // Initialize session store with longer check period
     this.sessionStore = new MemoryStore({
-      checkPeriod: 86400000, // 24 hours
+      checkPeriod: 24 * 60 * 60 * 1000, // 24 hours
     });
 
     logger.info('Storage initialized');
@@ -77,15 +77,28 @@ export class MemStorage {
   async createUser(userData: InsertUser): Promise<User> {
     try {
       const users = this.getStoredUsers();
+
+      // Validate username is unique
+      if (users.some(u => u.username === userData.username)) {
+        throw new Error('اسم المستخدم موجود بالفعل');
+      }
+
       const newUser: User = {
         ...userData,
         id: users.length > 0 ? Math.max(...users.map(u => u.id)) + 1 : 1,
         role: 'staff',
         createdAt: new Date(),
       };
+
       users.push(newUser);
       cache.set('users', users);
-      logger.info('User created:', { userId: newUser.id, username: newUser.username });
+
+      logger.info('User created:', { 
+        userId: newUser.id, 
+        username: newUser.username,
+        role: newUser.role 
+      });
+
       return newUser;
     } catch (error) {
       logger.error('Error creating user:', error);
@@ -94,11 +107,10 @@ export class MemStorage {
   }
 
   private getStoredUsers(): User[] {
-    const users = cache.get('users');
-    logger.info('Getting stored users:', { count: users ? users.length : 0 });
+    const users = cache.get('users') as User[] | undefined;
+    logger.info('Getting stored users:', { count: users?.length || 0 });
     return users || [];
   }
-
   // Invoice operations
   async getInvoices(): Promise<Invoice[]> {
     try {

@@ -11,7 +11,7 @@ import { setupAuth } from "./auth";
 const app = express();
 const server = createServer(app);
 
-// Clear existing data and session store
+// مسح البيانات المؤقتة وتخزين الجلسة
 storage.clearAllData().catch(error => {
   logger.error('Failed to clear data:', error);
 });
