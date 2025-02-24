@@ -38,7 +38,8 @@ function useLoginMutation() {
         title: "تم تسجيل الدخول بنجاح",
         description: `مرحباً ${user.name}`,
       });
-      setLocation("/");
+      // تأخير قصير قبل إعادة التوجيه للتأكد من تحديث حالة المستخدم
+      setTimeout(() => setLocation("/"), 500);
     },
     onError: (error: Error) => {
       toast({
@@ -67,7 +68,8 @@ function useRegisterMutation() {
         title: "تم إنشاء الحساب بنجاح",
         description: `مرحباً ${user.name}`,
       });
-      setLocation("/");
+      // تأخير قصير قبل إعادة التوجيه للتأكد من تحديث حالة المستخدم
+      setTimeout(() => setLocation("/"), 500);
     },
     onError: (error: Error) => {
       toast({
