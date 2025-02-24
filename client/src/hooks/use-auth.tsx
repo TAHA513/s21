@@ -6,6 +6,7 @@ import {
 import { insertUserSchema, type User, type InsertUser } from "@shared/schema";
 import { getQueryFn, apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
 
 type LoginData = Pick<InsertUser, "username" | "password">;
 
@@ -22,6 +23,7 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 function useLoginMutation() {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
 
   return useMutation({
     mutationFn: async (credentials: LoginData) => {
@@ -34,6 +36,7 @@ function useLoginMutation() {
         title: "تم تسجيل الدخول بنجاح",
         description: `مرحباً ${user.name}`,
       });
+      setLocation("/"); // Redirect to home page
     },
     onError: (error: Error) => {
       toast({
@@ -47,6 +50,7 @@ function useLoginMutation() {
 
 function useRegisterMutation() {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
 
   return useMutation({
     mutationFn: async (data: InsertUser) => {
@@ -59,6 +63,7 @@ function useRegisterMutation() {
         title: "تم إنشاء الحساب بنجاح",
         description: `مرحباً ${user.name}`,
       });
+      setLocation("/"); // Redirect to home page
     },
     onError: (error: Error) => {
       toast({
@@ -72,6 +77,7 @@ function useRegisterMutation() {
 
 function useLogoutMutation() {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
 
   return useMutation({
     mutationFn: async () => {
@@ -86,7 +92,7 @@ function useLogoutMutation() {
       toast({
         title: "تم تسجيل الخروج بنجاح",
       });
-      window.location.href = "/auth";
+      setLocation("/auth");
     },
     onError: (error: Error) => {
       toast({
@@ -99,8 +105,6 @@ function useLogoutMutation() {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const { toast } = useToast();
-
   const {
     data: user,
     error,
