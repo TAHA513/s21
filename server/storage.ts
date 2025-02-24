@@ -129,9 +129,33 @@ export class MemStorage implements IStorage {
   sessionStore: session.Store;
 
   constructor() {
+    // Clear all cache on startup
+    cache.flushAll();
+
+    // Initialize new session store
     this.sessionStore = new MemoryStore({
-      checkPeriod: 86400000, // 24 hours
+      checkPeriod: 86400000 // 24 hours
     });
+
+    logger.info('Storage initialized and cache cleared');
+  }
+
+  // Method to clear all data
+  async clearAllData(): Promise<void> {
+    try {
+      // Clear cache
+      cache.flushAll();
+
+      // Clear session store
+      if (this.sessionStore instanceof MemoryStore) {
+        this.sessionStore.clear();
+      }
+
+      logger.info('All data cleared successfully');
+    } catch (error) {
+      logger.error('Error clearing data:', error);
+      throw error;
+    }
   }
 
   // User operations
@@ -246,8 +270,6 @@ export class MemStorage implements IStorage {
             logger.error('Error deleting customer:', error);
         }
     }
-
-// ... Add the rest of the methods from DatabaseStorage here, adapting them to use cache.  This is a repetitive process, but necessary for completeness.  Each method will need to be adapted similarly to the Customer methods shown above.  Remember to handle potential errors and logging appropriately.
 
     async getAppointments(): Promise<schema.Appointment[]> {
         try {
@@ -1206,4 +1228,5 @@ export class MemStorage implements IStorage {
     }
 }
 
+// Create and export a single instance
 export const storage = new MemStorage();

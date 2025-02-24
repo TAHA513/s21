@@ -23,7 +23,7 @@ export const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
-  
+
   const {
     data: user,
     error,
@@ -77,13 +77,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      await apiRequest("POST", "/api/logout");
+      const res = await apiRequest("POST", "/api/logout");
+      if (!res.ok) {
+        throw new Error("فشل تسجيل الخروج");
+      }
     },
     onSuccess: () => {
+      // Clear all auth-related queries from the cache
+      queryClient.removeQueries({ queryKey: ["/api/user"] });
       queryClient.setQueryData(["/api/user"], null);
       toast({
         title: "تم تسجيل الخروج بنجاح",
       });
+      // Force reload to clear any cached state
+      window.location.href = "/auth";
     },
     onError: (error: Error) => {
       toast({

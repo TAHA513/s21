@@ -49,6 +49,8 @@ export function setupAuth(app: Express) {
     new LocalStrategy(async (username, password, done) => {
       try {
         const user = await storage.getUserByUsername(username);
+        console.log('Login attempt:', { username, userFound: !!user });
+
         if (!user || !(await comparePasswords(password, user.password))) {
           return done(null, false, { message: "اسم المستخدم أو كلمة المرور غير صحيحة" });
         }
@@ -57,26 +59,35 @@ export function setupAuth(app: Express) {
         }
         return done(null, user);
       } catch (error) {
+        console.error('Login error:', error);
         return done(error);
       }
     }),
   );
 
-  passport.serializeUser((user, done) => done(null, user.id));
+  passport.serializeUser((user, done) => {
+    console.log('Serializing user:', user.id);
+    done(null, user.id);
+  });
+
   passport.deserializeUser(async (id: number, done) => {
     try {
+      console.log('Deserializing user:', id);
       const user = await storage.getUser(id);
       done(null, user);
     } catch (error) {
+      console.error('Deserialization error:', error);
       done(error);
     }
   });
+
+  // Clear all data before setting up routes
+  storage.clearAllData().catch(console.error);
 
   app.post("/api/register", async (req, res) => {
     try {
       const { username, email, phone, name, password } = req.body;
 
-      // Check if user already exists
       const existingUser = await storage.getUserByUsername(username);
       if (existingUser) {
         return res.status(400).json({ message: "اسم المستخدم موجود بالفعل" });
@@ -97,10 +108,9 @@ export function setupAuth(app: Express) {
         name,
         password: hashedPassword,
         verificationCode,
-        isVerified: true, // For now, auto-verify users
+        isVerified: true, // Auto-verify users for now
       });
 
-      // Log in the user after registration
       req.login(user, (err) => {
         if (err) {
           console.error('Error logging in after registration:', err);
@@ -117,6 +127,7 @@ export function setupAuth(app: Express) {
   app.post("/api/login", (req, res, next) => {
     passport.authenticate("local", (err, user, info) => {
       if (err) {
+        console.error('Authentication error:', err);
         return next(err);
       }
       if (!user) {
@@ -124,23 +135,43 @@ export function setupAuth(app: Express) {
       }
       req.logIn(user, (err) => {
         if (err) {
+          console.error('Login error:', err);
           return next(err);
         }
+        console.log('User logged in successfully:', user.id);
         return res.json(user);
       });
     })(req, res, next);
   });
 
   app.post("/api/logout", (req, res) => {
+    const userId = req.user?.id;
+    console.log('Logout request for user:', userId);
+
     req.logout((err) => {
       if (err) {
+        console.error('Logout error:', err);
         return res.status(500).json({ message: "حدث خطأ أثناء تسجيل الخروج" });
       }
-      res.json({ message: "تم تسجيل الخروج بنجاح" });
+
+      // Destroy the session
+      req.session.destroy((err) => {
+        if (err) {
+          console.error('Session destruction error:', err);
+          return res.status(500).json({ message: "حدث خطأ أثناء تسجيل الخروج" });
+        }
+        console.log('User logged out successfully:', userId);
+        res.json({ message: "تم تسجيل الخروج بنجاح" });
+      });
     });
   });
 
   app.get("/api/user", (req, res) => {
+    console.log('User check:', { 
+      isAuthenticated: req.isAuthenticated(),
+      user: req.user?.id 
+    });
+
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: "غير مصرح" });
     }

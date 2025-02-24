@@ -9,10 +9,10 @@ import { setupAuth } from './auth';
 const upload = multer({ dest: 'uploads/' });
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Set up authentication routes
+  // Set up authentication routes first
   setupAuth(app);
 
-  // API routes for CRUD operations
+  // Then set up other API routes
   app.get("/api/products", async (_req, res) => {
     try {
       console.log('Fetching products...');

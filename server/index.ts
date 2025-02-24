@@ -2,42 +2,17 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { createServer } from 'http';
-import { logger, checkDatabaseConnection } from './db';
+import { logger } from './db';
 import session from 'express-session';
 import { WebSocketHandler } from './websocket';
 import { storage } from './storage';
+import passport from 'passport';
 
 const app = express();
 const server = createServer(app);
 
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: false, limit: '50mb' }));
-
-// Session configuration
-app.use(session({
-  secret: process.env.SESSION_SECRET || 'your-secret-key',
-  resave: false,
-  saveUninitialized: false,
-  store: storage.sessionStore,
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
-  }
-}));
-
-// CORS middleware with specific origins
-app.use((req, res, next) => {
-  const allowedOrigins = ['http://localhost:5000', 'https://localhost:5000'];
-  const origin = req.headers.origin;
-  if (origin && allowedOrigins.includes(origin)) {
-    res.header('Access-Control-Allow-Origin', origin);
-  }
-  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
-  res.header('Access-Control-Allow-Headers', 'Content-Type');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  next();
-});
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
 
 // Enhanced logging middleware
 app.use((req, res, next) => {
@@ -73,6 +48,39 @@ app.use((req, res, next) => {
   next();
 });
 
+// Session configuration
+const sessionOptions = {
+  secret: process.env.SESSION_SECRET || 'your-secret-key',
+  resave: false,
+  saveUninitialized: false,
+  store: storage.sessionStore,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
+};
+
+// Initialize session middleware
+app.use(session(sessionOptions));
+
+// Initialize Passport after session middleware
+app.use(passport.initialize());
+app.use(passport.session());
+
+// CORS middleware with specific origins
+app.use((req, res, next) => {
+  const allowedOrigins = ['http://localhost:5000', 'https://localhost:5000'];
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
+  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  next();
+});
+
 // Ensure PORT is set and valid
 const PORT = process.env.PORT || '5000';
 process.env.PORT = PORT;
@@ -84,6 +92,10 @@ const wsHandler = new WebSocketHandler(server);
 
 (async () => {
   try {
+    // Clear all data on startup
+    await storage.clearAllData();
+    logger.info('All data cleared');
+
     await registerRoutes(app);
 
     // Enhanced error handling middleware
@@ -105,18 +117,9 @@ const wsHandler = new WebSocketHandler(server);
       serveStatic(app);
     }
 
-    // Start server with enhanced error handling
     server.listen(Number(PORT), "0.0.0.0", () => {
       logger.info(`Server running at http://0.0.0.0:${PORT}`);
       logger.info(`WebSocket server available at ws://0.0.0.0:${PORT}/ws`);
-    }).on('error', (error: NodeJS.ErrnoException) => {
-      if (error.code === 'EADDRINUSE') {
-        logger.error(`Port ${PORT} is already in use. Please choose a different port.`);
-        process.exit(1);
-      } else {
-        logger.error('Server failed to start:', error);
-        process.exit(1);
-      }
     });
   } catch (error) {
     logger.error('Failed to start server:', error);
