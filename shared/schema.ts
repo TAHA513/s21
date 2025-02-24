@@ -2,6 +2,34 @@ import { pgTable, text, serial, boolean, timestamp, integer, json, decimal } fro
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Basic user schema for authentication
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  username: text("username").notNull().unique(),
+  password: text("password").notNull(),
+  name: text("name").notNull(),
+  email: text("email").notNull().unique(),
+  phone: text("phone").notNull(),
+  role: text("role").notNull().default("staff"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertUserSchema = createInsertSchema(users)
+  .extend({
+    password: z.string().min(6, "كلمة المرور يجب أن تكون على الأقل 6 أحرف"),
+    email: z.string().email("عنوان البريد الإلكتروني غير صالح"),
+    phone: z.string().min(10, "رقم الهاتف يجب أن لا يقل عن 10 أرقام"),
+    name: z.string().min(2, "الاسم يجب أن يكون على الأقل حرفين"),
+  })
+  .omit({
+    id: true,
+    createdAt: true,
+    role: true,
+  });
+
+export type User = typeof users.$inferSelect;
+export type InsertUser = z.infer<typeof insertUserSchema>;
+
 // Basic invoice schema
 export const invoices = pgTable("invoices", {
   id: serial("id").primaryKey(),
@@ -324,7 +352,6 @@ export const insertScheduledPostSchema = createInsertSchema(scheduledPosts).exte
   mediaUrls: z.array(z.string()).optional(),
 });
 
-
 export type Customer = typeof customers.$inferSelect;
 export type InsertCustomer = z.infer<typeof insertCustomerSchema>;
 export type Appointment = typeof appointments.$inferSelect;
@@ -357,7 +384,6 @@ export type CampaignNotification = typeof campaignNotifications.$inferSelect;
 export type InsertCampaignNotification = z.infer<typeof insertCampaignNotificationSchema>;
 export type ScheduledPost = typeof scheduledPosts.$inferSelect;
 export type InsertScheduledPost = z.infer<typeof insertScheduledPostSchema>;
-
 
 
 export const suppliers = pgTable("suppliers", {

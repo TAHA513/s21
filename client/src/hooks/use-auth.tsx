@@ -36,7 +36,7 @@ function useLoginMutation() {
         title: "تم تسجيل الدخول بنجاح",
         description: `مرحباً ${user.name}`,
       });
-      setLocation("/"); // Redirect to home page
+      setLocation("/");
     },
     onError: (error: Error) => {
       toast({
@@ -63,7 +63,7 @@ function useRegisterMutation() {
         title: "تم إنشاء الحساب بنجاح",
         description: `مرحباً ${user.name}`,
       });
-      setLocation("/"); // Redirect to home page
+      setLocation("/");
     },
     onError: (error: Error) => {
       toast({

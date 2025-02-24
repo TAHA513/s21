@@ -1,7 +1,10 @@
 import { Link } from "wouter";
+import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 
 export function Navbar() {
+  const { user, logoutMutation } = useAuth();
+
   return (
     <nav className="bg-background border-b">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -11,16 +14,23 @@ export function Navbar() {
               <span className="text-xl font-bold">متجر إدارة الأعمال</span>
             </Link>
           </div>
-          <div className="flex items-center space-x-4">
-            <Link href="/products">
-              <Button variant="ghost">المنتجات</Button>
-            </Link>
-            <Link href="/invoices">
-              <Button variant="ghost">الفواتير</Button>
-            </Link>
-            <Link href="/customers">
-              <Button variant="ghost">العملاء</Button>
-            </Link>
+          <div className="flex items-center">
+            {user ? (
+              <div className="flex items-center space-x-4">
+                <span className="text-foreground">مرحباً {user.name}</span>
+                <Button
+                  variant="outline"
+                  onClick={() => logoutMutation.mutate()}
+                  disabled={logoutMutation.isPending}
+                >
+                  تسجيل الخروج
+                </Button>
+              </div>
+            ) : (
+              <Link href="/auth">
+                <Button variant="default">تسجيل الدخول</Button>
+              </Link>
+            )}
           </div>
         </div>
       </div>
