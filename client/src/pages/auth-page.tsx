@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -10,6 +9,7 @@ import { z } from "zod";
 import { insertUserSchema, type InsertUser } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 
+// مخطط تسجيل الدخول البسيط
 const loginSchema = z.object({
   username: z.string().min(1, "اسم المستخدم مطلوب"),
   password: z.string().min(1, "كلمة المرور مطلوبة"),
@@ -19,24 +19,16 @@ type LoginData = z.infer<typeof loginSchema>;
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
-  const { loginMutation, registerMutation, user } = useAuth();
-  const [_, setLocation] = useLocation();
+  const { loginMutation, registerMutation } = useAuth();
   const { toast } = useToast();
 
-  // Redirect if already logged in
-  if (user) {
-    setLocation("/");
-    return null;
-  }
-
+  // نموذج تسجيل الدخول
   const loginForm = useForm<LoginData>({
     resolver: zodResolver(loginSchema),
-    defaultValues: {
-      username: "",
-      password: "",
-    },
+    defaultValues: { username: "", password: "" },
   });
 
+  // نموذج إنشاء حساب جديد
   const registerForm = useForm<InsertUser>({
     resolver: zodResolver(insertUserSchema),
     defaultValues: {
@@ -48,6 +40,7 @@ export default function AuthPage() {
     },
   });
 
+  // معالجة النموذج
   const onSubmit = async (data: LoginData | InsertUser) => {
     try {
       if (isLogin) {
@@ -56,7 +49,6 @@ export default function AuthPage() {
         await registerMutation.mutateAsync(data as InsertUser);
       }
     } catch (error) {
-      console.error('Auth error:', error);
       toast({
         title: isLogin ? "فشل تسجيل الدخول" : "فشل إنشاء الحساب",
         description: error instanceof Error ? error.message : "حدث خطأ غير متوقع",
@@ -79,12 +71,12 @@ export default function AuthPage() {
               {...(isLogin ? loginForm.register("username") : registerForm.register("username"))}
             />
             {isLogin 
-              ? loginForm.formState.errors.username && (
+              ? loginForm.formState.errors.username?.message && (
                 <p className="text-red-500 text-sm mt-1">
                   {loginForm.formState.errors.username.message}
                 </p>
               )
-              : registerForm.formState.errors.username && (
+              : registerForm.formState.errors.username?.message && (
                 <p className="text-red-500 text-sm mt-1">
                   {registerForm.formState.errors.username.message}
                 </p>
@@ -100,7 +92,7 @@ export default function AuthPage() {
                   type="email"
                   {...registerForm.register("email")}
                 />
-                {registerForm.formState.errors.email && (
+                {registerForm.formState.errors.email?.message && (
                   <p className="text-red-500 text-sm mt-1">
                     {registerForm.formState.errors.email.message}
                   </p>
@@ -109,10 +101,9 @@ export default function AuthPage() {
               <div>
                 <Input
                   placeholder="رقم الهاتف"
-                  type="tel"
                   {...registerForm.register("phone")}
                 />
-                {registerForm.formState.errors.phone && (
+                {registerForm.formState.errors.phone?.message && (
                   <p className="text-red-500 text-sm mt-1">
                     {registerForm.formState.errors.phone.message}
                   </p>
@@ -123,7 +114,7 @@ export default function AuthPage() {
                   placeholder="الاسم"
                   {...registerForm.register("name")}
                 />
-                {registerForm.formState.errors.name && (
+                {registerForm.formState.errors.name?.message && (
                   <p className="text-red-500 text-sm mt-1">
                     {registerForm.formState.errors.name.message}
                   </p>
@@ -139,12 +130,12 @@ export default function AuthPage() {
               {...(isLogin ? loginForm.register("password") : registerForm.register("password"))}
             />
             {isLogin
-              ? loginForm.formState.errors.password && (
+              ? loginForm.formState.errors.password?.message && (
                 <p className="text-red-500 text-sm mt-1">
                   {loginForm.formState.errors.password.message}
                 </p>
               )
-              : registerForm.formState.errors.password && (
+              : registerForm.formState.errors.password?.message && (
                 <p className="text-red-500 text-sm mt-1">
                   {registerForm.formState.errors.password.message}
                 </p>

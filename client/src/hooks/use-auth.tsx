@@ -29,28 +29,18 @@ function useLoginMutation() {
     mutationFn: async (credentials: LoginData) => {
       const res = await apiRequest("POST", "/api/login", credentials);
       if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || "فشل تسجيل الدخول");
+        const error = await res.json();
+        throw new Error(error.message || "فشل تسجيل الدخول");
       }
-      const data = await res.json();
-      return data;
+      return res.json();
     },
     onSuccess: (user: User) => {
-      queryClient.setQueryData(["/api/user"], user);
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
       toast({
         title: "تم تسجيل الدخول بنجاح",
         description: `مرحباً ${user.name}`,
       });
-      // تأخير قصير قبل إعادة التوجيه للتأكد من تحديث حالة المستخدم
-      setTimeout(() => setLocation("/"), 100);
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "فشل تسجيل الدخول",
-        description: error.message,
-        variant: "destructive",
-      });
+      setLocation("/");
     },
   });
 }
@@ -63,28 +53,18 @@ function useRegisterMutation() {
     mutationFn: async (data: InsertUser) => {
       const res = await apiRequest("POST", "/api/register", data);
       if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || "فشل إنشاء الحساب");
+        const error = await res.json();
+        throw new Error(error.message || "فشل إنشاء الحساب");
       }
-      const userData = await res.json();
-      return userData;
+      return res.json();
     },
     onSuccess: (user: User) => {
-      queryClient.setQueryData(["/api/user"], user);
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
       toast({
         title: "تم إنشاء الحساب بنجاح",
         description: `مرحباً ${user.name}`,
       });
-      // تأخير قصير قبل إعادة التوجيه للتأكد من تحديث حالة المستخدم
-      setTimeout(() => setLocation("/"), 100);
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "فشل إنشاء الحساب",
-        description: error.message,
-        variant: "destructive",
-      });
+      setLocation("/");
     },
   });
 }
@@ -97,8 +77,8 @@ function useLogoutMutation() {
     mutationFn: async () => {
       const res = await apiRequest("POST", "/api/logout");
       if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || "فشل تسجيل الخروج");
+        const error = await res.json();
+        throw new Error(error.message || "فشل تسجيل الخروج");
       }
     },
     onSuccess: () => {
@@ -108,13 +88,6 @@ function useLogoutMutation() {
         title: "تم تسجيل الخروج بنجاح",
       });
       setLocation("/auth");
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "فشل تسجيل الخروج",
-        description: error.message,
-        variant: "destructive",
-      });
     },
   });
 }

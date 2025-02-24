@@ -10,6 +10,7 @@ interface ProtectedRouteProps {
 export function ProtectedRoute({ component: Component }: ProtectedRouteProps) {
   const { user, isLoading } = useAuth();
 
+  // عرض مؤشر التحميل أثناء التحقق من حالة المستخدم
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -18,9 +19,11 @@ export function ProtectedRoute({ component: Component }: ProtectedRouteProps) {
     );
   }
 
+  // إعادة التوجيه إلى صفحة تسجيل الدخول إذا لم يكن المستخدم مسجل دخوله
   if (!user) {
     return <Redirect to="/auth" />;
   }
 
+  // عرض المكون إذا كان المستخدم مسجل دخوله
   return <Component />;
 }
