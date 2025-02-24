@@ -1,9 +1,16 @@
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
+import { useLocation } from "wouter";
 
 export function Navbar() {
   const { user, logoutMutation } = useAuth();
+  const [location] = useLocation();
+
+  // لا نظهر شريط التنقل في صفحة تسجيل الدخول
+  if (location === "/auth") {
+    return null;
+  }
 
   return (
     <nav className="bg-background border-b">
@@ -17,7 +24,7 @@ export function Navbar() {
           <div className="flex items-center">
             {user ? (
               <div className="flex items-center space-x-4">
-                <span className="text-foreground">مرحباً {user.name}</span>
+                <span className="text-foreground ml-2">مرحباً {user.name}</span>
                 <Button
                   variant="outline"
                   onClick={() => logoutMutation.mutate()}

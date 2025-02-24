@@ -48,7 +48,7 @@ function Router() {
       <Navbar />
       <main className="container mx-auto px-4 py-8">
         <Switch>
-          {/* Public Routes */}
+          {/* Only one auth route */}
           <Route path="/auth" component={AuthPage} />
 
           {/* Protected Routes */}
@@ -70,6 +70,8 @@ function Router() {
           <ProtectedRoute path="/inventory-reports" component={InventoryReportsPage} />
           <ProtectedRoute path="/barcodes" component={BarcodesPage} />
           <ProtectedRoute path="/settings" component={SettingsPage} />
+
+          {/* 404 Route */}
           <Route component={NotFound} />
         </Switch>
       </main>
