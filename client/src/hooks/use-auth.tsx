@@ -36,6 +36,7 @@ function useLoginMutation() {
     },
     onSuccess: (user: User) => {
       queryClient.setQueryData(["/api/user"], user);
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
       toast({
         title: "تم تسجيل الدخول بنجاح",
         description: `مرحباً ${user.name}`,
@@ -67,6 +68,7 @@ function useRegisterMutation() {
     },
     onSuccess: (user: User) => {
       queryClient.setQueryData(["/api/user"], user);
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
       toast({
         title: "تم إنشاء الحساب بنجاح",
         description: `مرحباً ${user.name}`,
