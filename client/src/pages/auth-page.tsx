@@ -8,6 +8,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { insertUserSchema, type InsertUser } from "@shared/schema";
+import { useToast } from "@/hooks/use-toast";
 
 const loginSchema = z.object({
   username: z.string().min(1, "اسم المستخدم مطلوب"),
@@ -20,6 +21,7 @@ export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
   const { loginMutation, registerMutation, user } = useAuth();
   const [_, setLocation] = useLocation();
+  const { toast } = useToast();
 
   // Redirect if already logged in
   if (user) {
@@ -55,6 +57,11 @@ export default function AuthPage() {
       }
     } catch (error) {
       console.error('Auth error:', error);
+      toast({
+        title: isLogin ? "فشل تسجيل الدخول" : "فشل إنشاء الحساب",
+        description: error instanceof Error ? error.message : "حدث خطأ غير متوقع",
+        variant: "destructive",
+      });
     }
   };
 

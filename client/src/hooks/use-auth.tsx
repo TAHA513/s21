@@ -28,6 +28,10 @@ function useLoginMutation() {
   return useMutation({
     mutationFn: async (credentials: LoginData) => {
       const res = await apiRequest("POST", "/api/login", credentials);
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "فشل تسجيل الدخول");
+      }
       const data = await res.json();
       return data;
     },
@@ -39,7 +43,7 @@ function useLoginMutation() {
         description: `مرحباً ${user.name}`,
       });
       // تأخير قصير قبل إعادة التوجيه للتأكد من تحديث حالة المستخدم
-      setTimeout(() => setLocation("/"), 500);
+      setTimeout(() => setLocation("/"), 100);
     },
     onError: (error: Error) => {
       toast({
@@ -58,6 +62,10 @@ function useRegisterMutation() {
   return useMutation({
     mutationFn: async (data: InsertUser) => {
       const res = await apiRequest("POST", "/api/register", data);
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "فشل إنشاء الحساب");
+      }
       const userData = await res.json();
       return userData;
     },
@@ -69,7 +77,7 @@ function useRegisterMutation() {
         description: `مرحباً ${user.name}`,
       });
       // تأخير قصير قبل إعادة التوجيه للتأكد من تحديث حالة المستخدم
-      setTimeout(() => setLocation("/"), 500);
+      setTimeout(() => setLocation("/"), 100);
     },
     onError: (error: Error) => {
       toast({
@@ -87,7 +95,11 @@ function useLogoutMutation() {
 
   return useMutation({
     mutationFn: async () => {
-      await apiRequest("POST", "/api/logout");
+      const res = await apiRequest("POST", "/api/logout");
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "فشل تسجيل الخروج");
+      }
     },
     onSuccess: () => {
       queryClient.setQueryData(["/api/user"], null);
@@ -116,7 +128,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     queryKey: ["/api/user"],
     queryFn: getQueryFn({ on401: "returnNull" }),
     staleTime: 0,
-    cacheTime: 0,
+    gcTime: 0,
   });
 
   const loginMutation = useLoginMutation();
