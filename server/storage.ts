@@ -53,7 +53,9 @@ export class MemStorage {
   async getUser(id: number): Promise<User | undefined> {
     try {
       const users = this.getStoredUsers();
-      return users.find(u => u.id === id);
+      const user = users.find(u => u.id === id);
+      logger.info('Getting user by ID:', { id, found: !!user });
+      return user;
     } catch (error) {
       logger.error('Error getting user:', error);
       throw error;
@@ -63,7 +65,9 @@ export class MemStorage {
   async getUserByUsername(username: string): Promise<User | undefined> {
     try {
       const users = this.getStoredUsers();
-      return users.find(u => u.username === username);
+      const user = users.find(u => u.username === username);
+      logger.info('Getting user by username:', { username, found: !!user });
+      return user;
     } catch (error) {
       logger.error('Error getting user by username:', error);
       throw error;
@@ -81,7 +85,7 @@ export class MemStorage {
       };
       users.push(newUser);
       cache.set('users', users);
-      logger.info('User created:', { userId: newUser.id });
+      logger.info('User created:', { userId: newUser.id, username: newUser.username });
       return newUser;
     } catch (error) {
       logger.error('Error creating user:', error);
@@ -90,7 +94,9 @@ export class MemStorage {
   }
 
   private getStoredUsers(): User[] {
-    return cache.get('users') || [];
+    const users = cache.get('users');
+    logger.info('Getting stored users:', { count: users ? users.length : 0 });
+    return users || [];
   }
 
   // Invoice operations
