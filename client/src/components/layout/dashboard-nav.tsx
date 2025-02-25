@@ -28,6 +28,11 @@ const navItems = [
     icon: Home,
   },
   {
+    title: "المساعد الذكي",
+    href: "/chat",
+    icon: MessageSquare,
+  },
+  {
     title: "المشتريات",
     href: "/purchases",
     icon: ShoppingCart,
