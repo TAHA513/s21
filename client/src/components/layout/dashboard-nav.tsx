@@ -27,6 +27,7 @@ const navItems = [
     href: "/",
     icon: Home,
   },
+  import { Home, MessageSquare } from "lucide-react";
   {
     title: "المساعد الذكي",
     href: "/chat",
