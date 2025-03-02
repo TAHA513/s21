@@ -5,17 +5,9 @@ import { createServer } from 'http';
 import { logger, checkDatabaseConnection } from './db';
 import session from 'express-session';
 import { WebSocketHandler } from './websocket';
-import { initializeOpenAI } from './services/openai-service';
 
 const app = express();
 const server = createServer(app);
-
-// Initialize OpenAI service
-if (!process.env.OPENAI_API_KEY) {
-  logger.error('OpenAI API key not found. Chat functionality will not work.');
-} else {
-  initializeOpenAI(process.env.OPENAI_API_KEY);
-}
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));

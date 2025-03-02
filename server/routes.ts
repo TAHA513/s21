@@ -180,22 +180,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Quick Stats
-  app.post("/api/chat", async (req, res) => {
-    try {
-      const { message } = req.body;
-      if (!message) {
-        return res.status(400).json({ error: "الرجاء إدخال رسالة" });
-      }
-
-      const openaiService = getOpenAIService();
-      const response = await openaiService.getResponse(message);
-      res.json({ response });
-    } catch (error) {
-      console.error("Chat error:", error);
-      res.status(500).json({ error: "حدث خطأ في معالجة الرسالة" });
-    }
-  });
-
   app.get("/api/staff/quick-stats", async (_req, res) => {
     try {
       const today = new Date();

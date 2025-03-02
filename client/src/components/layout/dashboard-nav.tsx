@@ -16,8 +16,7 @@ import {
   Truck,
   DollarSign,
   FolderIcon,
-  ClipboardList,
-  MessageSquare,
+  ClipboardList, // Add import for inventory report icon
 } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
@@ -27,11 +26,6 @@ const navItems = [
     title: "لوحة التحكم",
     href: "/",
     icon: Home,
-  },
-  {
-    title: "المساعد الذكي",
-    href: "/chat",
-    icon: MessageSquare,
   },
   {
     title: "المشتريات",
