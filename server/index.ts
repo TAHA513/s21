@@ -26,13 +26,13 @@ app.use(session({
   }
 }));
 
-// Simplified Helmet configuration
+// Configure helmet with appropriate CSP
 app.use(
   helmet({
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+        scriptSrc: ["'self'"],
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
         fontSrc: ["'self'", "https://fonts.gstatic.com"],
         imgSrc: ["'self'", "data:", "blob:"],
@@ -41,6 +41,9 @@ app.use(
     },
   })
 );
+
+// Serve static files
+app.use(express.static(path.join(__dirname, '../client/public')));
 
 // API Routes
 app.get('/api/store-settings', async (req, res) => {
@@ -63,27 +66,10 @@ app.post('/api/store-settings', async (req, res) => {
   }
 });
 
-// Serve static files and handle client routing
-if (isDevelopment) {
-  // In development, proxy to create-react-app dev server
-  app.get('*', (req, res) => {
-    if (req.path.startsWith('/api')) {
-      res.status(404).json({ error: 'API route not found' });
-    } else {
-      res.sendFile(path.join(__dirname, '../client/public/index.html'));
-    }
-  });
-} else {
-  // In production, serve built files
-  app.use(express.static(path.join(__dirname, '../client/build')));
-  app.get('*', (req, res) => {
-    if (req.path.startsWith('/api')) {
-      res.status(404).json({ error: 'API route not found' });
-    } else {
-      res.sendFile(path.join(__dirname, '../client/build/index.html'));
-    }
-  });
-}
+// Serve index.html for all other routes
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../client/public/index.html'));
+});
 
 const PORT = parseInt(process.env.PORT || '5000', 10);
 app.listen(PORT, '0.0.0.0', () => {
