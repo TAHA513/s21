@@ -1,58 +1,76 @@
-import React from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { Switch, Route } from "wouter";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Toaster } from "@/components/ui/toaster";
+import NotFound from "@/pages/not-found";
+import DashboardPage from "@/pages/dashboard-page";
+import StaffDashboard from "@/pages/staff/dashboard";
+import CustomersPage from "@/pages/customers-page";
+import AppointmentsPage from "@/pages/appointments-page";
+import StaffPage from "@/pages/staff-page";
+import MarketingPage from "@/pages/marketing-page";
+import PromotionsPage from "@/pages/promotions-page";
+import ProductsPage from "@/pages/products-page";
+import BarcodesPage from "@/pages/barcodes-page";
+import InvoicesPage from "@/pages/invoices-page";
+import InstallmentsPage from "@/pages/installments-page";
+import ReportsPage from "@/pages/reports-page";
+import PurchasesPage from "@/pages/purchases-page";
+import SuppliersPage from "@/pages/suppliers-page";
+import ExpensesPage from "@/pages/expenses-page";
+import ExpenseCategoriesPage from "@/pages/expense-categories-page";
+import SettingsPage from "@/pages/settings-page";
+import InventoryReportsPage from "@/pages/inventory-reports-page";
+import { useEffect } from "react";
+import { loadThemeSettings } from "@/lib/theme";
 
-function App() {
-  const { data: settings, isLoading, error } = useQuery({
-    queryKey: ['storeSettings'],
-    queryFn: async () => {
-      const response = await fetch('/api/store-settings');
-      if (!response.ok) {
-        throw new Error('فشل في جلب إعدادات المتجر');
-      }
-      return response.json();
-    }
-  });
+// Create a client
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: Infinity,
+      gcTime: Infinity,
+    },
+  },
+});
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-primary">جاري التحميل...</div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-red-500">حدث خطأ: {error.message}</div>
-      </div>
-    );
-  }
+function Router() {
+  // Load theme settings on app initialization
+  useEffect(() => {
+    loadThemeSettings();
+  }, []);
 
   return (
-    <div className="min-h-screen bg-background">
-      <nav className="border-b">
-        <div className="container mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="text-xl font-bold">نظام إدارة الأعمال</div>
-          </div>
-        </div>
-      </nav>
+    <Switch>
+      {/* المسارات الرئيسية */}
+      <Route path="/" component={DashboardPage} />
+      <Route path="/staff" component={StaffDashboard} />
+      <Route path="/purchases" component={PurchasesPage} />
+      <Route path="/suppliers" component={SuppliersPage} />
+      <Route path="/customers" component={CustomersPage} />
+      <Route path="/appointments" component={AppointmentsPage} />
+      <Route path="/staff-management" component={StaffPage} />
+      <Route path="/marketing" component={MarketingPage} />
+      <Route path="/promotions" component={PromotionsPage} />
+      <Route path="/products" component={ProductsPage} />
+      <Route path="/invoices" component={InvoicesPage} />
+      <Route path="/installments" component={InstallmentsPage} />
+      <Route path="/expenses" component={ExpensesPage} />
+      <Route path="/expense-categories" component={ExpenseCategoriesPage} />
+      <Route path="/reports" component={ReportsPage} />
+      <Route path="/inventory-reports" component={InventoryReportsPage} />
+      <Route path="/barcodes" component={BarcodesPage} />
+      <Route path="/settings" component={SettingsPage} />
+      <Route component={NotFound} />
+    </Switch>
+  );
+}
 
-      <main className="container mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold mb-4">لوحة التحكم</h1>
-        <p className="text-gray-600 mb-8">مرحباً بك في نظام إدارة الأعمال</p>
-
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-bold mb-4">إعدادات المتجر</h2>
-          {settings && (
-            <pre className="bg-gray-50 p-4 rounded-md overflow-auto">
-              {JSON.stringify(settings, null, 2)}
-            </pre>
-          )}
-        </div>
-      </main>
-    </div>
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <Router />
+      <Toaster />
+    </QueryClientProvider>
   );
 }
 
