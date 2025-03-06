@@ -109,16 +109,27 @@ app.post('/api/social-accounts', async (req, res) => {
   }
 });
 
-// Serve static files
-const clientDistPath = path.join(__dirname, '../client/dist');
-app.use(express.static(clientDistPath));
+// Development mode configuration
+if (process.env.NODE_ENV !== 'production') {
+  console.log('Running in development mode');
+  // In development, serve the client's public directory
+  app.use(express.static(path.join(__dirname, '../client/public')));
+  // Fallback for client-side routing
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../client/public/index.html'));
+  });
+} else {
+  // Production mode configuration
+  console.log('Running in production mode');
+  // Serve static files from the production build
+  app.use(express.static(path.join(__dirname, '../client/dist')));
+  // Fallback for client-side routing
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../client/dist/index.html'));
+  });
+}
 
-// Catch-all route to serve index.html
-app.get('*', (req, res) => {
-  res.sendFile(path.join(clientDistPath, 'index.html'));
-});
-
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
 });
