@@ -1,6 +1,6 @@
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Button } from "@/components/ui/button";
-import { Card as CardComponent, CardContent, CardHeader, CardTitle, CardProps as CardComponentProps, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -8,8 +8,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { MessageSquare, Upload, Plus, Building2, Settings as SettingsIcon, Paintbrush, Database, Download } from "lucide-react";
-import { SiGooglecalendar } from "react-icons/si";
-import { SiFacebook, SiInstagram, SiSnapchat } from "react-icons/si";
+import { SiGooglecalendar, SiFacebook, SiInstagram, SiSnapchat } from "react-icons/si";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -21,29 +20,49 @@ import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { updateThemeColors, updateThemeFonts, loadThemeSettings } from "@/lib/theme";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  getStoreSettings,
-  setStoreSettings,
-  getSocialAccounts,
-  addSocialAccount,
-  getWhatsAppSettings,
-  setWhatsAppSettings,
-  getGoogleCalendarSettings,
-  setGoogleCalendarSettings,
-  getSocialMediaSettings,
-  setSocialMediaSettings,
-  type StoreSettings,
-  type SocialMediaAccount,
-  type WhatsAppSettings,
-  type GoogleCalendarSettings,
-  type SocialMediaSettings
-} from "@/lib/storage";
-import { DatabaseConnectionForm } from "@/components/settings/database-connection-form";
-import type { DatabaseConnection } from "@shared/schema";
-import { motion } from "framer-motion";
-import { Table, TableBody, TableCell, TableHeader, TableHead, TableRow } from "@/components/ui/table";
-import { Separator } from "@/components/ui/separator";
 
+// 将所有类型集中定义
+interface CardProps extends React.HTMLAttributes<HTMLDivElement> {}
+
+const colorOptions = [
+  { type: 'solid', color: "#0ea5e9", name: "أزرق" },
+  { type: 'solid', color: "#10b981", name: "أخضر" },
+  { type: 'solid', color: "#8b5cf6", name: "بنفسجي" },
+  { type: 'solid', color: "#ef4444", name: "أحمر" },
+  { type: 'solid', color: "#f59e0b", name: "برتقالي" },
+  { type: 'gradient', colors: ["#00c6ff", "#0072ff"] as [string, string], name: "تدرج أزرق" },
+  { type: 'gradient', colors: ["#11998e", "#38ef7d"] as [string, string], name: "تدرج أخضر" },
+  { type: 'gradient', colors: ["#fc466b", "#3f5efb"] as [string, string], name: "تدرج وردي" },
+  { type: 'gradient', colors: ["#f12711", "#f5af19"] as [string, string], name: "تدرج برتقالي" },
+  { type: 'gradient', colors: ["#8e2de2", "#4a00e0"] as [string, string], name: "تدرج بنفسجي" },
+];
+
+const createGradient = (color1: string, color2: string) => `linear-gradient(to right, ${color1}, ${color2})`;
+
+async function generateBackup() {
+  try {
+    const response = await fetch('/api/backup/generate', {
+      method: 'POST',
+    });
+
+    if (!response.ok) throw new Error('فشل إنشاء النسخة الاحتياطية');
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `backup-${new Date().toISOString().split('T')[0]}.zip`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+
+    return true;
+  } catch (error) {
+    console.error('Error generating backup:', error);
+    return false;
+  }
+}
 
 const socialMediaAccountSchema = z.object({
   platform: z.enum(['facebook', 'instagram', 'snapchat'], {
@@ -82,49 +101,10 @@ const currencySettingsSchema = z.object({
 
 type CurrencySettings = z.infer<typeof currencySettingsSchema>;
 
-const CustomCard = ({ className, ...props }: CardComponentProps) => (
-  <CardComponent className={cn("w-full", className)} {...props} />
+// Custom Card component with proper typing
+const CustomCard = ({ className, ...props }: CardProps) => (
+  <Card className={cn("w-full", className)} {...props} />
 );
-
-const colorOptions = [
-  { type: 'solid', color: "#0ea5e9", name: "أزرق" },
-  { type: 'solid', color: "#10b981", name: "أخضر" },
-  { type: 'solid', color: "#8b5cf6", name: "بنفسجي" },
-  { type: 'solid', color: "#ef4444", name: "أحمر" },
-  { type: 'solid', color: "#f59e0b", name: "برتقالي" },
-  { type: 'gradient', colors: ["#00c6ff", "#0072ff"], name: "تدرج أزرق" },
-  { type: 'gradient', colors: ["#11998e", "#38ef7d"], name: "تدرج أخضر" },
-  { type: 'gradient', colors: ["#fc466b", "#3f5efb"], name: "تدرج وردي" },
-  { type: 'gradient', colors: ["#f12711", "#f5af19"], name: "تدرج برتقالي" },
-  { type: 'gradient', colors: ["#8e2de2", "#4a00e0"], name: "تدرج بنفسجي" },
-];
-
-const createGradient = (color1: string, color2: string) => `linear-gradient(to right, ${color1}, ${color2})`;
-
-async function generateBackup() {
-  try {
-    const response = await fetch('/api/backup/generate', {
-      method: 'POST',
-    });
-
-    if (!response.ok) throw new Error('فشل إنشاء النسخة الاحتياطية');
-
-    const blob = await response.blob();
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `backup-${new Date().toISOString().split('T')[0]}.zip`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
-
-    return true;
-  } catch (error) {
-    console.error('Error generating backup:', error);
-    return false;
-  }
-}
 
 export default function SettingsPage() {
   const { toast } = useToast();
@@ -176,7 +156,7 @@ export default function SettingsPage() {
     mutationFn: async (data: {
       storeName?: string;
       storeLogo?: string;
-      primary?: string | { gradient: string[] };
+      primary?: string | { gradient: [string, string] };
       fontSize?: string;
       fontFamily?: string;
       currencySettings?: CurrencySettings;
@@ -974,7 +954,7 @@ export default function SettingsPage() {
             </CustomCard>
           </TabsContent>
           <TabsContent value="backup" className="space-y-6">
-            <CardComponent>
+            <Card>
               <CardHeader>
                 <div className="flex items-center space-x-4">
                   <Download className="h-8 w-8 text-primary" />
@@ -1084,7 +1064,7 @@ export default function SettingsPage() {
                   </div>
                 </div>
               </CardContent>
-            </CardComponent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>
