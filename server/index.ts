@@ -49,6 +49,7 @@ app.use(express.static(path.join(__dirname, '../client/public')));
 app.get('/api/store-settings', async (req, res) => {
   try {
     const settings = await storage.getStoreSettings();
+    console.log('Fetched settings:', settings); // Add logging
     res.json(settings || {});
   } catch (error) {
     console.error('Error fetching store settings:', error);
