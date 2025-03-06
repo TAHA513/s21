@@ -26,32 +26,21 @@ app.use(session({
   }
 }));
 
-// Configure helmet with appropriate CSP
+// Simplified Helmet configuration
 app.use(
   helmet({
-    contentSecurityPolicy: isDevelopment ? false : {
+    contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
         scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
-        styleSrc: ["'self'", "'unsafe-inline'", "https:", "data:"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+        fontSrc: ["'self'", "https://fonts.gstatic.com"],
         imgSrc: ["'self'", "data:", "blob:"],
-        fontSrc: ["'self'", "https:", "data:"],
-        connectSrc: ["'self'", "ws:", "wss:"],
+        connectSrc: ["'self'"],
       },
     },
-    crossOriginEmbedderPolicy: false,
   })
 );
-
-// Serve static files
-if (isDevelopment) {
-  // In development, Vite handles static files
-  console.log('Running in development mode');
-} else {
-  // In production, serve the built files
-  console.log('Running in production mode');
-  app.use(express.static(path.join(__dirname, '../client/dist')));
-}
 
 // API Routes
 app.get('/api/store-settings', async (req, res) => {
@@ -74,14 +63,29 @@ app.post('/api/store-settings', async (req, res) => {
   }
 });
 
-// Serve index.html for all other routes in production
-if (!isDevelopment) {
+// Serve static files and handle client routing
+if (isDevelopment) {
+  // In development, proxy to create-react-app dev server
   app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../client/dist/index.html'));
+    if (req.path.startsWith('/api')) {
+      res.status(404).json({ error: 'API route not found' });
+    } else {
+      res.sendFile(path.join(__dirname, '../client/public/index.html'));
+    }
+  });
+} else {
+  // In production, serve built files
+  app.use(express.static(path.join(__dirname, '../client/build')));
+  app.get('*', (req, res) => {
+    if (req.path.startsWith('/api')) {
+      res.status(404).json({ error: 'API route not found' });
+    } else {
+      res.sendFile(path.join(__dirname, '../client/build/index.html'));
+    }
   });
 }
 
 const PORT = parseInt(process.env.PORT || '5000', 10);
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Server running on port ${PORT} in ${isDevelopment ? 'development' : 'production'} mode`);
 });
