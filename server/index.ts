@@ -13,7 +13,7 @@ const __dirname = dirname(__filename);
 
 const app = express();
 
-// Middleware
+// Basic middleware
 app.use(json());
 
 // Session middleware
@@ -28,15 +28,16 @@ app.use(session({
 }));
 
 // Configure helmet with relaxed CSP for development
+const isDevelopment = process.env.NODE_ENV !== 'production';
 app.use(
   helmet({
-    contentSecurityPolicy: {
+    contentSecurityPolicy: isDevelopment ? false : {
       directives: {
         defaultSrc: ["'self'"],
         scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
         styleSrc: ["'self'", "'unsafe-inline'", "https:", "http:"],
         imgSrc: ["'self'", "data:", "blob:", "https:", "http:"],
-        connectSrc: ["'self'", "ws:", "wss:", "https:", "http:"],
+        connectSrc: ["'self'", "ws:", "wss:"],
         fontSrc: ["'self'", "https:", "http:", "data:"],
         objectSrc: ["'none'"],
         mediaSrc: ["'self'"],
@@ -48,27 +49,16 @@ app.use(
   })
 );
 
+// Serve static files before API routes
+if (isDevelopment) {
+  console.log('Running in development mode');
+  app.use('/', express.static(path.join(__dirname, '../client/public')));
+} else {
+  console.log('Running in production mode');
+  app.use('/', express.static(path.join(__dirname, '../client/dist')));
+}
+
 // API Routes
-app.get('/api/database-connections', async (req, res) => {
-  try {
-    const connections = await storage.getDatabaseConnections();
-    res.json(connections);
-  } catch (error) {
-    console.error('Error fetching database connections:', error);
-    res.status(500).json({ error: 'حدث خطأ أثناء جلب اتصالات قواعد البيانات' });
-  }
-});
-
-app.post('/api/database-connections', async (req, res) => {
-  try {
-    const connection = await storage.createDatabaseConnection(req.body);
-    res.status(201).json(connection);
-  } catch (error) {
-    console.error('Error creating database connection:', error);
-    res.status(500).json({ error: 'حدث خطأ أثناء إنشاء اتصال قاعدة البيانات' });
-  }
-});
-
 app.get('/api/store-settings', async (req, res) => {
   try {
     const settings = await storage.getStoreSettings();
@@ -89,46 +79,13 @@ app.post('/api/store-settings', async (req, res) => {
   }
 });
 
-app.get('/api/social-accounts', async (req, res) => {
-  try {
-    const accounts = await storage.getSocialMediaAccounts();
-    res.json(accounts);
-  } catch (error) {
-    console.error('Error fetching social accounts:', error);
-    res.status(500).json({ error: 'حدث خطأ أثناء جلب حسابات التواصل الاجتماعي' });
-  }
+// Handle client-side routing - must be after API routes
+app.get('*', (req, res) => {
+  const indexPath = isDevelopment 
+    ? path.join(__dirname, '../client/public/index.html')
+    : path.join(__dirname, '../client/dist/index.html');
+  res.sendFile(indexPath);
 });
-
-app.post('/api/social-accounts', async (req, res) => {
-  try {
-    const account = await storage.createSocialMediaAccount(req.body);
-    res.json(account);
-  } catch (error) {
-    console.error('Error creating social account:', error);
-    res.status(500).json({ error: 'حدث خطأ أثناء إنشاء حساب التواصل الاجتماعي' });
-  }
-});
-
-
-// Development mode configuration
-if (process.env.NODE_ENV !== 'production') {
-  console.log('Running in development mode');
-  // In development, serve the client's public directory and allow source maps
-  app.use(express.static(path.join(__dirname, '../client/public')));
-  // Fallback for client-side routing
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../client/public/index.html'));
-  });
-} else {
-  // Production mode configuration
-  console.log('Running in production mode');
-  // Serve static files from the production build
-  app.use(express.static(path.join(__dirname, '../client/dist')));
-  // Fallback for client-side routing
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../client/dist/index.html'));
-  });
-}
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, '0.0.0.0', () => {
