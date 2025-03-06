@@ -6,6 +6,7 @@ import { json } from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import helmet from 'helmet';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -25,6 +26,21 @@ app.use(session({
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
   }
 }));
+
+// Configure helmet with relaxed CSP for development
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:", "blob:"],
+        connectSrc: ["'self'", "ws:", "wss:"],
+      },
+    },
+  })
+);
 
 // API Routes
 app.get('/api/database-connections', async (req, res) => {
@@ -84,26 +100,6 @@ app.post('/api/social-accounts', async (req, res) => {
   } catch (error) {
     console.error('Error creating social account:', error);
     res.status(500).json({ error: 'حدث خطأ أثناء إنشاء حساب التواصل الاجتماعي' });
-  }
-});
-
-app.get('/api/backup-configs', async (req, res) => {
-  try {
-    const configs = await storage.getBackupConfigs();
-    res.json(configs);
-  } catch (error) {
-    console.error('Error fetching backup configs:', error);
-    res.status(500).json({ error: 'حدث خطأ أثناء جلب إعدادات النسخ الاحتياطي' });
-  }
-});
-
-app.post('/api/backup-configs', async (req, res) => {
-  try {
-    const config = await storage.createBackupConfig(req.body);
-    res.json(config);
-  } catch (error) {
-    console.error('Error creating backup config:', error);
-    res.status(500).json({ error: 'حدث خطأ أثناء إنشاء إعداد النسخ الاحتياطي' });
   }
 });
 

@@ -64,6 +64,7 @@
     "framer-motion": "^11.13.1",
     "google-auth-library": "^9.15.1",
     "googleapis": "^144.0.0",
+    "helmet": "^8.0.0",
     "input-otp": "^1.2.4",
     "jsbarcode": "^3.11.6",
     "lucide-react": "^0.453.0",

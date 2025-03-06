@@ -1,18 +1,28 @@
 import pkg from 'pg';
-const { Client } = pkg;
+const { Pool } = pkg;
 import * as schema from '../shared/schema';
 import { drizzle } from 'drizzle-orm/node-postgres';
 
-// تهيئة اتصال قاعدة البيانات
-const client = new Client({
+if (!process.env.DATABASE_URL) {
+  throw new Error("DATABASE_URL environment variable is required");
+}
+
+// استخدام Pool بدلاً من Client للحصول على إدارة أفضل للاتصالات
+const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
+  max: 20,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 2000,
 });
 
-// اتصال بقاعدة البيانات
-await client.connect();
+// التعامل مع أخطاء الاتصال
+pool.on('error', (err) => {
+  console.error('Unexpected error on idle client', err);
+  process.exit(-1);
+});
 
-// تهيئة Drizzle ORM
-export const db = drizzle(client, { schema });
+// تهيئة Drizzle ORM مع pool
+export const db = drizzle(pool, { schema });
 
-// تصدير الاتصال بقاعدة البيانات للاستخدام في أجزاء أخرى من التطبيق
-export { client as dbClient };
+// تصدير pool للاستخدام في أجزاء أخرى من التطبيق إذا لزم الأمر
+export { pool as dbPool };
