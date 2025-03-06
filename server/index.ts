@@ -109,22 +109,11 @@ app.post('/api/social-accounts', async (req, res) => {
   }
 });
 
-// Set proper MIME types
-app.use((req, res, next) => {
-  if (req.path.endsWith('.js')) {
-    res.type('application/javascript');
-  } else if (req.path.endsWith('.mjs')) {
-    res.type('application/javascript');
-  } else if (req.path.endsWith('.css')) {
-    res.type('text/css');
-  }
-  next();
-});
 
 // Development mode configuration
 if (process.env.NODE_ENV !== 'production') {
   console.log('Running in development mode');
-  // In development, serve the client's public directory
+  // In development, serve the client's public directory and allow source maps
   app.use(express.static(path.join(__dirname, '../client/public')));
   // Fallback for client-side routing
   app.get('*', (req, res) => {
