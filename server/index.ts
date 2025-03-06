@@ -5,6 +5,7 @@ import { createServer } from 'http';
 import { logger, checkDatabaseConnection } from './db';
 import session from 'express-session';
 import { WebSocketHandler } from './websocket';
+import { setupAuth } from './auth';
 
 const app = express();
 const server = createServer(app);
@@ -58,6 +59,9 @@ app.use((req, res, next) => {
   next();
 });
 
+// Setup authentication
+setupAuth(app);
+
 // Ensure PORT is set and valid
 const PORT = process.env.PORT || '5000';
 process.env.PORT = PORT;
@@ -97,7 +101,6 @@ const wsHandler = new WebSocketHandler(server);
       serveStatic(app);
     }
 
-    // Start server with enhanced error handling
     server.listen(Number(PORT), "0.0.0.0", () => {
       logger.info(`Server running at http://0.0.0.0:${PORT}`);
       logger.info(`WebSocket server available at ws://0.0.0.0:${PORT}/ws`);
