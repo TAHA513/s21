@@ -55,6 +55,7 @@ setupAuth(app);
   // اختبار الاتصال بقاعدة البيانات
   try {
     await testDatabaseConnection();
+    console.log('تم الاتصال بقاعدة البيانات بنجاح!');
   } catch (error) {
     console.error('فشل الاتصال بقاعدة البيانات:', error);
     console.warn('تأكد من ضبط DATABASE_URL في ملف .env بشكل صحيح');

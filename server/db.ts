@@ -1,28 +1,34 @@
 
 import { Pool, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-serverless';
+import ws from "ws";
 import * as schema from "../shared/schema";
 
-// التحقق من وجود رابط قاعدة البيانات
-if (!process.env.DATABASE_URL) {
+// إعداد Neon للاتصال بقاعدة البيانات
+neonConfig.webSocketConstructor = ws;
+
+// استخراج عنوان قاعدة البيانات من متغيرات البيئة
+const databaseUrl = process.env.DATABASE_URL;
+
+if (!databaseUrl) {
   throw new Error(
-    "DATABASE_URL غير موجود. تأكد من إعداد متغيرات البيئة بشكل صحيح."
+    "DATABASE_URL غير محدد. هل نسيت إضافته في ملف .env؟",
   );
 }
 
-// إنشاء اتصال قاعدة البيانات
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-export const db = drizzle({ client: pool, schema });
+// إنشاء اتصال بقاعدة البيانات
+const pool = new Pool({ connectionString: databaseUrl });
 
-// دالة لاختبار الاتصال بقاعدة البيانات
-export async function testDatabaseConnection(): Promise<boolean> {
+// إنشاء عميل درزل
+export const db = drizzle(pool, { schema });
+
+// وظيفة اختبار الاتصال بقاعدة البيانات
+export async function testDatabaseConnection() {
   try {
-    // اختبار الاتصال من خلال استعلام بسيط
-    await pool.query('SELECT NOW()');
-    console.log('تم الاتصال بقاعدة البيانات بنجاح');
-    return true;
+    const result = await pool.query('SELECT NOW()');
+    return result.rows[0];
   } catch (error) {
-    console.error('فشل الاتصال بقاعدة البيانات:', error);
-    return false;
+    console.error('فشل اختبار الاتصال بقاعدة البيانات:', error);
+    throw error;
   }
 }

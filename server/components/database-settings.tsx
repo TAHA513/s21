@@ -255,3 +255,178 @@ const DatabaseSettingsPage: React.FC = () => {
 };
 
 export default DatabaseSettingsPage;
+import React, { useState } from 'react';
+
+// نوع لإعدادات قاعدة البيانات
+interface DatabaseSettings {
+  host: string;
+  port: string;
+  username: string;
+  password: string;
+  database: string;
+}
+
+// خصائص المكون
+interface DatabaseSettingsProps {
+  onSave: (settings: DatabaseSettings) => void;
+  initialSettings?: Partial<DatabaseSettings>;
+}
+
+// مكون إعدادات قاعدة البيانات
+export function DatabaseSettingsComponent({ onSave, initialSettings = {} }: DatabaseSettingsProps) {
+  // حالة النموذج
+  const [settings, setSettings] = useState<DatabaseSettings>({
+    host: initialSettings.host || 'localhost',
+    port: initialSettings.port || '5432',
+    username: initialSettings.username || '',
+    password: initialSettings.password || '',
+    database: initialSettings.database || '',
+  });
+
+  // حالة الاختبار
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  // معالج تغيير الحقول
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setSettings(prev => ({ ...prev, [name]: value }));
+  };
+
+  // معالج اختبار الاتصال
+  const handleTestConnection = async () => {
+    setTesting(true);
+    setTestResult(null);
+    
+    try {
+      // إرسال طلب لاختبار الاتصال
+      const response = await fetch('/api/test-db-connection', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settings),
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        setTestResult({ success: true, message: 'تم الاتصال بنجاح!' });
+      } else {
+        setTestResult({ success: false, message: data.error || 'فشل الاتصال' });
+      }
+    } catch (error) {
+      setTestResult({ success: false, message: 'خطأ في الشبكة' });
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  // معالج حفظ الإعدادات
+  const handleSave = () => {
+    onSave(settings);
+  };
+
+  return (
+    <div className="space-y-6 p-6 bg-white rounded-lg shadow">
+      <h2 className="text-2xl font-bold">إعدادات قاعدة البيانات</h2>
+      
+      <div className="grid grid-cols-1 gap-4">
+        <div className="space-y-2">
+          <label htmlFor="host" className="block text-sm font-medium">
+            المضيف (Host)
+          </label>
+          <input
+            id="host"
+            name="host"
+            type="text"
+            value={settings.host}
+            onChange={handleChange}
+            className="w-full px-3 py-2 border rounded-md"
+          />
+        </div>
+        
+        <div className="space-y-2">
+          <label htmlFor="port" className="block text-sm font-medium">
+            المنفذ (Port)
+          </label>
+          <input
+            id="port"
+            name="port"
+            type="text"
+            value={settings.port}
+            onChange={handleChange}
+            className="w-full px-3 py-2 border rounded-md"
+          />
+        </div>
+        
+        <div className="space-y-2">
+          <label htmlFor="username" className="block text-sm font-medium">
+            اسم المستخدم
+          </label>
+          <input
+            id="username"
+            name="username"
+            type="text"
+            value={settings.username}
+            onChange={handleChange}
+            className="w-full px-3 py-2 border rounded-md"
+          />
+        </div>
+        
+        <div className="space-y-2">
+          <label htmlFor="password" className="block text-sm font-medium">
+            كلمة المرور
+          </label>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            value={settings.password}
+            onChange={handleChange}
+            className="w-full px-3 py-2 border rounded-md"
+          />
+        </div>
+        
+        <div className="space-y-2">
+          <label htmlFor="database" className="block text-sm font-medium">
+            اسم قاعدة البيانات
+          </label>
+          <input
+            id="database"
+            name="database"
+            type="text"
+            value={settings.database}
+            onChange={handleChange}
+            className="w-full px-3 py-2 border rounded-md"
+          />
+        </div>
+      </div>
+      
+      <div className="flex space-x-4 rtl:space-x-reverse">
+        <button
+          onClick={handleTestConnection}
+          disabled={testing}
+          className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md"
+        >
+          {testing ? 'جاري الاختبار...' : 'اختبار الاتصال'}
+        </button>
+        
+        <button
+          onClick={handleSave}
+          className="px-4 py-2 bg-blue-600 text-white rounded-md"
+        >
+          حفظ الإعدادات
+        </button>
+      </div>
+      
+      {testResult && (
+        <div
+          className={`p-3 rounded-md ${
+            testResult.success ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+          }`}
+        >
+          {testResult.message}
+        </div>
+      )}
+    </div>
+  );
+}
