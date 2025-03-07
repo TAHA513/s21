@@ -48,7 +48,7 @@ app.post("/api/database-connections", (req, res) => {
 });
 
 // إضافة دعم WebSocket
-import WebSocket from 'ws';
+import { WebSocketServer } from 'ws';
 
 // استماع على جميع الواجهات مع التعامل مع الأخطاء
 const server = app.listen(port, "0.0.0.0", () => {
@@ -56,7 +56,7 @@ const server = app.listen(port, "0.0.0.0", () => {
   console.log(`الواجهة متاحة على https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`);
   
   // إعداد خادم WebSocket
-  const wss = new WebSocket.Server({ server });
+  const wss = new WebSocketServer({ server });
   
   wss.on('connection', (ws) => {
     console.log('WebSocket client connected');
