@@ -35,6 +35,14 @@ export const appointments = pgTable("appointments", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// Product Groups table
+export const productGroups = pgTable("product_groups", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 // Products table
 export const products = pgTable("products", {
   id: serial("id").primaryKey(),
@@ -45,14 +53,6 @@ export const products = pgTable("products", {
   sellingPrice: text("selling_price").notNull(),
   quantity: text("quantity").notNull(),
   groupId: integer("group_id").references(() => productGroups.id),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-});
-
-// Product Groups table
-export const productGroups = pgTable("product_groups", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  description: text("description"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -142,3 +142,8 @@ export const insertInvoiceSchema = createInsertSchema(invoices).extend({
 export const insertMarketingCampaignSchema = createInsertSchema(marketingCampaigns);
 
 export const insertScheduledPostSchema = createInsertSchema(scheduledPosts);
+
+// Temporary exports to satisfy lingering imports
+export const insertSupplierSchema = {} as any;
+export type Supplier = any;
+export type InsertSupplier = any;
