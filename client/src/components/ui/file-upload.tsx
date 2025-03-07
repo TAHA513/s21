@@ -12,6 +12,17 @@ interface FileUploadProps {
   maxSize?: number; // in MB
 }
 
+interface UploadResponse {
+  message: string;
+  file: {
+    filename: string;
+    originalName: string;
+    path: string;
+    size: number;
+    uploadedAt: string;
+  };
+}
+
 export function FileUpload({
   onChange,
   value = [],
@@ -44,12 +55,7 @@ export function FileUpload({
         const formData = new FormData();
         formData.append('file', file);
 
-        const response = await apiRequest('POST', '/api/upload', formData, {
-          headers: {
-            // Don't set Content-Type here, it will be set automatically for FormData
-          },
-        });
-
+        const response = await apiRequest<UploadResponse>('POST', '/api/upload', formData);
         return response.file.path;
       });
 
