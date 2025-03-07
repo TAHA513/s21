@@ -2,13 +2,7 @@ import React from "react";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
-import {
-  Users,
-  Calendar,
-  UserCog,
-  Package2,
-  Megaphone,
-} from "lucide-react";
+import { Users, Calendar, UserCog, Package2, Megaphone } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import type { MarketingCampaign } from "@shared/schema";
@@ -35,7 +29,7 @@ const DashboardPage: React.FC = () => {
   });
 
   // Get active campaigns
-  const activeCampaigns = campaigns.filter(c => 
+  const activeCampaigns = campaigns.filter(c =>
     new Date(c.endDate) > new Date() && c.status === 'active'
   );
 
@@ -53,14 +47,13 @@ const DashboardPage: React.FC = () => {
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold">لوحة التحكم</h1>
-            <p className="text-muted-foreground">مؤشرات الأداء الرئيسية والتحليلات</p>
+            <p className="text-muted-foreground">نظرة عامة على النظام</p>
           </div>
           <Badge variant="outline" className="text-lg">
             {new Date().toLocaleDateString('ar-IQ', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
           </Badge>
         </div>
 
-        {/* Campaign Alerts */}
         {campaignsEndingSoon.length > 0 && (
           <Alert>
             <AlertTitle>تنبيه الحملات</AlertTitle>
@@ -70,7 +63,6 @@ const DashboardPage: React.FC = () => {
           </Alert>
         )}
 
-        {/* معلومات إضافية */}
         <div className="grid gap-4 md:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -116,18 +108,15 @@ const DashboardPage: React.FC = () => {
             </CardContent>
           </Card>
 
-          {/* Add Campaign Performance Card */}
-          <Card className="relative overflow-hidden">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">أداء الحملات</CardTitle>
-              <Megaphone className="h-4 w-4 text-blue-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{activeCampaigns.length}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                حملات نشطة حالياً
-              </p>
-              {activeCampaigns.length > 0 && (
+          {activeCampaigns.length > 0 && (
+            <Card className="relative overflow-hidden">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">الحملات النشطة</CardTitle>
+                <Megaphone className="h-4 w-4 text-blue-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{activeCampaigns.length}</div>
+                <p className="text-xs text-muted-foreground mt-1">حملات نشطة حالياً</p>
                 <div className="mt-4 space-y-2">
                   {activeCampaigns.slice(0, 2).map(campaign => (
                     <div key={campaign.id} className="flex justify-between items-center">
@@ -138,9 +127,9 @@ const DashboardPage: React.FC = () => {
                     </div>
                   ))}
                 </div>
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </DashboardLayout>
