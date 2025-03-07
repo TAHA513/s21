@@ -1,11 +1,12 @@
 
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
+import { storage } from "./storage.js";
 import express from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import { pool } from "./db.js";
 
 const upload = multer({ dest: 'uploads/' });
 
@@ -15,15 +16,20 @@ export async function setupRoutes(app: Express): Promise<Server> {
   // نقطة نهاية للتحقق من اتصال قاعدة البيانات
   app.get("/api/health", async (_req, res) => {
     try {
-      // التحقق من حالة التطبيق
+      // التحقق من اتصال قاعدة البيانات
+      const result = await pool.query('SELECT NOW() as server_time');
+      
       res.json({
         status: "online",
-        timestamp: new Date().toISOString()
+        database: "connected",
+        server_time: result.rows[0]?.server_time,
+        environment: process.env.NODE_ENV || 'development'
       });
     } catch (error) {
-      console.error('خطأ في فحص حالة التطبيق:', error);
+      console.error('خطأ في فحص حالة قاعدة البيانات:', error);
       res.status(500).json({ 
-        status: "error",
+        status: "online", 
+        database: "error",
         error: error instanceof Error ? error.message : String(error)
       });
     }

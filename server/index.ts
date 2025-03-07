@@ -1,8 +1,8 @@
 import express from "express";
 import { setupRoutes } from "./routes.js";
-import { setupAuth } from "./auth";
-import { setupVite } from "./vite";
-import { testConnection } from "./db";
+import { setupAuth } from "./auth.js";
+import { setupVite } from "./vite.js";
+import { testConnection } from "./db.js";
 
 async function main() {
   try {

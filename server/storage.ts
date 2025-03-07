@@ -1,4 +1,4 @@
-import { pool, db } from './db';
+import { pool, db } from './db.js';
 import session from 'express-session';
 import connectPgSimple from 'connect-pg-simple';
 
@@ -32,7 +32,7 @@ interface IStorage {
   deleteSupplier(id: number): Promise<void>;
   getDiscountCodeByCode(code: string): Promise<any>;
   createDiscountCode(code: any): Promise<any>;
-  getPurchaseOrders(): Promise<any[]>;
+  getPurchaseOrders(): Promise<any[]>
 }
 
 // تنفيذ كائن التخزين باستخدام قاعدة البيانات الحقيقية
@@ -88,7 +88,7 @@ export class DatabaseStorage implements IStorage {
       // التحقق من حالة الاتصال قبل الاستعلام
       const checkConn = await pool.query('SELECT 1');
       console.log('حالة الاتصال بقاعدة البيانات:', checkConn ? 'متصل' : 'غير متصل');
-      
+
       const result = await pool.query('SELECT * FROM customers ORDER BY id DESC');
       console.log(`تم استرداد ${result.rows.length} عميل بنجاح`);
       if (result.rows.length > 0) {
@@ -103,7 +103,7 @@ export class DatabaseStorage implements IStorage {
         console.error('رسالة الخطأ:', error.message);
         console.error('تفاصيل الخطأ:', error.stack);
       }
-      
+
       // التحقق من الجداول الموجودة في قاعدة البيانات
       try {
         const tables = await pool.query(`
@@ -115,7 +115,7 @@ export class DatabaseStorage implements IStorage {
       } catch (e) {
         console.error('فشل في الحصول على قائمة الجداول:', e);
       }
-      
+
       return [];
     }
   }
