@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { setupRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "../attached_assets/vite";
 import { setupAuth } from "./auth";
+import { testConnection } from './db';
 
 const app = express();
 app.use(express.json({ limit: '50mb' }));
@@ -61,6 +62,12 @@ app.use((req, res, next) => {
       });
 
       res.status(status).json({ message });
+    });
+
+    // اختبار الاتصال بقاعدة البيانات
+    await testConnection().catch(err => {
+      console.error('فشل في الاتصال بقاعدة البيانات:', err);
+      process.exit(1);
     });
 
     if (app.get("env") === "development") {
