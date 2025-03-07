@@ -64,10 +64,22 @@ app.get('/api/social-accounts', async (req, res) => {
 
 // In development mode, proxy to Vite dev server
 if (process.env.NODE_ENV !== 'production') {
+  console.log("Setting up Vite proxy middleware for development");
   const viteProxy = createProxyMiddleware({
     target: 'http://0.0.0.0:5173',
     changeOrigin: true,
-    ws: true
+    ws: true,
+    logLevel: 'debug',
+    onProxyReq: (proxyReq, req, res) => {
+      console.log(`Proxying ${req.method} ${req.url} to Vite server`);
+    },
+    onError: (err, req, res) => {
+      console.error('Proxy error:', err);
+      res.writeHead(500, {
+        'Content-Type': 'text/plain',
+      });
+      res.end('خطأ في الاتصال بخادم التطوير. يرجى التأكد من تشغيل خادم Vite.');
+    }
   });
 
   // Handle non-API routes
@@ -75,6 +87,7 @@ if (process.env.NODE_ENV !== 'production') {
     if (req.url.startsWith('/api/')) {
       return next();
     }
+    console.log(`Forwarding request to Vite: ${req.method} ${req.url}`);
     viteProxy(req, res, next);
   });
 } else {
