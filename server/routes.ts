@@ -1,4 +1,3 @@
-
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage.js";
@@ -13,12 +12,10 @@ const upload = multer({ dest: 'uploads/' });
 export async function setupRoutes(app: Express): Promise<Server> {
   const server = createServer(app);
 
-  // نقطة نهاية للتحقق من اتصال قاعدة البيانات
+  // نقطة نهاية API للتحقق من اتصال قاعدة البيانات
   app.get("/api/health", async (_req, res) => {
     try {
-      // التحقق من اتصال قاعدة البيانات
       const result = await pool.query('SELECT NOW() as server_time');
-      
       res.json({
         status: "online",
         database: "connected",
@@ -32,6 +29,73 @@ export async function setupRoutes(app: Express): Promise<Server> {
         database: "error",
         error: error instanceof Error ? error.message : String(error)
       });
+    }
+  });
+
+  // إضافة منتج جديد
+  app.post("/api/products", async (req, res) => {
+    try {
+      console.log('بيانات المنتج المستلمة:', req.body);
+      const product = await storage.createProduct(req.body);
+      console.log('تم إنشاء المنتج:', product);
+      res.status(201).json(product);
+    } catch (error) {
+      console.error('خطأ في إنشاء المنتج:', error);
+      res.status(500).json({ error: 'فشل في إنشاء المنتج' });
+    }
+  });
+
+  // تحديث منتج
+  app.put("/api/products/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      console.log(`تحديث المنتج ${id}:`, req.body);
+      const product = await storage.updateProduct(id, req.body);
+      console.log('تم تحديث المنتج:', product);
+      res.json(product);
+    } catch (error) {
+      console.error('خطأ في تحديث المنتج:', error);
+      res.status(500).json({ error: 'فشل في تحديث المنتج' });
+    }
+  });
+
+  // إضافة عميل جديد
+  app.post("/api/customers", async (req, res) => {
+    try {
+      console.log('بيانات العميل المستلمة:', req.body);
+      const customer = await storage.createCustomer(req.body);
+      console.log('تم إنشاء العميل:', customer);
+      res.status(201).json(customer);
+    } catch (error) {
+      console.error('خطأ في إنشاء العميل:', error);
+      res.status(500).json({ error: 'فشل في إنشاء العميل' });
+    }
+  });
+
+  // تحديث عميل
+  app.put("/api/customers/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      console.log(`تحديث العميل ${id}:`, req.body);
+      const customer = await storage.updateCustomer(id, req.body);
+      console.log('تم تحديث العميل:', customer);
+      res.json(customer);
+    } catch (error) {
+      console.error('خطأ في تحديث العميل:', error);
+      res.status(500).json({ error: 'فشل في تحديث العميل' });
+    }
+  });
+
+  // إنشاء فاتورة جديدة
+  app.post("/api/invoices", async (req, res) => {
+    try {
+      console.log('بيانات الفاتورة المستلمة:', req.body);
+      const invoice = await storage.createInvoice(req.body);
+      console.log('تم إنشاء الفاتورة:', invoice);
+      res.status(201).json(invoice);
+    } catch (error) {
+      console.error('خطأ في إنشاء الفاتورة:', error);
+      res.status(500).json({ error: 'فشل في إنشاء الفاتورة' });
     }
   });
 
