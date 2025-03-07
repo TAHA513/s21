@@ -38,8 +38,17 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "تم تشغيل النظام بنجاح" });
 });
 
+// تهيئة API endpoints إضافية
+app.get("/api/database-connections", (req, res) => {
+  res.json({ connections: [] });
+});
+
+app.post("/api/database-connections", (req, res) => {
+  res.json({ success: true, message: "تم إنشاء الاتصال بنجاح" });
+});
+
 // استماع على جميع الواجهات
 app.listen(port, "0.0.0.0", () => {
   console.log(`تم تشغيل الخادم على المنفذ ${port}`);
-  console.log(`الواجهة متاحة على http://localhost:${port}`);
+  console.log(`الواجهة متاحة على http://0.0.0.0:${port}`);
 });
