@@ -1,4 +1,5 @@
 import express from "express";
+import { createServer } from "http";
 import { setupRoutes } from "./routes.js";
 import { setupAuth } from "./auth.js";
 import { setupVite } from "./vite.js";
@@ -47,13 +48,16 @@ async function main() {
     }
 
     // إعداد وتشغيل الخادم
-    const port = process.env.PORT || 5001;
+    const port = process.env.PORT || 5090; // استخدام منفذ مختلف لتجنب التعارض
 
-    // إعداد Vite للتطوير
-    await setupVite(app);
+    // إنشاء HTTP server
+    const server = createServer(app);
+
+    // إعداد Vite للتطوير مع تمرير الـ server
+    await setupVite(app, server);
     console.log("تم إعداد Vite للتطوير");
 
-    app.listen(port, "0.0.0.0", () => {
+    server.listen(port, "0.0.0.0", () => {
       console.log(`تم تشغيل الخادم على المنفذ ${port}`);
       console.log(`الواجهة متاحة على https://workspace.asaad11asaad98.repl.co`);
     });

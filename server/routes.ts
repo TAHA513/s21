@@ -10,8 +10,8 @@ import { pool } from "./db.js";
 
 const upload = multer({ dest: 'uploads/' });
 
-export async function setupRoutes(app: Express): Promise<Server> {
-  const server = createServer(app);
+export async function setupRoutes(app: Express): Promise<void> {
+  // لم نعد بحاجة لإنشاء server هنا لأنه سيأتي من ملف index.ts
 
   // نقطة نهاية للتحقق من اتصال قاعدة البيانات
   app.get("/api/health", async (_req, res) => {
@@ -178,5 +178,5 @@ export async function setupRoutes(app: Express): Promise<Server> {
   // عرض الملفات المرفوعة
   app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
-  return server;
+  // لا نحتاج لإرجاع server
 }
