@@ -11,10 +11,22 @@ if (!connectionString) {
   process.exit(1);
 }
 
-// إنشاء مجمع اتصالات قاعدة البيانات
+// إنشاء مجمع اتصالات قاعدة البيانات مع إعدادات أفضل
 export const pool = new Pool({
   connectionString,
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  max: 20, // عدد الاتصالات المتزامنة القصوى
+  idleTimeoutMillis: 30000, // مهلة الخمول بالمللي ثانية (30 ثانية)
+  connectionTimeoutMillis: 5000, // مهلة الاتصال (5 ثوان)
+});
+
+// إضافة مستمعي أحداث لمجمع الاتصالات لتتبع المشاكل
+pool.on('error', (err) => {
+  console.error('خطأ غير متوقع في مجمع اتصالات قاعدة البيانات:', err);
+});
+
+pool.on('connect', () => {
+  console.log('تم إنشاء اتصال جديد بقاعدة البيانات');
 });
 
 // تصدير كائن Drizzle ORM

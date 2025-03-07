@@ -84,10 +84,19 @@ export class DatabaseStorage implements IStorage {
   // عمليات العملاء
   async getCustomers(): Promise<any[]> {
     try {
+      console.log('جاري استرداد بيانات العملاء من قاعدة البيانات...');
       const result = await pool.query('SELECT * FROM customers ORDER BY id DESC');
+      console.log(`تم استرداد ${result.rows.length} عميل بنجاح`);
+      if (result.rows.length > 0) {
+        console.log('نموذج بيانات العميل:', JSON.stringify(result.rows[0], null, 2));
+      }
       return result.rows;
     } catch (error) {
       console.error('خطأ في الحصول على العملاء:', error);
+      if (error instanceof Error) {
+        console.error('رسالة الخطأ:', error.message);
+        console.error('تفاصيل الخطأ:', error.stack);
+      }
       return [];
     }
   }
