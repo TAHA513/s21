@@ -3,6 +3,7 @@ import { setupRoutes } from "./routes.js";
 import { setupAuth } from "./auth.js";
 import { setupVite } from "./vite.js";
 import { testConnection } from "./db.js";
+import type { Request, Response, NextFunction } from "express";
 
 async function main() {
   try {
@@ -24,7 +25,7 @@ async function main() {
     });
 
     // معالج الأخطاء العام
-    app.use((err, req, res, next) => {
+    app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
       console.error('خطأ عام في التطبيق:', err);
       res.status(500).json({
         error: "حدث خطأ في الخادم",
@@ -37,7 +38,7 @@ async function main() {
     console.log("تم إعداد نظام المصادقة");
 
     // تسجيل المسارات
-    await setupRoutes(app);
+    const server = await setupRoutes(app);
     console.log("تم تسجيل جميع المسارات");
 
     // اختبار الاتصال بقاعدة البيانات
@@ -46,16 +47,14 @@ async function main() {
       console.error("لم يتم الاتصال بقاعدة البيانات. التطبيق قد لا يعمل بشكل صحيح.");
     }
 
-    // إعداد وتشغيل الخادم
-    const port = process.env.PORT || 5001;
-
     // إعداد Vite للتطوير
-    await setupVite(app);
+    await setupVite(app, server);
     console.log("تم إعداد Vite للتطوير");
 
-    app.listen(port, "0.0.0.0", () => {
+    const port = 5000; // تغيير المنفذ إلى 5000
+    server.listen(port, "0.0.0.0", () => {
       console.log(`تم تشغيل الخادم على المنفذ ${port}`);
-      console.log(`الواجهة متاحة على https://workspace.asaad11asaad98.repl.co`);
+      console.log(`الواجهة متاحة على https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`);
     });
   } catch (error) {
     console.error("خطأ كارثي عند بدء التطبيق:", error);

@@ -107,9 +107,9 @@ export default function ProductsPage() {
       const matchesSearch = searchTerm === "" || 
         product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         product.barcode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        groups?.find(g => g.id === product.groupId)?.name.toLowerCase().includes(searchTerm.toLowerCase());
+        groups?.find(g => g.id === (product.groupId ?? -1))?.name.toLowerCase().includes(searchTerm.toLowerCase());
 
-      const matchesGroup = selectedGroup === "all" || product.groupId.toString() === selectedGroup;
+      const matchesGroup = selectedGroup === "all" || (product.groupId?.toString() ?? "") === selectedGroup;
 
       return matchesSearch && matchesGroup;
     }) || [];
@@ -121,10 +121,10 @@ export default function ProductsPage() {
           comparison = a.name.localeCompare(b.name);
           break;
         case "quantity":
-          comparison = a.quantity - b.quantity;
+          comparison = Number(a.quantity || 0) - Number(b.quantity || 0);
           break;
         case "price":
-          comparison = Number(a.sellingPrice) - Number(b.sellingPrice);
+          comparison = Number(a.sellingPrice || 0) - Number(b.sellingPrice || 0);
           break;
       }
       return sortOrder === "asc" ? comparison : -comparison;

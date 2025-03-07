@@ -1,3 +1,31 @@
+interface Sale {
+  id: number;
+  customerName?: string;
+  amount: string | number;
+  date: string;
+  status: 'completed' | 'pending' | 'cancelled';
+  items?: Array<{
+    name: string;
+    quantity: number;
+    price: number;
+    total: number;
+  }>;
+}
+
+interface Appointment {
+  id: number;
+  customerName: string;
+  customerPhone: string;
+  time: string;
+  status: 'completed' | 'pending' | 'cancelled';
+}
+
+interface Alert {
+  id: number;
+  message: string;
+  type: string;
+}
+
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import {
@@ -32,39 +60,28 @@ export default function StaffDashboard() {
   const [searchTermSales, setSearchTermSales] = useState("");
   const [searchTermAppointments, setSearchTermAppointments] = useState("");
 
-  // Prefetch data
-  useEffect(() => {
-    queryClient.prefetchQuery({
-      queryKey: ["/api/sales/today"],
-      staleTime: 1000 * 60 * 2,
-    });
-    queryClient.prefetchQuery({
-      queryKey: ["/api/appointments/today"],
-      staleTime: 1000 * 60 * 2,
-    });
-  }, [queryClient]);
-
-  const { data: todaySales, isLoading: salesLoading } = useQuery({
+  // Updated query types
+  const { data: todaySales = [], isLoading: salesLoading } = useQuery<Sale[]>({
     queryKey: ["/api/sales/today"],
     staleTime: 1000 * 60 * 2,
   });
 
-  const { data: appointments, isLoading: appointmentsLoading } = useQuery({
+  const { data: appointments = [], isLoading: appointmentsLoading } = useQuery<Appointment[]>({
     queryKey: ["/api/appointments/today"],
     staleTime: 1000 * 60 * 2,
   });
 
-  const { data: alerts } = useQuery({
+  const { data: alerts = [] } = useQuery<Alert[]>({
     queryKey: ["/api/alerts"],
     staleTime: 1000 * 60 * 5,
   });
 
   // Calculate summary stats
-  const totalSales = todaySales?.reduce((sum: number, sale: any) => sum + Number(sale.amount), 0) || 0;
+  const totalSales = todaySales?.reduce((sum: number, sale: Sale) => sum + Number(sale.amount), 0) || 0;
   const totalAppointments = appointments?.length || 0;
 
   // Filter functions
-  const filteredSales = todaySales?.filter((sale: any) => {
+  const filteredSales = todaySales?.filter((sale: Sale) => {
     const searchLower = searchTermSales.toLowerCase();
     return (
       sale.id.toString().includes(searchLower) ||
@@ -73,7 +90,7 @@ export default function StaffDashboard() {
     );
   });
 
-  const filteredAppointments = appointments?.filter((appointment: any) => {
+  const filteredAppointments = appointments?.filter((appointment: Appointment) => {
     const searchLower = searchTermAppointments.toLowerCase();
     return (
       appointment.customerName.toLowerCase().includes(searchLower) ||
@@ -94,7 +111,7 @@ export default function StaffDashboard() {
       let hasData = false;
 
       if (todaySales?.length > 0) {
-        const salesData = todaySales.map((sale: any) => ({
+        const salesData = todaySales.map((sale: Sale) => ({
           'رقم الفاتورة': sale.id,
           'اسم العميل': sale.customerName || 'عميل نقدي',
           'المبلغ': `${Number(sale.amount).toLocaleString()} د.ع`,
@@ -109,7 +126,7 @@ export default function StaffDashboard() {
       }
 
       if (appointments?.length > 0) {
-        const appointmentsData = appointments.map((appointment: any) => ({
+        const appointmentsData = appointments.map((appointment: Appointment) => ({
           'وقت الموعد': new Date(appointment.time).toLocaleString('ar-IQ'),
           'اسم العميل': appointment.customerName,
           'رقم الهاتف': appointment.customerPhone,
@@ -135,7 +152,7 @@ export default function StaffDashboard() {
   };
 
   // Handle invoice printing
-  const handlePrintInvoice = (invoice: any) => {
+  const handlePrintInvoice = (invoice: Sale) => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
@@ -262,7 +279,7 @@ export default function StaffDashboard() {
             <h2 className="font-semibold">تنبيهات هامة</h2>
           </div>
           <ul className="space-y-1 text-red-600">
-            {alerts.map((alert: any, index: number) => (
+            {alerts.map((alert: Alert, index: number) => (
               <li key={index}>{alert.message}</li>
             ))}
           </ul>
@@ -319,7 +336,7 @@ export default function StaffDashboard() {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredSales?.map((sale: any) => (
+                filteredSales?.map((sale: Sale) => (
                   <TableRow key={sale.id}>
                     <TableCell>#{sale.id}</TableCell>
                     <TableCell>{sale.customerName || 'عميل نقدي'}</TableCell>
@@ -394,7 +411,7 @@ export default function StaffDashboard() {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredAppointments?.map((appointment: any) => (
+                filteredAppointments?.map((appointment: Appointment) => (
                   <TableRow key={appointment.id}>
                     <TableCell>{new Date(appointment.time).toLocaleTimeString('ar-IQ')}</TableCell>
                     <TableCell>{appointment.customerName}</TableCell>

@@ -41,9 +41,12 @@ export const products = pgTable("products", {
   name: text("name").notNull(),
   barcode: text("barcode").unique(),
   description: text("description"),
-  costPrice: text("cost_price").notNull(),
-  sellingPrice: text("selling_price").notNull(),
-  quantity: text("quantity").notNull(),
+  costPrice: decimal("cost_price", { precision: 10, scale: 2 }).notNull(),
+  sellingPrice: decimal("selling_price", { precision: 10, scale: 2 }).notNull(),
+  quantity: decimal("quantity", { precision: 10, scale: 2 }).notNull(),
+  minimumQuantity: decimal("minimum_quantity", { precision: 10, scale: 2 }),
+  type: text("type").notNull().default("piece"),
+  isWeighted: boolean("is_weighted").notNull().default(false),
   groupId: integer("group_id").references(() => productGroups.id),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
@@ -232,6 +235,11 @@ export const insertProductSchema = createInsertSchema(products).extend({
   costPrice: z.number().positive("سعر التكلفة يجب أن يكون رقماً موجباً"),
   sellingPrice: z.number().positive("سعر البيع يجب أن يكون رقماً موجباً"),
   quantity: z.number().min(0, "الكمية لا يمكن أن تكون سالبة"),
+  minimumQuantity: z.number().min(0, "الحد الأدنى للكمية لا يمكن أن يكون سالباً").optional(),
+  type: z.enum(["piece", "weight"], {
+    errorMap: () => ({ message: "النوع يجب أن يكون إما قطعة أو وزن" })
+  }),
+  isWeighted: z.boolean().default(false),
 });
 
 export const insertProductGroupSchema = createInsertSchema(productGroups);
