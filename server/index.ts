@@ -47,10 +47,33 @@ app.post("/api/database-connections", (req, res) => {
   res.json({ success: true, message: "تم إنشاء الاتصال بنجاح" });
 });
 
+// إضافة دعم WebSocket
+import WebSocket from 'ws';
+
 // استماع على جميع الواجهات مع التعامل مع الأخطاء
 const server = app.listen(port, "0.0.0.0", () => {
   console.log(`تم تشغيل الخادم على المنفذ ${port}`);
   console.log(`الواجهة متاحة على https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`);
+  
+  // إعداد خادم WebSocket
+  const wss = new WebSocket.Server({ server });
+  
+  wss.on('connection', (ws) => {
+    console.log('WebSocket client connected');
+    
+    ws.on('message', (message) => {
+      console.log('Received:', message);
+      // إرسال رد للعميل
+      ws.send(JSON.stringify({ status: 'received', message: message.toString() }));
+    });
+    
+    ws.on('close', () => {
+      console.log('WebSocket client disconnected');
+    });
+    
+    // إرسال رسالة ترحيب
+    ws.send(JSON.stringify({ type: 'welcome', message: 'مرحبا بك في النظام!' }));
+  });
 });
 
 server.on('error', (error: any) => {
