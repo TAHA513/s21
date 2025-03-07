@@ -16,6 +16,12 @@ const app = express();
 // Middleware
 app.use(json());
 
+// Add request logging
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.url}`);
+  next();
+});
+
 // Session middleware
 app.use(session({
   secret: process.env.SESSION_SECRET || 'your-secret-key',
@@ -63,26 +69,6 @@ app.post('/api/database-connections', async (req, res) => {
   }
 });
 
-app.get('/api/store-settings', async (req, res) => {
-  try {
-    const settings = await storage.getStoreSettings();
-    res.json(settings || {});
-  } catch (error) {
-    console.error('Error fetching store settings:', error);
-    res.status(500).json({ error: 'حدث خطأ أثناء جلب إعدادات المتجر' });
-  }
-});
-
-app.post('/api/store-settings', async (req, res) => {
-  try {
-    const settings = await storage.updateStoreSettings(req.body);
-    res.json(settings);
-  } catch (error) {
-    console.error('Error updating store settings:', error);
-    res.status(500).json({ error: 'حدث خطأ أثناء تحديث إعدادات المتجر' });
-  }
-});
-
 app.get('/api/social-accounts', async (req, res) => {
   try {
     const accounts = await storage.getSocialMediaAccounts();
@@ -103,19 +89,21 @@ app.post('/api/social-accounts', async (req, res) => {
   }
 });
 
-// Serve static files in production
+// Handle frontend routing
 if (process.env.NODE_ENV === 'production') {
+  // Serve static files in production
   app.use(express.static(path.join(__dirname, '../client/dist')));
   app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, '../client/dist/index.html'));
   });
 } else {
-  // In development, serve the Vite dev server
-  app.get('*', (req, res) => {
-    res.redirect('http://localhost:5173' + req.path);
+  // In development, redirect to Vite dev server for non-API routes
+  app.get(/^(?!\/api\/).*/, (req, res) => {
+    res.redirect(`http://localhost:5173${req.url}`);
   });
 }
 
+// ALWAYS serve the app on port 5000
 const PORT = parseInt(process.env.PORT || '5000');
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
