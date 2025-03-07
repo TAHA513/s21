@@ -9,6 +9,28 @@ import { createServer, type Server } from "http";
 const upload = multer({ dest: 'uploads/' });
 
 export async function setupRoutes(app: Express): Promise<Server> {
+  // نقطة نهاية جديدة للتحقق من اتصال قاعدة البيانات
+  app.get("/api/health", async (_req, res) => {
+    try {
+      // التحقق من اتصال قاعدة البيانات
+      const result = await pool.query('SELECT NOW() as server_time');
+      
+      res.json({
+        status: "online",
+        database: "connected",
+        server_time: result.rows[0]?.server_time,
+        environment: process.env.NODE_ENV || 'development'
+      });
+    } catch (error) {
+      console.error('خطأ في فحص حالة قاعدة البيانات:', error);
+      res.status(500).json({ 
+        status: "online", 
+        database: "error",
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  });
+
   // إضافة نقطة نهاية API للتحقق من صحة قاعدة البيانات
   app.get("/api/debug/database", async (_req, res) => {
     try {
