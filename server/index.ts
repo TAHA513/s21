@@ -1,6 +1,8 @@
+
 import express from 'express';
 import cors from 'cors';
 import { createServer } from 'http';
+import { WebSocketServer } from 'ws';
 import { setupViteServer } from './vite.js';
 import { setupRoutes } from './routes.js';
 import { testConnection } from './db.js';
@@ -68,65 +70,62 @@ async function main() {
   });
 
   // بدء الاستماع على المنفذ
-
-  // بدء الاستماع على المنفذ
   server.listen(port, '0.0.0.0', () => {
     console.log(`✅ الخادم يعمل على المنفذ ${port}`);
     console.log(`📱 يمكنك الوصول إلى التطبيق من خلال: http://0.0.0.0:${port}/`);
 
-      // إعداد WebSocket
-      import { WebSocketServer } from 'ws';
-      const wss = new WebSocketServer({ server });
+    // إعداد WebSocket
+    const wss = new WebSocketServer({ server });
 
-      wss.on('connection', (ws) => {
-        console.log('✅ اتصال WebSocket جديد');
+    wss.on('connection', (ws) => {
+      console.log('✅ اتصال WebSocket جديد');
 
-        // إرسال رسالة ترحيب عند الاتصال
-        ws.send(JSON.stringify({ type: 'connection', message: 'مرحبًا بك في نظام إدارة الأعمال' }));
+      // إرسال رسالة ترحيب عند الاتصال
+      ws.send(JSON.stringify({ type: 'connection', message: 'مرحبًا بك في نظام إدارة الأعمال' }));
 
-        // استماع للرسائل الواردة
-        ws.on('message', (message) => {
-          console.log('📩 رسالة واردة:', message.toString());
-          try {
-            const parsedMessage = JSON.parse(message.toString());
+      // استماع للرسائل الواردة
+      ws.on('message', (message) => {
+        console.log('📩 رسالة واردة:', message.toString());
+        try {
+          const parsedMessage = JSON.parse(message.toString());
 
-            // معالجة الرسالة حسب النوع
-            if (parsedMessage.type === 'refresh') {
-              // إعادة تحميل البيانات وإرسالها للعميل
-              wss.clients.forEach((client) => {
-                if (client.readyState === client.OPEN) {
-                  client.send(JSON.stringify({ type: 'refresh', timestamp: new Date().toISOString() }));
-                }
-              });
-            }
-          } catch (error) {
-            console.error('❌ خطأ في معالجة رسالة WebSocket:', error);
+          // معالجة الرسالة حسب النوع
+          if (parsedMessage.type === 'refresh') {
+            // إعادة تحميل البيانات وإرسالها للعميل
+            wss.clients.forEach((client) => {
+              if (client.readyState === client.OPEN) {
+                client.send(JSON.stringify({ type: 'refresh', timestamp: new Date().toISOString() }));
+              }
+            });
           }
-        });
-
-        // معالجة إغلاق الاتصال
-        ws.on('close', () => {
-          console.log('❌ تم إغلاق اتصال WebSocket');
-        });
-
-        // معالجة الأخطاء
-        ws.on('error', (error) => {
-          console.error('❌ خطأ في اتصال WebSocket:', error);
-        });
+        } catch (error) {
+          console.error('❌ خطأ في معالجة رسالة WebSocket:', error);
+        }
       });
 
-      // إرسال إشعارات بتحديث البيانات لجميع العملاء
-      const notifyClients = (type, data) => {
-        wss.clients.forEach((client) => {
-          if (client.readyState === client.OPEN) {
-            client.send(JSON.stringify({ type, data, timestamp: new Date().toISOString() }));
-          }
-        });
-      };
+      // معالجة إغلاق الاتصال
+      ws.on('close', () => {
+        console.log('❌ تم إغلاق اتصال WebSocket');
+      });
 
-      // تصدير وظيفة الإشعار للاستخدام في وحدات أخرى
-      global.notifyClients = notifyClients;
+      // معالجة الأخطاء
+      ws.on('error', (error) => {
+        console.error('❌ خطأ في اتصال WebSocket:', error);
+      });
     });
+
+    // إرسال إشعارات بتحديث البيانات لجميع العملاء
+    const notifyClients = (type: string, data: any) => {
+      wss.clients.forEach((client) => {
+        if (client.readyState === client.OPEN) {
+          client.send(JSON.stringify({ type, data, timestamp: new Date().toISOString() }));
+        }
+      });
+    };
+
+    // تصدير وظيفة الإشعار للاستخدام في وحدات أخرى
+    (global as any).notifyClients = notifyClients;
+  });
 
   // معالجة الأخطاء غير المتوقعة
   process.on('uncaughtException', (error) => {
