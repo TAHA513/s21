@@ -64,12 +64,26 @@ export async function setupRoutes(app: Express): Promise<void> {
   // Products API - واجهة برمجة المنتجات
   app.get("/api/products", async (_req, res) => {
     try {
+      console.log("استلام طلب للحصول على المنتجات");
       const products = await storage.getProducts();
-      console.log("تم استرجاع المنتجات:", JSON.stringify(products, null, 2));
-      res.json(products);
+      console.log(`تم استرجاع ${products.length} منتج بنجاح`);
+      console.log("عينة من البيانات:", JSON.stringify(products.slice(0, 2), null, 2));
+      
+      // إرسال استجابة مع رأس واضح لتتبع العمليات في المتصفح
+      res.setHeader('X-Data-Length', products.length.toString());
+      res.setHeader('X-Request-Status', 'success');
+      res.json({
+        status: "success",
+        count: products.length,
+        data: products
+      });
     } catch (error) {
       console.error('خطأ في استرجاع المنتجات:', error);
-      res.status(500).json({ error: 'حدث خطأ أثناء استرجاع المنتجات' });
+      res.status(500).json({ 
+        status: "error", 
+        message: 'حدث خطأ أثناء استرجاع المنتجات',
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
   });
 
@@ -90,11 +104,25 @@ export async function setupRoutes(app: Express): Promise<void> {
   // Customers API - واجهة برمجة العملاء
   app.get("/api/customers", async (_req, res) => {
     try {
+      console.log("استلام طلب للحصول على العملاء");
       const customers = await storage.getCustomers();
-      res.json(customers);
+      console.log(`تم استرجاع ${customers.length} عميل بنجاح`);
+      console.log("عينة من البيانات:", JSON.stringify(customers.slice(0, 2), null, 2));
+      
+      res.setHeader('X-Data-Length', customers.length.toString());
+      res.setHeader('X-Request-Status', 'success');
+      res.json({
+        status: "success",
+        count: customers.length,
+        data: customers
+      });
     } catch (error) {
       console.error('خطأ في استرجاع العملاء:', error);
-      res.status(500).json({ error: 'حدث خطأ أثناء استرجاع العملاء' });
+      res.status(500).json({ 
+        status: "error", 
+        message: 'حدث خطأ أثناء استرجاع العملاء',
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
   });
 
@@ -115,11 +143,25 @@ export async function setupRoutes(app: Express): Promise<void> {
   // Invoices API - واجهة برمجة الفواتير
   app.get("/api/invoices", async (_req, res) => {
     try {
+      console.log("استلام طلب للحصول على الفواتير");
       const invoices = await storage.getInvoices();
-      res.json(invoices);
+      console.log(`تم استرجاع ${invoices.length} فاتورة بنجاح`);
+      console.log("عينة من البيانات:", JSON.stringify(invoices.slice(0, 2), null, 2));
+      
+      res.setHeader('X-Data-Length', invoices.length.toString());
+      res.setHeader('X-Request-Status', 'success');
+      res.json({
+        status: "success",
+        count: invoices.length,
+        data: invoices
+      });
     } catch (error) {
       console.error('خطأ في استرجاع الفواتير:', error);
-      res.status(500).json({ error: 'حدث خطأ أثناء استرجاع الفواتير' });
+      res.status(500).json({ 
+        status: "error", 
+        message: 'حدث خطأ أثناء استرجاع الفواتير',
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
   });
 

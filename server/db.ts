@@ -8,16 +8,20 @@ const connectionString = process.env.DATABASE_URL;
 
 if (!connectionString) {
   console.error('خطأ: متغير البيئة DATABASE_URL غير محدد');
-  process.exit(1);
+  console.log('سيتم استخدام قاعدة بيانات افتراضية لبيئة التطوير');
+  // استخدام قاعدة بيانات تجريبية محلية للتطوير
+  // يمكن تغيير هذا في ملف .env
 }
 
 // إنشاء مجمع اتصالات قاعدة البيانات مع إعدادات أفضل
 export const pool = new Pool({
-  connectionString,
+  connectionString: connectionString || 'postgresql://postgres:postgres@localhost:5432/postgres',
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
   max: 20, // عدد الاتصالات المتزامنة القصوى
   idleTimeoutMillis: 30000, // مهلة الخمول بالمللي ثانية (30 ثانية)
   connectionTimeoutMillis: 5000, // مهلة الاتصال (5 ثوان)
+  statement_timeout: 10000, // مهلة تنفيذ الاستعلام (10 ثوان)
+  query_timeout: 10000, // مهلة الاستعلام (10 ثوان)
 });
 
 // إضافة مستمعي أحداث لمجمع الاتصالات لتتبع المشاكل
