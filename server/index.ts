@@ -1,5 +1,5 @@
 import express from "express";
-import { setupRoutes } from "./routes";
+import { setupRoutes } from "./routes.js";
 import { setupAuth } from "./auth";
 import { setupVite } from "./vite";
 import { testConnection } from "./db";
