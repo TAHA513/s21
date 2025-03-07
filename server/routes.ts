@@ -4,7 +4,6 @@ import { storage } from "./storage.js";
 import express from 'express';
 import multer from 'multer';
 import path from 'path';
-import fs from 'fs';
 import { pool } from "./db.js";
 
 const upload = multer({ dest: 'uploads/' });
@@ -32,6 +31,34 @@ export async function setupRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // جلب قائمة المنتجات
+  app.get("/api/products", async (_req, res) => {
+    try {
+      console.log('جاري جلب المنتجات...');
+      const products = await storage.getProducts();
+      console.log(`تم جلب ${products.length} منتج`);
+      res.json(products);
+    } catch (error) {
+      console.error('خطأ في جلب المنتجات:', error);
+      res.status(500).json({ error: 'فشل في جلب المنتجات' });
+    }
+  });
+
+  // جلب منتج محدد
+  app.get("/api/products/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const product = await storage.getProduct(id);
+      if (!product) {
+        return res.status(404).json({ error: 'المنتج غير موجود' });
+      }
+      res.json(product);
+    } catch (error) {
+      console.error('خطأ في جلب المنتج:', error);
+      res.status(500).json({ error: 'فشل في جلب المنتج' });
+    }
+  });
+
   // إضافة منتج جديد
   app.post("/api/products", async (req, res) => {
     try {
@@ -56,6 +83,34 @@ export async function setupRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('خطأ في تحديث المنتج:', error);
       res.status(500).json({ error: 'فشل في تحديث المنتج' });
+    }
+  });
+
+  // جلب قائمة العملاء
+  app.get("/api/customers", async (_req, res) => {
+    try {
+      console.log('جاري جلب العملاء...');
+      const customers = await storage.getCustomers();
+      console.log(`تم جلب ${customers.length} عميل`);
+      res.json(customers);
+    } catch (error) {
+      console.error('خطأ في جلب العملاء:', error);
+      res.status(500).json({ error: 'فشل في جلب العملاء' });
+    }
+  });
+
+  // جلب عميل محدد
+  app.get("/api/customers/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const customer = await storage.getCustomer(id);
+      if (!customer) {
+        return res.status(404).json({ error: 'العميل غير موجود' });
+      }
+      res.json(customer);
+    } catch (error) {
+      console.error('خطأ في جلب العميل:', error);
+      res.status(500).json({ error: 'فشل في جلب العميل' });
     }
   });
 
