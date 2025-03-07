@@ -52,6 +52,11 @@ export async function setupRoutes(app: Express): Promise<Server> {
   app.get("/api/products", async (_req, res) => {
     try {
       console.log('جاري جلب المنتجات...');
+      // إضافة رؤوس لمنع التخزين المؤقت
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      
       const products = await storage.getProducts();
       console.log(`تم جلب ${products.length} منتج`);
       res.json(products);
@@ -107,6 +112,11 @@ export async function setupRoutes(app: Express): Promise<Server> {
   app.get("/api/customers", async (_req, res) => {
     try {
       console.log('جاري جلب العملاء...');
+      // إضافة رؤوس لمنع التخزين المؤقت
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      
       const customers = await storage.getCustomers();
       console.log(`تم جلب ${customers.length} عميل`);
       res.json(customers);
@@ -197,60 +207,18 @@ export async function setupRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Products API - واجهة برمجة المنتجات
-  app.get("/api/products", async (_req, res) => {
-    try {
-      const products = await storage.getProducts();
-      res.json(products);
-    } catch (error) {
-      console.error('خطأ في استرجاع المنتجات:', error);
-      res.status(500).json({ error: 'حدث خطأ أثناء استرجاع المنتجات' });
-    }
-  });
-
-  app.get("/api/products/:id", async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const product = await storage.getProduct(id);
-      if (!product) {
-        return res.status(404).json({ error: 'المنتج غير موجود' });
-      }
-      res.json(product);
-    } catch (error) {
-      console.error('خطأ في استرجاع المنتج:', error);
-      res.status(500).json({ error: 'حدث خطأ أثناء استرجاع المنتج' });
-    }
-  });
-
-  // Customers API - واجهة برمجة العملاء
-  app.get("/api/customers", async (_req, res) => {
-    try {
-      const customers = await storage.getCustomers();
-      res.json(customers);
-    } catch (error) {
-      console.error('خطأ في استرجاع العملاء:', error);
-      res.status(500).json({ error: 'حدث خطأ أثناء استرجاع العملاء' });
-    }
-  });
-
-  app.get("/api/customers/:id", async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const customer = await storage.getCustomer(id);
-      if (!customer) {
-        return res.status(404).json({ error: 'العميل غير موجود' });
-      }
-      res.json(customer);
-    } catch (error) {
-      console.error('خطأ في استرجاع العميل:', error);
-      res.status(500).json({ error: 'حدث خطأ أثناء استرجاع العميل' });
-    }
-  });
+  // نقاط النهاية API للمنتجات والعملاء تم تعريفها بالفعل في الأعلى
 
   // Invoices API - واجهة برمجة الفواتير
   app.get("/api/invoices", async (_req, res) => {
     try {
+      // إضافة رؤوس لمنع التخزين المؤقت
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      
       const invoices = await storage.getInvoices();
+      console.log(`تم جلب ${invoices.length} فاتورة`);
       res.json(invoices);
     } catch (error) {
       console.error('خطأ في استرجاع الفواتير:', error);
