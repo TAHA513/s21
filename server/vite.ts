@@ -27,8 +27,8 @@ export async function setupVite(app: Express, server: Server) {
     middlewareMode: true,
     hmr: { 
       server,
-      port: 24679, // تغيير المنفذ لتجنب التعارض
-      clientPort: 24679, // تحديد منفذ العميل أيضاً
+      port: 24680, // تغيير المنفذ لتجنب التعارض
+      clientPort: 24680, // تحديد منفذ العميل أيضاً
       host: true,
       protocol: 'ws'
     },
