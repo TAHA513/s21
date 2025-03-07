@@ -99,7 +99,7 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 // Serve the app on a different port to avoid conflicts
-const PORT = parseInt(process.env.PORT || '3002', 10);
+const PORT = parseInt(process.env.PORT || '3003', 10);
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
 });
