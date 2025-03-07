@@ -10,7 +10,6 @@ import helmet from 'helmet';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-
 const app = express();
 
 // Middleware
@@ -34,13 +33,11 @@ app.use(session({
 }));
 
 // Configure helmet with relaxed CSP for development
-app.use(
-  helmet({
-    contentSecurityPolicy: false, // Disable CSP in development
-    crossOriginEmbedderPolicy: false,
-    crossOriginResourcePolicy: false,
-  })
-);
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: false,
+}));
 
 // Enable CORS for development
 if (process.env.NODE_ENV !== 'production') {
@@ -72,16 +69,6 @@ app.get('/api/database-connections', async (req, res) => {
   }
 });
 
-app.post('/api/database-connections', async (req, res) => {
-  try {
-    const connection = await storage.createDatabaseConnection(req.body);
-    res.status(201).json(connection);
-  } catch (error) {
-    console.error('Error creating database connection:', error);
-    res.status(500).json({ error: 'حدث خطأ أثناء إنشاء اتصال قاعدة البيانات' });
-  }
-});
-
 app.get('/api/social-accounts', async (req, res) => {
   try {
     const accounts = await storage.getSocialMediaAccounts();
@@ -100,8 +87,13 @@ if (process.env.NODE_ENV === 'production') {
   });
 }
 
+// إضافة مسار الصفحة الرئيسية لإصلاح الخطأ Cannot GET /
+app.get('/', (req, res) => {
+  res.send('Server is running!');
+});
+
 // ALWAYS serve the app on port 5000
-const PORT = parseInt(process.env.PORT || '5000');
+const PORT = parseInt(process.env.PORT || '5000', 10);
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
 });
