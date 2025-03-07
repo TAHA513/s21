@@ -65,7 +65,7 @@ app.get('/api/social-accounts', async (req, res) => {
 // In development mode, proxy to Vite dev server
 if (process.env.NODE_ENV !== 'production') {
   const viteProxy = createProxyMiddleware({
-    target: 'http://localhost:5173',
+    target: 'http://0.0.0.0:5173',
     changeOrigin: true,
     ws: true
   });
