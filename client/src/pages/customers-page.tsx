@@ -25,11 +25,14 @@ import { CustomerForm } from "@/components/customers/customer-form";
 
 export default function CustomersPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const { data: customers } = useQuery<Customer[]>({
-    queryKey: ["/api/customers"],
-  });
-
   const [searchTerm, setSearchTerm] = useState("");
+
+  // تحسين استدعاء البيانات
+  const { data: customers = [], refetch } = useQuery<Customer[]>({
+    queryKey: ["/api/customers"],
+    refetchOnWindowFocus: true,
+    refetchInterval: 5000
+  });
 
   const filteredCustomers = customers?.filter((customer) => {
     const searchLower = searchTerm.toLowerCase();
@@ -40,6 +43,12 @@ export default function CustomersPage() {
       (customer.notes?.toLowerCase().includes(searchLower) ?? false)
     );
   });
+
+  const handleSuccess = () => {
+    setIsDialogOpen(false);
+    // إعادة تحميل البيانات مباشرة
+    refetch();
+  };
 
   return (
     <DashboardLayout>
@@ -60,7 +69,7 @@ export default function CustomersPage() {
                   أدخل بيانات العميل الجديد
                 </DialogDescription>
               </DialogHeader>
-              <CustomerForm onSuccess={() => setIsDialogOpen(false)} />
+              <CustomerForm onSuccess={handleSuccess} />
             </DialogContent>
           </Dialog>
         </div>
