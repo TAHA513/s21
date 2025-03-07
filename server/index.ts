@@ -1,7 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "../attached_assets/vite";
-import { testConnection } from "./db";
 import { setupAuth } from "./auth";
 
 const app = express();
@@ -41,10 +40,6 @@ app.use((req, res, next) => {
 
 (async () => {
   try {
-    // اختبار الاتصال بقاعدة البيانات
-    await testConnection();
-    log('تم الاتصال بقاعدة البيانات بنجاح');
-
     // إعداد المصادقة
     setupAuth(app);
     log('تم إعداد نظام المصادقة');

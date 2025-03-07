@@ -7,13 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { MessageSquare, Upload, Plus, Building2, Settings as SettingsIcon, Paintbrush, Database, Download } from "lucide-react";
-import { SiGooglecalendar } from "react-icons/si";
-import { SiFacebook, SiInstagram, SiSnapchat } from "react-icons/si";
-import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
+import { Building2, Settings as SettingsIcon, Paintbrush, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useState, useEffect } from "react";
@@ -38,11 +32,16 @@ import {
   type GoogleCalendarSettings,
   type SocialMediaSettings
 } from "@/lib/storage";
-import { DatabaseConnectionForm } from "@/components/settings/database-connection-form";
-import type { DatabaseConnection } from "@shared/schema";
 import { motion } from "framer-motion";
 import { Table, TableBody, TableCell, TableHeader, TableHead, TableRow } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { SiGooglecalendar } from "react-icons/si";
+import { SiFacebook, SiInstagram, SiSnapchat } from "react-icons/si";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
+import { MessageSquare, Upload, Plus } from "lucide-react";
 
 
 const socialMediaAccountSchema = z.object({
@@ -281,21 +280,6 @@ export default function SettingsPage() {
     }
   };
 
-  const { data: connections } = useQuery({
-    queryKey: ['databaseConnections'],
-    queryFn: () => {
-      // Replace with your actual database connection fetching logic
-      return Promise.resolve([{
-        id: '1',
-        name: 'Main Database',
-        type: 'MySQL',
-        host: 'localhost',
-        database: 'mydb',
-        isActive: true,
-        createdAt: new Date().toISOString()
-      }]);
-    }
-  });
 
   return (
     <DashboardLayout>
@@ -452,7 +436,7 @@ export default function SettingsPage() {
         </div>
 
         <Tabs defaultValue="store" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5 gap-4">
+          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 gap-4">
             <TabsTrigger value="store" className="space-x-2">
               <Building2 className="h-4 w-4" />
               <span>المتجر</span>
@@ -464,10 +448,6 @@ export default function SettingsPage() {
             <TabsTrigger value="appearance" className="space-x-2">
               <Paintbrush className="h-4 w-4" />
               <span>المظهر</span>
-            </TabsTrigger>
-            <TabsTrigger value="database" className="space-x-2">
-              <Database className="h-4 w-4" />
-              <span>قواعد البيانات</span>
             </TabsTrigger>
             <TabsTrigger value="backup" className="space-x-2">
               <Download className="h-4 w-4" />
@@ -872,103 +852,6 @@ export default function SettingsPage() {
                       <SelectItem value="harmattan">Harmattan</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
-              </CardContent>
-            </CustomCard>
-          </TabsContent>
-          <TabsContent value="database" className="space-y-6">
-            <CustomCard>
-              <CardHeader>
-                <div className="flex items-center space-x-4">
-                  <Database className="h-8 w-8 text-primary" />
-                  <div>
-                    <CardTitle>إدارة قواعد البيانات</CardTitle>
-                    <CardDescription>
-                      إدارة اتصالات قواعد البيانات في النظام
-                    </CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-6">
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button>
-                        <Plus className="h-4 w-4 ml-2" />
-                        إضافة اتصال جديد
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>إضافة اتصال قاعدة بيانات جديد</DialogTitle>
-                        <DialogDescription>
-                          أدخل تفاصيل الاتصال بقاعدة البيانات
-                        </DialogDescription>
-                      </DialogHeader>
-                      <DatabaseConnectionForm />
-                    </DialogContent>
-                  </Dialog>
-
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5 }}
-                    className="border rounded-lg"
-                  >
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>اسم الاتصال</TableHead>
-                          <TableHead>النوع</TableHead>
-                          <TableHead>المضيف</TableHead>
-                          <TableHead>قاعدة البيانات</TableHead>
-                          <TableHead>الحالة</TableHead>
-                          <TableHead>تاريخ الإنشاء</TableHead>
-                          <TableHead>الإجراءات</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {connections?.map((connection) => (
-                          <TableRow key={connection.id}>
-                            <TableCell className="font-medium">{connection.name}</TableCell>
-                            <TableCell>
-                              <div className="flex items-center">
-                                <Database className="h-4 w-4 ml-2" />
-                                {connection.type}
-                              </div>
-                            </TableCell>
-                            <TableCell>{connection.host || '-'}</TableCell>
-                            <TableCell>{connection.database || '-'}</TableCell>
-                            <TableCell>
-                              <Badge variant={connection.isActive ? "default" : "secondary"}>
-                                {connection.isActive ? 'نشط' : 'غير نشط'}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              {new Date(connection.createdAt).toLocaleDateString('ar-IQ')}
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <Button variant="outline" size="sm">
-                                  تحرير
-                                </Button>
-                                <Button variant="destructive" size="sm">
-                                  حذف
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                        {!connections?.length && (
-                          <TableRow>
-                            <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                              لا توجد اتصالات حالياً
-                            </TableCell>
-                          </TableRow>
-                        )}
-                      </TableBody>
-                    </Table>
-                  </motion.div>
                 </div>
               </CardContent>
             </CustomCard>
