@@ -1,30 +1,28 @@
 import { pool, db } from './db.js';
 import session from 'express-session';
 import connectPgSimple from 'connect-pg-simple';
+import { eq } from 'drizzle-orm';
+import { customers, products, productGroups, invoices, type Customer, type Product, type ProductGroup, type Invoice } from '@shared/schema';
 
-// تعريف واجهة التخزين
 interface IStorage {
   sessionStore: any;
   getUser(id: number): Promise<any>;
   getUserByUsername(username: string): Promise<any>;
   createUser(user: any): Promise<any>;
-  getCustomers(): Promise<any[]>;
-  getCustomer(id: number): Promise<any>;
-  createCustomer(customer: any): Promise<any>;
-  updateCustomer(id: number, customer: any): Promise<any>;
-  getAppointments(): Promise<any[]>;
-  getAppointment(id: number): Promise<any>;
-  createAppointment(appointment: any): Promise<any>;
-  getProducts(): Promise<any[]>;
-  getProduct(id: number): Promise<any>;
-  createProduct(product: any): Promise<any>;
-  updateProduct(id: number, product: any): Promise<any>;
-  getProductGroups(): Promise<any[]>;
-  getProductGroup(id: number): Promise<any>;
-  createProductGroup(group: any): Promise<any>;
-  getInvoices(): Promise<any[]>;
-  getInvoice(id: number): Promise<any>;
-  createInvoice(invoice: any): Promise<any>;
+  getCustomers(): Promise<Customer[]>;
+  getCustomer(id: number): Promise<Customer | null>;
+  createCustomer(customer: any): Promise<Customer>;
+  updateCustomer(id: number, customer: any): Promise<Customer | null>;
+  getProducts(): Promise<Product[]>;
+  getProduct(id: number): Promise<Product | null>;
+  createProduct(product: any): Promise<Product>;
+  updateProduct(id: number, product: any): Promise<Product | null>;
+  getProductGroups(): Promise<ProductGroup[]>;
+  getProductGroup(id: number): Promise<ProductGroup | null>;
+  createProductGroup(group: any): Promise<ProductGroup>;
+  getInvoices(): Promise<Invoice[]>;
+  getInvoice(id: number): Promise<Invoice | null>;
+  createInvoice(invoice: any): Promise<Invoice>;
   getSuppliers(): Promise<any[]>;
   getSupplier(id: number): Promise<any>;
   createSupplier(supplier: any): Promise<any>;
@@ -35,7 +33,6 @@ interface IStorage {
   getPurchaseOrders(): Promise<any[]>
 }
 
-// تنفيذ كائن التخزين باستخدام قاعدة البيانات الحقيقية
 export class DatabaseStorage implements IStorage {
   sessionStore: any;
 
@@ -48,7 +45,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // عمليات المستخدم
-  async getUser(id: number): Promise<any> {
+  async getUser(id: number) {
     try {
       const result = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
       return result.rows[0] || null;
@@ -58,7 +55,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getUserByUsername(username: string): Promise<any> {
+  async getUserByUsername(username: string) {
     try {
       const result = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
       return result.rows[0] || null;
@@ -68,7 +65,7 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async createUser(user: any): Promise<any> {
+  async createUser(user: any) {
     try {
       const result = await pool.query(
         'INSERT INTO users(username, password, name, role) VALUES($1, $2, $3, $4) RETURNING *',
@@ -82,155 +79,127 @@ export class DatabaseStorage implements IStorage {
   }
 
   // عمليات العملاء
-  async getCustomers(): Promise<any[]> {
+  async getCustomers(): Promise<Customer[]> {
     try {
-      console.log('جاري استرداد بيانات العملاء من قاعدة البيانات...');
-      // التحقق من حالة الاتصال قبل الاستعلام
-      const checkConn = await pool.query('SELECT 1');
-      console.log('حالة الاتصال بقاعدة البيانات:', checkConn ? 'متصل' : 'غير متصل');
-
-      const result = await pool.query('SELECT * FROM customers ORDER BY id DESC');
-      console.log(`تم استرداد ${result.rows.length} عميل بنجاح`);
-      if (result.rows.length > 0) {
-        console.log('نموذج بيانات العميل:', JSON.stringify(result.rows[0], null, 2));
-      } else {
-        console.log('لا توجد بيانات عملاء في قاعدة البيانات');
-      }
-      return result.rows;
+      console.log('جاري استرداد بيانات العملاء...');
+      const result = await db.select().from(customers).orderBy(customers.id);
+      console.log(`تم استرداد ${result.length} عميل`);
+      return result;
     } catch (error) {
       console.error('خطأ في الحصول على العملاء:', error);
-      if (error instanceof Error) {
-        console.error('رسالة الخطأ:', error.message);
-        console.error('تفاصيل الخطأ:', error.stack);
-      }
-
-      // التحقق من الجداول الموجودة في قاعدة البيانات
-      try {
-        const tables = await pool.query(`
-          SELECT table_name 
-          FROM information_schema.tables 
-          WHERE table_schema = 'public'
-        `);
-        console.log('الجداول الموجودة في قاعدة البيانات:', tables.rows.map(r => r.table_name));
-      } catch (e) {
-        console.error('فشل في الحصول على قائمة الجداول:', e);
-      }
-
-      return [];
+      throw error;
     }
   }
 
-  async getCustomer(id: number): Promise<any> {
+  async getCustomer(id: number): Promise<Customer | null> {
     try {
-      const result = await pool.query('SELECT * FROM customers WHERE id = $1', [id]);
-      return result.rows[0] || null;
+      const result = await db.select().from(customers).where(eq(customers.id, id));
+      return result[0] || null;
     } catch (error) {
       console.error('خطأ في الحصول على العميل:', error);
-      return null;
+      throw error;
     }
   }
 
-  async createCustomer(customer: any): Promise<any> {
+  async createCustomer(customer: any): Promise<Customer> {
     try {
-      const result = await pool.query(
-        'INSERT INTO customers(name, phone, email, address, created_at) VALUES($1, $2, $3, $4, NOW()) RETURNING *',
-        [customer.name, customer.phone, customer.email, customer.address]
-      );
-      return result.rows[0];
+      console.log('بيانات العميل المستلمة للإنشاء:', customer);
+      const result = await db.insert(customers).values({
+        name: customer.name,
+        phone: customer.phone,
+        email: customer.email,
+        address: customer.address,
+        notes: customer.notes
+      }).returning();
+      console.log('تم إنشاء العميل:', result[0]);
+      return result[0];
     } catch (error) {
       console.error('خطأ في إنشاء العميل:', error);
       throw error;
     }
   }
 
-  async updateCustomer(id: number, customer: any): Promise<any> {
+  async updateCustomer(id: number, customer: any): Promise<Customer | null> {
     try {
-      const result = await pool.query(
-        'UPDATE customers SET name = $1, phone = $2, email = $3, address = $4 WHERE id = $5 RETURNING *',
-        [customer.name, customer.phone, customer.email, customer.address, id]
-      );
-      return result.rows[0];
+      const result = await db.update(customers)
+        .set({
+          name: customer.name,
+          phone: customer.phone,
+          email: customer.email,
+          address: customer.address,
+          notes: customer.notes
+        })
+        .where(eq(customers.id, id))
+        .returning();
+      return result[0] || null;
     } catch (error) {
       console.error('خطأ في تحديث العميل:', error);
       throw error;
     }
   }
 
-  // عمليات المواعيد
-  async getAppointments(): Promise<any[]> {
+  // عمليات المنتجات
+  async getProducts(): Promise<Product[]> {
     try {
-      const result = await pool.query('SELECT * FROM appointments ORDER BY appointment_date DESC');
-      return result.rows;
+      const result = await db.select().from(products).orderBy(products.id);
+      return result;
     } catch (error) {
-      console.error('خطأ في الحصول على المواعيد:', error);
-      return [];
-    }
-  }
-
-  async getAppointment(id: number): Promise<any> {
-    try {
-      const result = await pool.query('SELECT * FROM appointments WHERE id = $1', [id]);
-      return result.rows[0] || null;
-    } catch (error) {
-      console.error('خطأ في الحصول على الموعد:', error);
-      return null;
-    }
-  }
-
-  async createAppointment(appointment: any): Promise<any> {
-    try {
-      const result = await pool.query(
-        'INSERT INTO appointments(customer_id, appointment_date, service, status, notes, created_at) VALUES($1, $2, $3, $4, $5, NOW()) RETURNING *',
-        [appointment.customerId, appointment.appointmentDate, appointment.service, appointment.status, appointment.notes]
-      );
-      return result.rows[0];
-    } catch (error) {
-      console.error('خطأ في إنشاء الموعد:', error);
+      console.error('خطأ في الحصول على المنتجات:', error);
       throw error;
     }
   }
 
-  // عمليات المنتجات
-  async getProducts(): Promise<any[]> {
+  async getProduct(id: number): Promise<Product | null> {
     try {
-      const result = await pool.query('SELECT * FROM products ORDER BY id DESC');
-      return result.rows;
-    } catch (error) {
-      console.error('خطأ في الحصول على المنتجات:', error);
-      return [];
-    }
-  }
-
-  async getProduct(id: number): Promise<any> {
-    try {
-      const result = await pool.query('SELECT * FROM products WHERE id = $1', [id]);
-      return result.rows[0] || null;
+      const result = await db.select().from(products).where(eq(products.id, id));
+      return result[0] || null;
     } catch (error) {
       console.error('خطأ في الحصول على المنتج:', error);
-      return null;
+      throw error;
     }
   }
 
-  async createProduct(product: any): Promise<any> {
+  async createProduct(product: any): Promise<Product> {
     try {
-      const result = await pool.query(
-        'INSERT INTO products(name, sku, price, cost, quantity, group_id, created_at) VALUES($1, $2, $3, $4, $5, $6, NOW()) RETURNING *',
-        [product.name, product.sku, product.price, product.cost, product.quantity, product.groupId]
-      );
-      return result.rows[0];
+      console.log('بيانات المنتج المستلمة للإنشاء:', product);
+      const result = await db.insert(products).values({
+        name: product.name,
+        barcode: product.barcode,
+        description: product.description,
+        costPrice: product.costPrice,
+        sellingPrice: product.sellingPrice,
+        quantity: product.quantity,
+        minimumQuantity: product.minimumQuantity,
+        type: product.type || 'piece',
+        isWeighted: product.isWeighted || false,
+        groupId: product.groupId
+      }).returning();
+      console.log('تم إنشاء المنتج:', result[0]);
+      return result[0];
     } catch (error) {
       console.error('خطأ في إنشاء المنتج:', error);
       throw error;
     }
   }
 
-  async updateProduct(id: number, product: any): Promise<any> {
+  async updateProduct(id: number, product: any): Promise<Product | null> {
     try {
-      const result = await pool.query(
-        'UPDATE products SET name = $1, sku = $2, price = $3, cost = $4, quantity = $5, group_id = $6 WHERE id = $7 RETURNING *',
-        [product.name, product.sku, product.price, product.cost, product.quantity, product.groupId, id]
-      );
-      return result.rows[0];
+      const result = await db.update(products)
+        .set({
+          name: product.name,
+          barcode: product.barcode,
+          description: product.description,
+          costPrice: product.costPrice,
+          sellingPrice: product.sellingPrice,
+          quantity: product.quantity,
+          minimumQuantity: product.minimumQuantity,
+          type: product.type,
+          isWeighted: product.isWeighted,
+          groupId: product.groupId
+        })
+        .where(eq(products.id, id))
+        .returning();
+      return result[0] || null;
     } catch (error) {
       console.error('خطأ في تحديث المنتج:', error);
       throw error;
@@ -238,33 +207,33 @@ export class DatabaseStorage implements IStorage {
   }
 
   // عمليات مجموعات المنتجات
-  async getProductGroups(): Promise<any[]> {
+  async getProductGroups(): Promise<ProductGroup[]> {
     try {
-      const result = await pool.query('SELECT * FROM product_groups ORDER BY id DESC');
-      return result.rows;
+      const result = await db.select().from(productGroups).orderBy(productGroups.id);
+      return result;
     } catch (error) {
       console.error('خطأ في الحصول على مجموعات المنتجات:', error);
-      return [];
+      throw error;
     }
   }
 
-  async getProductGroup(id: number): Promise<any> {
+  async getProductGroup(id: number): Promise<ProductGroup | null> {
     try {
-      const result = await pool.query('SELECT * FROM product_groups WHERE id = $1', [id]);
-      return result.rows[0] || null;
+      const result = await db.select().from(productGroups).where(eq(productGroups.id, id));
+      return result[0] || null;
     } catch (error) {
       console.error('خطأ في الحصول على مجموعة المنتجات:', error);
-      return null;
+      throw error;
     }
   }
 
-  async createProductGroup(group: any): Promise<any> {
+  async createProductGroup(group: any): Promise<ProductGroup> {
     try {
-      const result = await pool.query(
-        'INSERT INTO product_groups(name, description, created_at) VALUES($1, $2, NOW()) RETURNING *',
-        [group.name, group.description]
-      );
-      return result.rows[0];
+      const result = await db.insert(productGroups).values({
+        name: group.name,
+        description: group.description
+      }).returning();
+      return result[0];
     } catch (error) {
       console.error('خطأ في إنشاء مجموعة المنتجات:', error);
       throw error;
@@ -272,39 +241,45 @@ export class DatabaseStorage implements IStorage {
   }
 
   // عمليات الفواتير
-  async getInvoices(): Promise<any[]> {
+  async getInvoices(): Promise<Invoice[]> {
     try {
-      const result = await pool.query('SELECT * FROM invoices ORDER BY id DESC');
-      return result.rows;
+      const result = await db.select().from(invoices).orderBy(invoices.id);
+      return result;
     } catch (error) {
       console.error('خطأ في الحصول على الفواتير:', error);
-      return [];
+      throw error;
     }
   }
 
-  async getInvoice(id: number): Promise<any> {
+  async getInvoice(id: number): Promise<Invoice | null> {
     try {
-      const result = await pool.query('SELECT * FROM invoices WHERE id = $1', [id]);
-      return result.rows[0] || null;
+      const result = await db.select().from(invoices).where(eq(invoices.id, id));
+      return result[0] || null;
     } catch (error) {
       console.error('خطأ في الحصول على الفاتورة:', error);
-      return null;
+      throw error;
     }
   }
 
-  async createInvoice(invoice: any): Promise<any> {
+  async createInvoice(invoice: any): Promise<Invoice> {
     try {
-      const result = await pool.query(
-        'INSERT INTO invoices(customer_id, total_amount, status, payment_method, created_at) VALUES($1, $2, $3, $4, NOW()) RETURNING *',
-        [invoice.customerId, invoice.totalAmount, invoice.status, invoice.paymentMethod]
-      );
-      return result.rows[0];
+      console.log('بيانات الفاتورة المستلمة للإنشاء:', invoice);
+      const result = await db.insert(invoices).values({
+        customerId: invoice.customerId,
+        customerName: invoice.customerName,
+        subtotal: invoice.subtotal,
+        discount: invoice.discount,
+        discountAmount: invoice.discountAmount,
+        finalTotal: invoice.finalTotal,
+        status: invoice.status
+      }).returning();
+      console.log('تم إنشاء الفاتورة:', result[0]);
+      return result[0];
     } catch (error) {
       console.error('خطأ في إنشاء الفاتورة:', error);
       throw error;
     }
   }
-
   // عمليات الموردين
   async getSuppliers(): Promise<any[]> {
     try {
@@ -395,5 +370,4 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-// إنشاء كائن التخزين للاستخدام في التطبيق
 export const storage = new DatabaseStorage();
