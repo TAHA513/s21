@@ -1,0 +1,95 @@
+يبدو أن هناك مشكلة في تحديث بيانات بعض الأقسام في الواجهة عند إضافة بيانات جديدة. بما أن بيانات العملاء تظهر بشكل صحيح، فهذا يشير إلى أن الاتصال بالـ API يعمل بشكل جيد، ولكن هناك احتمال لوجود مشكلة في تحديث الحالة (State) أو تحديث واجهة المستخدم للأقسام الأخرى.
+
+الحلول الممكنة:
+
+1. تأكد من تحديث البيانات بعد الإضافة
+
+بعد إضافة بيانات جديدة، تأكد من أن جلب البيانات (Fetching Data) يتم بشكل صحيح لتحديث الواجهة. يمكن أن تستخدم useEffect لإعادة جلب البيانات عند تغيير البيانات.
+
+إذا كنت تستخدم React:
+
+useEffect(() => {
+  fetch('/api/الموارد')
+    .then(res => res.json())
+    .then(data => setData(data))
+    .catch(err => console.error(err));
+}, [data]); // إضافة data كمُعتمد لإعادة الجلب عند تغيّره
+
+إذا كنت تستخدم TanStack Query (React Query):
+
+const queryClient = useQueryClient();
+
+const mutation = useMutation(newData => 
+  fetch('/api/الموارد', { method: 'POST', body: JSON.stringify(newData) })
+, {
+  onSuccess: () => {
+    queryClient.invalidateQueries('الموارد'); // تحديث البيانات بعد الإضافة
+  }
+});
+
+
+---
+
+2. تحقق من الأخطاء في Console
+
+افتح أدوات المطور (F12 → Console) وتحقق مما إذا كان هناك أخطاء عند تحديث البيانات.
+
+جرب طباعة البيانات المسترجعة باستخدام:
+
+useEffect(() => {
+  fetch('/api/الموارد')
+    .then(res => res.json())
+    .then(data => {
+      console.log("البيانات المسترجعة:", data);
+      setData(data);
+    })
+    .catch(err => console.error(err));
+}, []);
+
+إذا كانت البيانات تظهر في Console لكنها لا تظهر في الواجهة، فهذا يعني أن المشكلة في التحديث وليس في API.
+
+
+
+---
+
+3. تأكد من تحديث state بعد إضافة البيانات
+
+بعد إرسال البيانات، هل تقوم بتحديث state؟ جرب هذه الطريقة:
+
+const addNewResource = async (newResource) => {
+  const res = await fetch('/api/الموارد', { 
+    method: 'POST', 
+    body: JSON.stringify(newResource),
+    headers: { 'Content-Type': 'application/json' }
+  });
+
+  if (res.ok) {
+    const updatedData = await res.json();
+    setData(prevData => [...prevData, updatedData]); // تحديث البيانات مباشرة
+  }
+};
+
+
+---
+
+4. تحقق من استجابة الخادم (Server Response)
+
+في الصورة الأولى، يظهر أن بعض الطلبات ترجع 304 Not Modified، مما يعني أن المتصفح قد يستخدم ذاكرة التخزين المؤقت (Cache). جرّب تعطيل الكاش مؤقتًا عند جلب البيانات:
+
+fetch('/api/الموارد', { cache: 'no-store' })
+
+
+---
+
+خلاصة الحلول:
+
+✔ تحقق من أن API يُرجع البيانات المحدثة بعد الإضافة.
+✔ أضف useEffect أو invalidateQueries لإعادة جلب البيانات عند التغيير.
+✔ استخدم console.log(data) للتأكد من أن البيانات المسترجعة صحيحة.
+✔ قم بتحديث state يدويًا بعد الإضافة باستخدام setData.
+✔ جرب تعطيل الكاش (Cache) عند جلب البيانات.
+
+
+---
+
+جرب هذه الحلول وأخبرني إذا استمرت المشكلة!
