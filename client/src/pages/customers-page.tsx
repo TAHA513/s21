@@ -1,3 +1,4 @@
+
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,11 +28,19 @@ export default function CustomersPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // تحسين استدعاء البيانات
+  // تحسين استدعاء البيانات - تعديل لإصلاح مشكلة الاستعلام
   const { data: customers = [], refetch } = useQuery<Customer[]>({
-    queryKey: ["/api/customers"],
-    refetchOnWindowFocus: true,
-    refetchInterval: 5000
+    queryKey: ["customers"],
+    queryFn: async () => {
+      const response = await fetch("/api/customers");
+      if (!response.ok) {
+        throw new Error("فشل في جلب بيانات العملاء");
+      }
+      const data = await response.json();
+      console.log("بيانات العملاء:", data);
+      return data;
+    },
+    refetchOnWindowFocus: true
   });
 
   const filteredCustomers = customers?.filter((customer) => {
@@ -93,18 +102,19 @@ export default function CustomersPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredCustomers?.map((customer) => (
-                <TableRow key={customer.id}>
-                  <TableCell>{customer.name}</TableCell>
-                  <TableCell>{customer.phone}</TableCell>
-                  <TableCell>{customer.email}</TableCell>
-                  <TableCell>{customer.notes}</TableCell>
-                </TableRow>
-              ))}
-              {filteredCustomers?.length === 0 && (
+              {filteredCustomers?.length > 0 ? (
+                filteredCustomers.map((customer) => (
+                  <TableRow key={customer.id}>
+                    <TableCell>{customer.name}</TableCell>
+                    <TableCell>{customer.phone}</TableCell>
+                    <TableCell>{customer.email}</TableCell>
+                    <TableCell>{customer.notes}</TableCell>
+                  </TableRow>
+                ))
+              ) : (
                 <TableRow>
                   <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
-                    لا توجد نتائج للبحث
+                    {searchTerm ? 'لا توجد نتائج للبحث' : 'لا يوجد عملاء حتى الآن'}
                   </TableCell>
                 </TableRow>
               )}
