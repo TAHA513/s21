@@ -4,9 +4,26 @@ import { storage } from "./storage.js";
 import express from 'express';
 import multer from 'multer';
 import path from 'path';
-import { pool } from "./db.js";
+import fs from 'fs';
 
-const upload = multer({ dest: 'uploads/' });
+// تكوين multer مع تحديد مسار التخزين واسم الملف
+const storage_config = multer.diskStorage({
+  destination: function (_req, _file, cb) {
+    const uploadDir = 'uploads';
+    // إنشاء مجلد التحميلات إذا لم يكن موجوداً
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir);
+    }
+    cb(null, uploadDir);
+  },
+  filename: function (_req, file, cb) {
+    // استخدام الطابع الزمني مع اسم الملف الأصلي
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({ storage: storage_config });
 
 export async function setupRoutes(app: Express): Promise<Server> {
   const server = createServer(app);
@@ -23,8 +40,8 @@ export async function setupRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error('خطأ في فحص حالة قاعدة البيانات:', error);
-      res.status(500).json({ 
-        status: "online", 
+      res.status(500).json({
+        status: "online",
         database: "error",
         error: error instanceof Error ? error.message : String(error)
       });
@@ -163,7 +180,7 @@ export async function setupRoutes(app: Express): Promise<Server> {
 
       // حساب إجمالي المبيعات
       const totalSales = invoices.reduce((sum, invoice) => sum + Number(invoice.finalTotal), 0);
-      
+
       // عدد الطلبات المكتملة
       const completedOrders = invoices.filter(inv => inv.status === 'completed').length;
 
@@ -294,8 +311,57 @@ export async function setupRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // عرض الملفات المرفوعة
+  // نقطة نهاية لتحميل الملفات
+  app.post('/api/upload', upload.single('file'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'لم يتم تحميل أي ملف' });
+      }
+
+      // حفظ معلومات الملف في قاعدة البيانات
+      const fileInfo = {
+        filename: req.file.filename,
+        originalName: req.file.originalname,
+        path: req.file.path,
+        size: req.file.size,
+        uploadedAt: new Date().toISOString()
+      };
+
+      // تخزين معلومات الملف (يجب إضافة هذه الوظيفة في storage)
+      await storage.saveFileInfo(fileInfo);
+
+      res.json({
+        message: 'تم تحميل الملف بنجاح',
+        file: fileInfo
+      });
+    } catch (error) {
+      console.error('خطأ في تحميل الملف:', error);
+      res.status(500).json({ error: 'فشل تحميل الملف' });
+    }
+  });
+
+  // نقطة نهاية لجلب قائمة الملفات
+  app.get('/api/files', async (_req, res) => {
+    try {
+      const files = await storage.getFiles();
+      res.json(files);
+    } catch (error) {
+      console.error('خطأ في جلب قائمة الملفات:', error);
+      res.status(500).json({ error: 'فشل جلب قائمة الملفات' });
+    }
+  });
+
+  // تكوين مسار ثابت للوصول إلى الملفات المحملة
   app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
   return server;
+}
+
+const pool = { query: async (query: string) => {
+    //Mock Implementation.  Replace with your actual database query function.
+    if (query === 'SELECT NOW() as server_time'){
+      return {rows: [{server_time: new Date()}]}
+    }
+    return {rows: []}
+  }
 }

@@ -1,7 +1,8 @@
 import { ChangeEvent, useRef, useState } from "react";
 import { Button } from "./button";
 import { Alert, AlertDescription } from "./alert";
-import { ImagePlus, X } from "lucide-react";
+import { ImagePlus, X, Loader2 } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
 
 interface FileUploadProps {
   onChange: (files: string[]) => void;
@@ -20,8 +21,9 @@ export function FileUpload({
 }: FileUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     setError(null);
 
@@ -36,22 +38,29 @@ export function FileUpload({
       return;
     }
 
-    const filePromises = files.map(file => {
-      return new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-    });
+    try {
+      setIsUploading(true);
+      const uploadPromises = files.map(async file => {
+        const formData = new FormData();
+        formData.append('file', file);
 
-    Promise.all(filePromises)
-      .then(base64Files => {
-        onChange([...value, ...base64Files]);
-      })
-      .catch(() => {
-        setError('حدث خطأ أثناء معالجة الملفات');
+        const response = await apiRequest('POST', '/api/upload', formData, {
+          headers: {
+            // Don't set Content-Type here, it will be set automatically for FormData
+          },
+        });
+
+        return response.file.path;
       });
+
+      const uploadedPaths = await Promise.all(uploadPromises);
+      onChange([...value, ...uploadedPaths]);
+    } catch (error) {
+      console.error('Error uploading files:', error);
+      setError('حدث خطأ أثناء رفع الملفات');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const removeFile = (index: number) => {
@@ -65,7 +74,7 @@ export function FileUpload({
         {value.map((file, index) => (
           <div key={index} className="relative group">
             <img
-              src={file}
+              src={file.startsWith('data:') ? file : `/${file}`}
               alt={`Uploaded ${index + 1}`}
               className="w-16 h-16 object-cover rounded-md border"
             />
@@ -84,9 +93,16 @@ export function FileUpload({
             variant="outline"
             className="w-16 h-16 flex flex-col items-center justify-center gap-1 text-muted-foreground"
             onClick={() => inputRef.current?.click()}
+            disabled={isUploading}
           >
-            <ImagePlus className="h-4 w-4" />
-            <span className="text-[10px]">إضافة</span>
+            {isUploading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <>
+                <ImagePlus className="h-4 w-4" />
+                <span className="text-[10px]">إضافة</span>
+              </>
+            )}
           </Button>
         )}
       </div>

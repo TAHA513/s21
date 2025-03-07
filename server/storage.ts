@@ -4,6 +4,14 @@ import connectPgSimple from 'connect-pg-simple';
 import { eq } from 'drizzle-orm';
 import { customers, products, productGroups, invoices, type Customer, type Product, type ProductGroup, type Invoice } from '@shared/schema';
 
+interface FileInfo {
+  filename: string;
+  originalName: string;
+  path: string;
+  size: number;
+  uploadedAt: string;
+}
+
 interface IStorage {
   sessionStore: any;
   getUser(id: number): Promise<any>;
@@ -31,6 +39,8 @@ interface IStorage {
   getDiscountCodeByCode(code: string): Promise<any>;
   createDiscountCode(code: any): Promise<any>;
   getPurchaseOrders(): Promise<any[]>
+  saveFileInfo(fileInfo: FileInfo): Promise<FileInfo>;
+  getFiles(): Promise<FileInfo[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -367,6 +377,41 @@ export class DatabaseStorage implements IStorage {
       console.error('خطأ في الحصول على أوامر الشراء:', error);
       return [];
     }
+  }
+
+  // حفظ معلومات الملف
+  async saveFileInfo(fileInfo: FileInfo): Promise<FileInfo> {
+    try {
+      const result = await pool.query(
+        'INSERT INTO files (filename, original_name, path, size, uploaded_at) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+        [fileInfo.filename, fileInfo.originalName, fileInfo.path, fileInfo.size, fileInfo.uploadedAt]
+      );
+      return this.mapFileRecord(result.rows[0]);
+    } catch (error) {
+      console.error('خطأ في حفظ معلومات الملف:', error);
+      throw error;
+    }
+  }
+
+  // جلب قائمة الملفات
+  async getFiles(): Promise<FileInfo[]> {
+    try {
+      const result = await pool.query('SELECT * FROM files ORDER BY uploaded_at DESC');
+      return result.rows.map(this.mapFileRecord);
+    } catch (error) {
+      console.error('خطأ في جلب قائمة الملفات:', error);
+      return [];
+    }
+  }
+
+  private mapFileRecord(record: any): FileInfo {
+    return {
+      filename: record.filename,
+      originalName: record.original_name,
+      path: record.path,
+      size: record.size,
+      uploadedAt: record.uploaded_at
+    };
   }
 }
 
