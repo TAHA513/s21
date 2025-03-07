@@ -7,29 +7,20 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import helmet from 'helmet';
-import { sql } from 'drizzle-orm';
-import { users } from '../shared/schema';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
 
-// Add detailed request logging
-app.use((req, res, next) => {
-  const start = Date.now();
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
-
-  res.on('finish', () => {
-    const duration = Date.now() - start;
-    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url} - ${res.statusCode} (${duration}ms)`);
-  });
-
-  next();
-});
-
 // Middleware
 app.use(json());
+
+// Add request logging
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.url}`);
+  next();
+});
 
 // Session middleware
 app.use(session({
@@ -65,80 +56,41 @@ if (process.env.NODE_ENV !== 'production') {
   });
 }
 
-// Health check endpoint with detailed logging
-app.get('/api/health', async (req, res) => {
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'healthy' });
+});
+
+// API Routes
+app.get('/api/database-connections', async (req, res) => {
   try {
-    console.log('[Health Check] Testing database connection...');
-    const startTime = Date.now();
-
-    // Test database connection
-    const [result] = await db.select({ count: sql`1` }).from(users);
-
-    const duration = Date.now() - startTime;
-    console.log(`[Health Check] Database query completed successfully in ${duration}ms`);
-
-    res.status(200).json({ 
-      status: 'healthy',
-      database: 'connected',
-      queryTime: `${duration}ms`,
-      timestamp: new Date().toISOString()
-    });
+    const connections = await storage.getDatabaseConnections();
+    res.json(connections);
   } catch (error) {
-    console.error('[Health Check] Database connection failed:', error);
-    res.status(500).json({ 
-      status: 'unhealthy',
-      error: error.message || 'Database connection failed',
-      errorCode: error.code,
-      timestamp: new Date().toISOString()
-    });
+    console.error('Error fetching database connections:', error);
+    res.status(500).json({ error: 'حدث خطأ أثناء جلب اتصالات قواعد البيانات' });
   }
 });
 
-// API Routes with improved error handling
-app.get('/api/database-connections', async (req, res) => {
+app.post('/api/database-connections', async (req, res) => {
   try {
-    console.log('[API] Fetching database connections...');
-    const connections = await storage.getDatabaseConnections();
-    console.log(`[API] Successfully retrieved ${connections.length} database connections`);
-    res.json(connections);
+    const connection = await storage.createDatabaseConnection(req.body);
+    res.status(201).json(connection);
   } catch (error) {
-    console.error('[API] Error fetching database connections:', error);
-    res.status(500).json({ 
-      error: 'حدث خطأ أثناء جلب اتصالات قواعد البيانات',
-      details: error.message
-    });
+    console.error('Error creating database connection:', error);
+    res.status(500).json({ error: 'حدث خطأ أثناء إنشاء اتصال قاعدة البيانات' });
   }
 });
 
 app.get('/api/social-accounts', async (req, res) => {
   try {
-    console.log('[API] Fetching social accounts...');
     const accounts = await storage.getSocialMediaAccounts();
-    console.log(`[API] Successfully retrieved ${accounts.length} social accounts`);
     res.json(accounts);
   } catch (error) {
-    console.error('[API] Error fetching social accounts:', error);
-    res.status(500).json({ 
-      error: 'حدث خطأ أثناء جلب حسابات التواصل الاجتماعي',
-      details: error.message
-    });
+    console.error('Error fetching social accounts:', error);
+    res.status(500).json({ error: 'حدث خطأ أثناء جلب حسابات التواصل الاجتماعي' });
   }
 });
-
-// Default route for development mode
-if (process.env.NODE_ENV !== 'production') {
-  app.get('/', (req, res) => {
-    res.json({
-      status: 'Development server is running',
-      apis: {
-        health: '/api/health',
-        databaseConnections: '/api/database-connections',
-        socialAccounts: '/api/social-accounts'
-      },
-      frontend: 'http://localhost:5173'
-    });
-  });
-}
 
 // Handle frontend routing in production
 if (process.env.NODE_ENV === 'production') {
@@ -151,6 +103,5 @@ if (process.env.NODE_ENV === 'production') {
 // ALWAYS serve the app on port 5000
 const PORT = parseInt(process.env.PORT || '5000');
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`[Server] Running on port ${PORT}`);
-  console.log(`[Server] Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`Server running on port ${PORT}`);
 });
