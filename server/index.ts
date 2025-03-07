@@ -7,7 +7,6 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import helmet from 'helmet';
-import { createProxyMiddleware } from 'http-proxy-middleware';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -37,17 +36,25 @@ app.use(session({
 // Configure helmet with relaxed CSP for development
 app.use(
   helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        imgSrc: ["'self'", "data:", "blob:"],
-        connectSrc: ["'self'", "ws:", "wss:"],
-      },
-    },
+    contentSecurityPolicy: false, // Disable CSP in development
+    crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: false,
   })
 );
+
+// Enable CORS for development
+if (process.env.NODE_ENV !== 'production') {
+  app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', 'http://localhost:5173');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    if (req.method === 'OPTIONS') {
+      return res.sendStatus(200);
+    }
+    next();
+  });
+}
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -85,33 +92,12 @@ app.get('/api/social-accounts', async (req, res) => {
   }
 });
 
-app.post('/api/social-accounts', async (req, res) => {
-  try {
-    const account = await storage.createSocialMediaAccount(req.body);
-    res.json(account);
-  } catch (error) {
-    console.error('Error creating social account:', error);
-    res.status(500).json({ error: 'حدث خطأ أثناء إنشاء حساب التواصل الاجتماعي' });
-  }
-});
-
-// Handle frontend routing
+// Handle frontend routing in production
 if (process.env.NODE_ENV === 'production') {
-  // Serve static files in production
   app.use(express.static(path.join(__dirname, '../client/dist')));
   app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, '../client/dist/index.html'));
   });
-} else {
-  // In development, proxy non-API requests to Vite dev server
-  app.use(
-    /^(?!\/api)/,
-    createProxyMiddleware({
-      target: 'http://localhost:5173',
-      changeOrigin: true,
-      ws: true,
-    })
-  );
 }
 
 // ALWAYS serve the app on port 5000
