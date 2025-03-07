@@ -41,6 +41,9 @@ interface IStorage {
   getPurchaseOrders(): Promise<any[]>
   saveFileInfo(fileInfo: FileInfo): Promise<FileInfo>;
   getFiles(): Promise<FileInfo[]>;
+  getStaff(): Promise<any[]>;
+  getAppointments(): Promise<any[]>;
+  getMarketingCampaigns(): Promise<any[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -412,6 +415,63 @@ export class DatabaseStorage implements IStorage {
       size: record.size,
       uploadedAt: record.uploaded_at
     };
+  }
+
+  // وظائف استرداد للموظفين
+  async getStaff() {
+    try {
+      console.log('جاري استرداد بيانات الموظفين...');
+      // محاولة استرداد الموظفين من قاعدة البيانات
+      try {
+        const { rows } = await pool.query('SELECT * FROM staff ORDER BY id DESC');
+        return rows;
+      } catch (e) {
+        // إذا لم يوجد جدول بعد
+        console.log('جدول الموظفين غير موجود، إرجاع بيانات وهمية');
+        return []; // إرجاع مصفوفة فارغة
+      }
+    } catch (error) {
+      console.error('خطأ في استرداد الموظفين:', error);
+      throw error;
+    }
+  }
+
+  // وظائف استرداد للمواعيد
+  async getAppointments() {
+    try {
+      console.log('جاري استرداد بيانات المواعيد...');
+      // محاولة استرداد المواعيد من قاعدة البيانات
+      try {
+        const { rows } = await pool.query('SELECT * FROM appointments ORDER BY date DESC');
+        return rows;
+      } catch (e) {
+        // إذا لم يوجد جدول بعد
+        console.log('جدول المواعيد غير موجود، إرجاع بيانات وهمية');
+        return []; // إرجاع مصفوفة فارغة
+      }
+    } catch (error) {
+      console.error('خطأ في استرداد المواعيد:', error);
+      throw error;
+    }
+  }
+
+  // وظائف استرداد لحملات التسويق
+  async getMarketingCampaigns() {
+    try {
+      console.log('جاري استرداد بيانات حملات التسويق...');
+      // محاولة استرداد حملات التسويق من قاعدة البيانات
+      try {
+        const { rows } = await pool.query('SELECT * FROM marketing_campaigns ORDER BY start_date DESC');
+        return rows;
+      } catch (e) {
+        // إذا لم يوجد جدول بعد
+        console.log('جدول حملات التسويق غير موجود، إرجاع بيانات وهمية');
+        return []; // إرجاع مصفوفة فارغة
+      }
+    } catch (error) {
+      console.error('خطأ في استرداد حملات التسويق:', error);
+      throw error;
+    }
   }
 }
 

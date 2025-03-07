@@ -319,6 +319,81 @@ export async function setupRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // مسار API للموظفين
+  app.get("/api/staff", async (_req, res) => {
+    try {
+      console.log('جاري استرداد بيانات الموظفين...');
+      // إضافة رؤوس لمنع التخزين المؤقت
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      
+      // استعلام الموظفين من قاعدة البيانات أو استخدام مصفوفة فارغة إذا لم تكن الوظيفة متاحة
+      let staff = [];
+      try {
+        staff = await storage.getStaff();
+      } catch (e) {
+        console.log('وظيفة getStaff غير متاحة، استخدام مصفوفة فارغة');
+      }
+      
+      console.log(`تم استرداد ${staff.length} موظف`);
+      res.json(staff);
+    } catch (error) {
+      console.error('خطأ في استرداد الموظفين:', error);
+      res.status(500).json({ error: 'حدث خطأ أثناء استرداد الموظفين' });
+    }
+  });
+
+  // مسار API للمواعيد
+  app.get("/api/appointments", async (_req, res) => {
+    try {
+      console.log('جاري استرداد بيانات المواعيد...');
+      // إضافة رؤوس لمنع التخزين المؤقت
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      
+      // استعلام المواعيد من قاعدة البيانات أو استخدام مصفوفة فارغة إذا لم تكن الوظيفة متاحة
+      let appointments = [];
+      try {
+        appointments = await storage.getAppointments();
+      } catch (e) {
+        console.log('وظيفة getAppointments غير متاحة، استخدام مصفوفة فارغة');
+      }
+      
+      console.log(`تم استرداد ${appointments.length} موعد`);
+      res.json(appointments);
+    } catch (error) {
+      console.error('خطأ في استرداد المواعيد:', error);
+      res.status(500).json({ error: 'حدث خطأ أثناء استرداد المواعيد' });
+    }
+  });
+
+  // مسار API لحملات التسويق
+  app.get("/api/marketing-campaigns", async (_req, res) => {
+    try {
+      console.log('جاري استرداد بيانات حملات التسويق...');
+      // إضافة رؤوس لمنع التخزين المؤقت
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      
+      // استعلام حملات التسويق من قاعدة البيانات أو استخدام مصفوفة فارغة إذا لم تكن الوظيفة متاحة
+      let campaigns = [];
+      try {
+        campaigns = await storage.getMarketingCampaigns();
+      } catch (e) {
+        console.log('وظيفة getMarketingCampaigns غير متاحة، استخدام مصفوفة فارغة');
+      }
+      
+      console.log(`تم استرداد ${campaigns.length} حملة تسويقية`);
+      res.json(campaigns);
+    } catch (error) {
+      console.error('خطأ في استرداد حملات التسويق:', error);
+      res.status(500).json({ error: 'حدث خطأ أثناء استرداد حملات التسويق' });
+    }
+  });
+
   // تكوين مسار ثابت للوصول إلى الملفات المحملة
   app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
