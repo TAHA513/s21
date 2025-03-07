@@ -92,13 +92,26 @@ setupAuth(app);
 
   // بدء الاستماع
   const PORT = process.env.PORT || 5000;
-  server.listen(PORT, "0.0.0.0", () => {
-    console.log(`تم تشغيل الخادم على المنفذ ${PORT}`);
-    
-    const url = process.env.NODE_ENV === 'production'
-      ? `منشور على عنوان الاستضافة الخاص بك`
-      : `الواجهة متاحة على https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`;
-    
-    console.log(url);
-  });
+  
+  // محاولة بدء الخادم
+  const startServer = (port: number) => {
+    server.listen(port, "0.0.0.0", () => {
+      console.log(`تم تشغيل الخادم على المنفذ ${port}`);
+      
+      const url = process.env.NODE_ENV === 'production'
+        ? `منشور على عنوان الاستضافة الخاص بك`
+        : `الواجهة متاحة على https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`;
+      
+      console.log(url);
+    }).on('error', (err: any) => {
+      if (err.code === 'EADDRINUSE') {
+        console.log(`المنفذ ${port} مشغول، محاولة استخدام المنفذ ${port + 1}`);
+        startServer(port + 1);
+      } else {
+        console.error('خطأ في بدء الخادم:', err);
+      }
+    });
+  };
+
+  startServer(PORT);
 })();
