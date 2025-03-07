@@ -7,29 +7,26 @@ if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL environment variable is required");
 }
 
-// استخدام Pool بدلاً من Client للحصول على إدارة أفضل للاتصالات
+// تحسين إعدادات التجمع للحصول على اتصال أكثر استقرارًا
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  max: 20,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
+  max: 20, // الحد الأقصى لعدد الاتصالات
+  idleTimeoutMillis: 60000, // زيادة وقت انتهاء مهلة الخمول
+  connectionTimeoutMillis: 10000, // زيادة وقت انتهاء مهلة الاتصال
+  allowExitOnIdle: false, // منع الخروج عند الخمول
+  keepAlive: true, // الحفاظ على الاتصال نشطًا
 });
 
-// التعامل مع أخطاء الاتصال
+// تحسين معالجة أخطاء الاتصال
 pool.on('error', (err) => {
-  console.error('Unexpected error on idle client', err);
-  process.exit(-1);
+  console.error('Unexpected database error:', err);
+  if (err.code === '57P01') {
+    console.log('Connection terminated, attempting to reconnect...');
+    // Drizzle will handle reconnection automatically
+  } else {
+    console.error('Critical database error:', err);
+  }
 });
-
-// اختبار الاتصال عند بدء التشغيل
-pool.connect()
-  .then(() => {
-    console.log('Successfully connected to PostgreSQL database');
-  })
-  .catch((err) => {
-    console.error('Failed to connect to PostgreSQL database:', err);
-    process.exit(-1);
-  });
 
 // تهيئة Drizzle ORM مع pool
 export const db = drizzle(pool, { schema });
