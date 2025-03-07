@@ -42,9 +42,9 @@ export function ExpenseCategoryForm() {
   const onSubmit = async (data: InsertExpenseCategory) => {
     try {
       await apiRequest("POST", "/api/expense-categories", data);
-
+      
       queryClient.invalidateQueries({ queryKey: ["/api/expense-categories"] });
-
+      
       toast({
         title: "تم إضافة الفئة",
         description: "تم إضافة فئة المصروفات بنجاح",

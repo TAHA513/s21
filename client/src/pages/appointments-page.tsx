@@ -144,7 +144,7 @@ export default function AppointmentsPage() {
                 <TableRow>
                   <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                     لا توجد نتائج للبحث
-                  </TableCell>ableCell>
+                  </TableCell>
                 </TableRow>
               )}
             </TableBody>
