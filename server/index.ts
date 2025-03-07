@@ -94,7 +94,7 @@ async function main() {
             if (parsedMessage.type === 'refresh') {
               // إعادة تحميل البيانات وإرسالها للعميل
               wss.clients.forEach((client) => {
-                if (client.readyState === WebSocket.OPEN) {
+                if (client.readyState === client.OPEN) {
                   client.send(JSON.stringify({ type: 'refresh', timestamp: new Date().toISOString() }));
                 }
               });
@@ -118,7 +118,7 @@ async function main() {
       // إرسال إشعارات بتحديث البيانات لجميع العملاء
       const notifyClients = (type, data) => {
         wss.clients.forEach((client) => {
-          if (client.readyState === WebSocket.OPEN) {
+          if (client.readyState === client.OPEN) {
             client.send(JSON.stringify({ type, data, timestamp: new Date().toISOString() }));
           }
         });
