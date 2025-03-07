@@ -1,4 +1,7 @@
 import { pool } from './db.js';
+import { suppliers } from "@shared/schema";
+import { eq } from "drizzle-orm";
+import { db } from "./db";
 
 // فئة التخزين للتعامل مع عمليات قاعدة البيانات
 class Storage {
@@ -449,26 +452,45 @@ class Storage {
     }
   }
 
-  //Methods below this line are removed as they are redundant with the new structure.
-  // async getProducts() { ... }
-  // async getProduct(id: number) { ... }
-  // async createProduct(product: any) { ... }
-  // async updateProduct(id: number, product: any) { ... }
-  // async deleteProduct(id: number) { ... }
-  // async getCustomers() { ... }
-  // async getCustomer(id: number) { ... }
-  // async createCustomer(customer: any) { ... }
-  // async getInvoices() { ... }
-  // async getInvoice(id: number) { ... }
-  // async createInvoice(invoice: any) { ... }
-  // async getCategories() { ... }
-  // private async addDummyProducts() { ... }
-  // private async addDummyCategories() { ... }
-  // private async addDummyCustomers() { ... }
-  // private async addDummyInvoices() { ... }
-  //Removed redundant methods
+  // Add supplier methods to the storage class
+  // Get all suppliers
+  async getSuppliers() {
+    try {
+      const result = await db.select().from(suppliers);
+      return result;
+    } catch (error) {
+      console.error("خطأ في جلب الموردين:", error);
+      return [];
+    }
+  }
 
+  // Create new supplier
+  async createSupplier(supplierData) {
+    try {
+      const [newSupplier] = await db
+        .insert(suppliers)
+        .values(supplierData)
+        .returning();
+      return newSupplier;
+    } catch (error) {
+      console.error("خطأ في إنشاء المورد:", error);
+      throw error;
+    }
+  }
 
+  // Get supplier by ID
+  async getSupplier(id: number) {
+    try {
+      const [supplier] = await db
+        .select()
+        .from(suppliers)
+        .where(eq(suppliers.id, id));
+      return supplier;
+    } catch (error) {
+      console.error("خطأ في جلب المورد:", error);
+      return null;
+    }
+  }
 }
 
 // إنشاء نسخة مفردة من فئة التخزين
