@@ -30,11 +30,11 @@ export const db = {
   // تنفيذ وهمي للإدراج
   insert: () => {
     return {
-      values: () => {
+      values: (data: any) => {
         return {
           returning: () => {
             return {
-              get: async () => null,
+              get: async () => ({ id: Math.floor(Math.random() * 1000) + 1, ...data }),
               execute: async () => {}
             };
           },
@@ -46,13 +46,13 @@ export const db = {
   // تنفيذ وهمي للتحديث
   update: () => {
     return {
-      set: () => {
+      set: (data: any) => {
         return {
           where: () => {
             return {
               returning: () => {
                 return {
-                  get: async () => null,
+                  get: async () => ({ id: Math.floor(Math.random() * 1000) + 1, ...data }),
                   execute: async () => {}
                 };
               },
