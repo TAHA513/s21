@@ -1,4 +1,3 @@
-
 import express from 'express';
 import path from 'path';
 import session from 'express-session';
@@ -77,7 +76,7 @@ async function setupViteDevServer() {
       appType: 'spa',
       root: path.join(process.cwd(), 'client')
     });
-    
+
     app.use(vite.middlewares);
   } catch (error) {
     logger.error('Error setting up Vite middleware:', error);
