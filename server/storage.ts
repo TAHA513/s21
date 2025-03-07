@@ -122,39 +122,6 @@ export class DatabaseStorage implements IStorage {
     return newInvoice;
   }
 
-  // Installment Plan operations
-  async getInstallmentPlans(): Promise<schema.InstallmentPlan[]> {
-    return await db.select().from(schema.installmentPlans);
-  }
-
-  async getInstallmentPlan(id: number): Promise<schema.InstallmentPlan | undefined> {
-    const [plan] = await db.select().from(schema.installmentPlans).where(eq(schema.installmentPlans.id, id));
-    return plan;
-  }
-
-  async createInstallmentPlan(plan: schema.InsertInstallmentPlan): Promise<schema.InstallmentPlan> {
-    const planWithStringNumbers = {
-      ...plan,
-      totalAmount: plan.totalAmount.toString(),
-    };
-    const [newPlan] = await db.insert(schema.installmentPlans).values(planWithStringNumbers).returning();
-    return newPlan;
-  }
-
-  // Installment Payment operations
-  async getInstallmentPayments(planId: number): Promise<schema.InstallmentPayment[]> {
-    return await db.select().from(schema.installmentPayments).where(eq(schema.installmentPayments.planId, planId));
-  }
-
-  async createInstallmentPayment(payment: schema.InsertInstallmentPayment): Promise<schema.InstallmentPayment> {
-    const paymentWithStringNumbers = {
-      ...payment,
-      amount: payment.amount.toString(),
-    };
-    const [newPayment] = await db.insert(schema.installmentPayments).values(paymentWithStringNumbers).returning();
-    return newPayment;
-  }
-
   // Marketing Campaign operations
   async getMarketingCampaigns(): Promise<schema.MarketingCampaign[]> {
     return await db.select().from(schema.marketingCampaigns);
@@ -178,49 +145,6 @@ export class DatabaseStorage implements IStorage {
   async createScheduledPost(post: schema.InsertScheduledPost): Promise<schema.ScheduledPost> {
     const [newPost] = await db.insert(schema.scheduledPosts).values(post).returning();
     return newPost;
-  }
-
-  // Discount Code operations
-  async getDiscountCodes(): Promise<schema.DiscountCode[]> {
-    return await db.select().from(schema.discountCodes);
-  }
-
-  async getDiscountCode(id: number): Promise<schema.DiscountCode | undefined> {
-    const [code] = await db.select().from(schema.discountCodes).where(eq(schema.discountCodes.id, id));
-    return code;
-  }
-
-  async getDiscountCodeByCode(code: string): Promise<schema.DiscountCode | undefined> {
-    const [discountCode] = await db.select().from(schema.discountCodes).where(eq(schema.discountCodes.code, code));
-    return discountCode;
-  }
-
-  async createDiscountCode(code: schema.InsertDiscountCode): Promise<schema.DiscountCode> {
-    const codeWithStringNumbers = {
-      ...code,
-      discountPercentage: code.discountPercentage.toString(),
-    };
-    const [newCode] = await db.insert(schema.discountCodes).values(codeWithStringNumbers).returning();
-    return newCode;
-  }
-
-  // Purchase Order operations
-  async getPurchaseOrders(): Promise<schema.PurchaseOrder[]> {
-    return await db.select().from(schema.purchaseOrders);
-  }
-
-  async getPurchaseOrder(id: number): Promise<schema.PurchaseOrder | undefined> {
-    const [order] = await db.select().from(schema.purchaseOrders).where(eq(schema.purchaseOrders.id, id));
-    return order;
-  }
-
-  async createPurchaseOrder(order: schema.InsertPurchaseOrder): Promise<schema.PurchaseOrder> {
-    const orderWithStringNumbers = {
-      ...order,
-      totalAmount: order.totalAmount.toString(),
-    };
-    const [newOrder] = await db.insert(schema.purchaseOrders).values(orderWithStringNumbers).returning();
-    return newOrder;
   }
 }
 
