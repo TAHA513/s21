@@ -40,9 +40,6 @@ app.use((req, res, next) => {
 
 (async () => {
   try {
-    // تجاهل التحقق من اتصال قاعدة البيانات
-    log('تم تعطيل الاتصال بقاعدة البيانات بشكل دائم');
-    
     // إعداد المصادقة
     setupAuth(app);
     log('تم إعداد نظام المصادقة');
@@ -75,6 +72,17 @@ app.use((req, res, next) => {
     }
 
     const PORT = Number(process.env.PORT) || 5000;
+
+    // التحقق من أن المنفذ غير مستخدم قبل بدء الخادم
+    server.on('error', (error: any) => {
+      if (error.code === 'EADDRINUSE') {
+        console.error(`المنفذ ${PORT} مشغول، جاري محاولة إيقاف الخدمة السابقة...`);
+        process.exit(1);
+      } else {
+        console.error('خطأ في الخادم:', error);
+      }
+    });
+
     server.listen(PORT, "0.0.0.0", () => {
       log(`تم تشغيل الخادم على المنفذ ${PORT}`);
       log(`الواجهة متاحة على https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`);
