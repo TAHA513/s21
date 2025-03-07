@@ -37,6 +37,7 @@ export function CustomerForm({ onSuccess }: { onSuccess?: () => void }) {
       return apiRequest("POST", "/api/customers", data);
     },
     onSuccess: () => {
+      // تحديث القائمة مباشرة بعد نجاح الإضافة
       queryClient.invalidateQueries({ queryKey: ['/api/customers'] });
 
       toast({
@@ -67,7 +68,7 @@ export function CustomerForm({ onSuccess }: { onSuccess?: () => void }) {
             <FormItem>
               <FormLabel>اسم العميل</FormLabel>
               <FormControl>
-                <Input {...field} placeholder="أدخل اسم العميل" />
+                <Input placeholder="أدخل اسم العميل" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -81,7 +82,7 @@ export function CustomerForm({ onSuccess }: { onSuccess?: () => void }) {
             <FormItem>
               <FormLabel>رقم الهاتف</FormLabel>
               <FormControl>
-                <Input {...field} placeholder="أدخل رقم الهاتف" type="tel" />
+                <Input type="tel" placeholder="أدخل رقم الهاتف" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -95,7 +96,7 @@ export function CustomerForm({ onSuccess }: { onSuccess?: () => void }) {
             <FormItem>
               <FormLabel>البريد الإلكتروني</FormLabel>
               <FormControl>
-                <Input {...field} placeholder="أدخل البريد الإلكتروني" type="email" />
+                <Input type="email" placeholder="أدخل البريد الإلكتروني" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -109,7 +110,7 @@ export function CustomerForm({ onSuccess }: { onSuccess?: () => void }) {
             <FormItem>
               <FormLabel>ملاحظات</FormLabel>
               <FormControl>
-                <Textarea {...field} placeholder="أدخل أي ملاحظات إضافية" />
+                <Textarea placeholder="أدخل أي ملاحظات إضافية" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
