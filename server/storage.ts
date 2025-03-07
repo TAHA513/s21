@@ -1,475 +1,399 @@
-import { pool } from './db.js';
+import { pool, db } from './db.js';
+import session from 'express-session';
+import connectPgSimple from 'connect-pg-simple';
 
-// فئة التخزين للتعامل مع عمليات قاعدة البيانات
-class Storage {
-  // إنشاء جداول قاعدة البيانات إذا لم تكن موجودة
-  async ensureTablesExist() {
-    try {
-      console.log("🔍 جاري التحقق من وجود الجداول...");
+// تعريف واجهة التخزين
+interface IStorage {
+  sessionStore: any;
+  getUser(id: number): Promise<any>;
+  getUserByUsername(username: string): Promise<any>;
+  createUser(user: any): Promise<any>;
+  getCustomers(): Promise<any[]>;
+  getCustomer(id: number): Promise<any>;
+  createCustomer(customer: any): Promise<any>;
+  updateCustomer(id: number, customer: any): Promise<any>;
+  getAppointments(): Promise<any[]>;
+  getAppointment(id: number): Promise<any>;
+  createAppointment(appointment: any): Promise<any>;
+  getProducts(): Promise<any[]>;
+  getProduct(id: number): Promise<any>;
+  createProduct(product: any): Promise<any>;
+  updateProduct(id: number, product: any): Promise<any>;
+  getProductGroups(): Promise<any[]>;
+  getProductGroup(id: number): Promise<any>;
+  createProductGroup(group: any): Promise<any>;
+  getInvoices(): Promise<any[]>;
+  getInvoice(id: number): Promise<any>;
+  createInvoice(invoice: any): Promise<any>;
+  getSuppliers(): Promise<any[]>;
+  getSupplier(id: number): Promise<any>;
+  createSupplier(supplier: any): Promise<any>;
+  updateSupplier(id: number, supplier: any): Promise<any>;
+  deleteSupplier(id: number): Promise<void>;
+  getDiscountCodeByCode(code: string): Promise<any>;
+  createDiscountCode(code: any): Promise<any>;
+  getPurchaseOrders(): Promise<any[]>
+}
 
-      // إنشاء جدول المنتجات
-      await pool.query(`
-        CREATE TABLE IF NOT EXISTS products (
-          id SERIAL PRIMARY KEY,
-          name VARCHAR(255) NOT NULL,
-          barcode VARCHAR(255),
-          description TEXT,
-          cost_price DECIMAL(10, 2) NOT NULL,
-          selling_price DECIMAL(10, 2) NOT NULL,
-          quantity INTEGER NOT NULL DEFAULT 0,
-          group_id INTEGER,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-      `);
+// تنفيذ كائن التخزين باستخدام قاعدة البيانات الحقيقية
+export class DatabaseStorage implements IStorage {
+  sessionStore: any;
 
-      // إنشاء جدول فئات المنتجات
-      await pool.query(`
-        CREATE TABLE IF NOT EXISTS product_groups (
-          id SERIAL PRIMARY KEY,
-          name VARCHAR(255) NOT NULL,
-          description TEXT,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-      `);
-
-      // إنشاء جدول العملاء
-      await pool.query(`
-        CREATE TABLE IF NOT EXISTS customers (
-          id SERIAL PRIMARY KEY,
-          name VARCHAR(255) NOT NULL,
-          phone VARCHAR(20),
-          email VARCHAR(255),
-          address TEXT,
-          notes TEXT,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-      `);
-
-      // إنشاء جدول الفواتير
-      await pool.query(`
-        CREATE TABLE IF NOT EXISTS invoices (
-          id SERIAL PRIMARY KEY,
-          customer_id INTEGER,
-          customer_name VARCHAR(255),
-          subtotal DECIMAL(10, 2) NOT NULL,
-          discount DECIMAL(5, 2) DEFAULT 0,
-          discount_amount DECIMAL(10, 2) DEFAULT 0,
-          final_total DECIMAL(10, 2) NOT NULL,
-          status VARCHAR(50) DEFAULT 'pending',
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-      `);
-
-      // إنشاء جدول عناصر الفاتورة
-      await pool.query(`
-        CREATE TABLE IF NOT EXISTS invoice_items (
-          id SERIAL PRIMARY KEY,
-          invoice_id INTEGER REFERENCES invoices(id) ON DELETE CASCADE,
-          product_id INTEGER,
-          product_name VARCHAR(255) NOT NULL,
-          quantity INTEGER NOT NULL,
-          unit_price DECIMAL(10, 2) NOT NULL,
-          total_price DECIMAL(10, 2) NOT NULL,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-      `);
-
-      console.log("✅ تم التحقق من وجود الجداول بنجاح");
-
-      // التحقق من وجود بيانات وإضافة بيانات تجريبية إذا لزم الأمر
-      await this.ensureDummyDataExists();
-
-      return true;
-    } catch (error) {
-      console.error("❌ خطأ في إنشاء الجداول:", error);
-      return false;
-    }
+  constructor() {
+    const PgSessionStore = connectPgSimple(session);
+    this.sessionStore = new PgSessionStore({
+      pool,
+      tableName: 'session',
+    });
   }
 
-  // التأكد من وجود بيانات تجريبية
-  async ensureDummyDataExists() {
+  // عمليات المستخدم
+  async getUser(id: number): Promise<any> {
     try {
-      // إضافة فئات المنتجات التجريبية إذا لم تكن موجودة
-      const groupsResult = await pool.query('SELECT COUNT(*) FROM product_groups');
-      if (parseInt(groupsResult.rows[0].count) === 0) {
-        console.log("🔄 إضافة فئات منتجات تجريبية...");
-
-        await pool.query(`
-          INSERT INTO product_groups (name, description) VALUES 
-          ('الكترونيات', 'أجهزة الكترونية وكهربائية'),
-          ('ملابس', 'ملابس متنوعة للرجال والنساء والأطفال'),
-          ('أثاث', 'أثاث منزلي ومكتبي')
-        `);
-      }
-
-      // إضافة منتجات تجريبية إذا لم تكن موجودة
-      const productsResult = await pool.query('SELECT COUNT(*) FROM products');
-      if (parseInt(productsResult.rows[0].count) === 0) {
-        console.log("🔄 إضافة منتجات تجريبية...");
-
-        // الحصول على معرف فئة الالكترونيات
-        const groupResult = await pool.query("SELECT id FROM product_groups WHERE name = 'الكترونيات'");
-        const electronicsGroupId = groupResult.rows.length > 0 ? groupResult.rows[0].id : null;
-
-        await pool.query(`
-          INSERT INTO products (name, barcode, description, cost_price, selling_price, quantity, group_id) VALUES 
-          ('هاتف ذكي', '123456789', 'هاتف ذكي حديث', 1500, 1800, 10, $1),
-          ('لابتوب', '987654321', 'لابتوب للألعاب', 3500, 4200, 5, $1),
-          ('سماعات بلوتوث', '456789123', 'سماعات لاسلكية عالية الجودة', 150, 200, 20, $1),
-          ('شاشة كمبيوتر', '789123456', 'شاشة كمبيوتر 24 بوصة', 500, 650, 8, $1),
-          ('لوحة مفاتيح', '321654987', 'لوحة مفاتيح ميكانيكية للألعاب', 200, 280, 15, $1)
-        `, [electronicsGroupId]);
-      }
-
-      // إضافة عملاء تجريبيين إذا لم يكونوا موجودين
-      const customersResult = await pool.query('SELECT COUNT(*) FROM customers');
-      if (parseInt(customersResult.rows[0].count) === 0) {
-        console.log("🔄 إضافة عملاء تجريبيين...");
-
-        await pool.query(`
-          INSERT INTO customers (name, phone, email, address, notes) VALUES 
-          ('أحمد محمد', '0555123456', 'ahmed@example.com', 'الرياض، حي النخيل', 'عميل منتظم'),
-          ('فاطمة علي', '0505987654', 'fatima@example.com', 'جدة، حي الروضة', 'عميلة جديدة'),
-          ('خالد عبدالله', '0565432198', 'khaled@example.com', 'الدمام، حي الشاطئ', 'يفضل الدفع نقداً')
-        `);
-      }
-
-      console.log("✅ تم التحقق من البيانات التجريبية بنجاح");
+      const result = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
+      return result.rows[0] || null;
     } catch (error) {
-      console.error("❌ خطأ في إضافة البيانات التجريبية:", error);
-    }
-  }
-
-  // ======= عمليات المنتجات =======
-
-  // الحصول على جميع المنتجات
-  async getAllProducts() {
-    try {
-      console.log("🔍 جاري جلب جميع المنتجات...");
-
-      const query = `
-        SELECT p.*, g.name as group_name 
-        FROM products p 
-        LEFT JOIN product_groups g ON p.group_id = g.id
-        ORDER BY p.id
-      `;
-
-      const result = await pool.query(query);
-      console.log(`✅ تم جلب ${result.rows.length} منتج بنجاح`);
-
-      return result.rows;
-    } catch (error) {
-      console.error("❌ خطأ في جلب المنتجات:", error);
-      return [];
-    }
-  }
-
-  // الحصول على منتج بواسطة المعرف
-  async getProductById(id) {
-    try {
-      const query = `
-        SELECT p.*, g.name as group_name 
-        FROM products p 
-        LEFT JOIN product_groups g ON p.group_id = g.id
-        WHERE p.id = $1
-      `;
-
-      const result = await pool.query(query, [id]);
-      return result.rows[0];
-    } catch (error) {
-      console.error("❌ خطأ في جلب المنتج:", error);
+      console.error('خطأ في الحصول على المستخدم:', error);
       return null;
     }
   }
 
-  // إضافة منتج جديد
-  async addProduct(productData) {
-    try {
-      const { name, barcode, description, cost_price, selling_price, quantity, group_id } = productData;
-
-      const query = `
-        INSERT INTO products (name, barcode, description, cost_price, selling_price, quantity, group_id) 
-        VALUES ($1, $2, $3, $4, $5, $6, $7) 
-        RETURNING *
-      `;
-
-      const result = await pool.query(query, [
-        name, 
-        barcode || null, 
-        description || null, 
-        cost_price, 
-        selling_price, 
-        quantity || 0, 
-        group_id || null
-      ]);
-
-      console.log(`✅ تم إضافة المنتج "${name}" بنجاح`);
-      return result.rows[0];
-    } catch (error) {
-      console.error("❌ خطأ في إضافة المنتج:", error);
-      return null;
-    }
-  }
-
-  // تحديث منتج
-  async updateProduct(id, productData) {
-    try {
-      const { name, barcode, description, cost_price, selling_price, quantity, group_id } = productData;
-
-      const query = `
-        UPDATE products 
-        SET name = $1, barcode = $2, description = $3, cost_price = $4, 
-            selling_price = $5, quantity = $6, group_id = $7 
-        WHERE id = $8 
-        RETURNING *
-      `;
-
-      const result = await pool.query(query, [
-        name, 
-        barcode || null, 
-        description || null, 
-        cost_price, 
-        selling_price, 
-        quantity || 0, 
-        group_id || null, 
-        id
-      ]);
-
-      console.log(`✅ تم تحديث المنتج رقم ${id} بنجاح`);
-      return result.rows[0];
-    } catch (error) {
-      console.error("❌ خطأ في تحديث المنتج:", error);
-      return null;
-    }
-  }
-
-  // حذف منتج
-  async deleteProduct(id) {
-    try {
-      const query = 'DELETE FROM products WHERE id = $1 RETURNING *';
-      const result = await pool.query(query, [id]);
-
-      if (result.rows.length > 0) {
-        console.log(`✅ تم حذف المنتج رقم ${id} بنجاح`);
-        return true;
-      } else {
-        console.log(`⚠️ لم يتم العثور على المنتج رقم ${id}`);
-        return false;
-      }
-    } catch (error) {
-      console.error("❌ خطأ في حذف المنتج:", error);
-      return false;
-    }
-  }
-
-  // ======= عمليات فئات المنتجات =======
-
-  // الحصول على جميع فئات المنتجات
-  async getAllCategories() {
-    try {
-      console.log("🔍 جاري جلب جميع فئات المنتجات...");
-
-      const query = 'SELECT * FROM product_groups ORDER BY id';
-      const result = await pool.query(query);
-
-      console.log(`✅ تم جلب ${result.rows.length} فئة بنجاح`);
-      return result.rows;
-    } catch (error) {
-      console.error("❌ خطأ في جلب فئات المنتجات:", error);
-      return [];
-    }
-  }
-
-  // ======= عمليات العملاء =======
-
-  // الحصول على جميع العملاء
-  async getAllCustomers() {
-    try {
-      console.log("🔍 جاري جلب جميع العملاء...");
-
-      const query = 'SELECT * FROM customers ORDER BY id';
-      const result = await pool.query(query);
-
-      console.log(`✅ تم جلب ${result.rows.length} عميل بنجاح`);
-      return result.rows;
-    } catch (error) {
-      console.error("❌ خطأ في جلب العملاء:", error);
-      return [];
-    }
-  }
-
-  // إضافة عميل جديد
-  async addCustomer(customerData) {
-    try {
-      const { name, phone, email, address, notes } = customerData;
-
-      const query = `
-        INSERT INTO customers (name, phone, email, address, notes) 
-        VALUES ($1, $2, $3, $4, $5) 
-        RETURNING *
-      `;
-
-      const result = await pool.query(query, [
-        name, 
-        phone || null, 
-        email || null, 
-        address || null, 
-        notes || null
-      ]);
-
-      console.log(`✅ تم إضافة العميل "${name}" بنجاح`);
-      return result.rows[0];
-    } catch (error) {
-      console.error("❌ خطأ في إضافة العميل:", error);
-      return null;
-    }
-  }
-
-  // ======= عمليات الفواتير =======
-
-  // الحصول على جميع الفواتير
-  async getAllInvoices() {
-    try {
-      console.log("🔍 جاري جلب جميع الفواتير...");
-
-      const query = 'SELECT * FROM invoices ORDER BY created_at DESC';
-      const result = await pool.query(query);
-
-      console.log(`✅ تم جلب ${result.rows.length} فاتورة بنجاح`);
-      return result.rows;
-    } catch (error) {
-      console.error("❌ خطأ في جلب الفواتير:", error);
-      return [];
-    }
-  }
-
-  // إنشاء فاتورة جديدة
-  async createInvoice(invoiceData, invoiceItems) {
-    const client = await pool.connect();
-
-    try {
-      await client.query('BEGIN');
-
-      const { customer_id, customer_name, subtotal, discount, discount_amount, final_total, status } = invoiceData;
-
-      // إنشاء الفاتورة
-      const invoiceQuery = `
-        INSERT INTO invoices (customer_id, customer_name, subtotal, discount, discount_amount, final_total, status) 
-        VALUES ($1, $2, $3, $4, $5, $6, $7) 
-        RETURNING *
-      `;
-
-      const invoiceResult = await client.query(invoiceQuery, [
-        customer_id || null, 
-        customer_name, 
-        subtotal, 
-        discount || 0, 
-        discount_amount || 0, 
-        final_total, 
-        status || 'pending'
-      ]);
-
-      const invoice = invoiceResult.rows[0];
-
-      // إضافة عناصر الفاتورة
-      for (const item of invoiceItems) {
-        const { product_id, product_name, quantity, unit_price, total_price } = item;
-
-        const itemQuery = `
-          INSERT INTO invoice_items (invoice_id, product_id, product_name, quantity, unit_price, total_price) 
-          VALUES ($1, $2, $3, $4, $5, $6)
-        `;
-
-        await client.query(itemQuery, [
-          invoice.id, 
-          product_id, 
-          product_name, 
-          quantity, 
-          unit_price, 
-          total_price
-        ]);
-
-        // تحديث كمية المنتج في المخزون
-        if (product_id) {
-          await client.query(
-            'UPDATE products SET quantity = quantity - $1 WHERE id = $2',
-            [quantity, product_id]
-          );
-        }
-      }
-
-      await client.query('COMMIT');
-
-      console.log(`✅ تم إنشاء الفاتورة رقم ${invoice.id} بنجاح`);
-      return invoice;
-    } catch (error) {
-      await client.query('ROLLBACK');
-      console.error("❌ خطأ في إنشاء الفاتورة:", error);
-      return null;
-    } finally {
-      client.release();
-    }
-  }
-
-
-  // User operations - These remain largely unchanged but could be improved for error handling and logging consistency.
-  async getUsers() {
-    try {
-      console.log("جاري استرجاع المستخدمين من قاعدة البيانات...");
-      const result = await pool.query('SELECT * FROM users');
-      console.log(`تم استرجاع ${result.rows.length} مستخدم من قاعدة البيانات`);
-      return result.rows;
-    } catch (error) {
-      console.error("خطأ في استرجاع المستخدمين من قاعدة البيانات:", error);
-      return [];
-    }
-  }
-
-  async getUserByUsername(username: string) {
+  async getUserByUsername(username: string): Promise<any> {
     try {
       const result = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
-      return result.rows[0];
+      return result.rows[0] || null;
     } catch (error) {
-      console.error("خطأ في استرجاع المستخدم من قاعدة البيانات:", error);
+      console.error('خطأ في الحصول على المستخدم باسم المستخدم:', error);
       return null;
     }
   }
 
-  async createUser(user: any) {
+  async createUser(user: any): Promise<any> {
     try {
-      const { username, name, email, phone, password } = user;
       const result = await pool.query(
-        'INSERT INTO users (username, name, email, phone, password) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-        [username, name, email, phone, password]
+        'INSERT INTO users(username, password, name, role) VALUES($1, $2, $3, $4) RETURNING *',
+        [user.username, user.password, user.name, user.role || 'user']
       );
       return result.rows[0];
     } catch (error) {
-      console.error("خطأ في إنشاء المستخدم:", error);
+      console.error('خطأ في إنشاء المستخدم:', error);
       throw error;
     }
   }
 
-  //Methods below this line are removed as they are redundant with the new structure.
-  // async getProducts() { ... }
-  // async getProduct(id: number) { ... }
-  // async createProduct(product: any) { ... }
-  // async updateProduct(id: number, product: any) { ... }
-  // async deleteProduct(id: number) { ... }
-  // async getCustomers() { ... }
-  // async getCustomer(id: number) { ... }
-  // async createCustomer(customer: any) { ... }
-  // async getInvoices() { ... }
-  // async getInvoice(id: number) { ... }
-  // async createInvoice(invoice: any) { ... }
-  // async getCategories() { ... }
-  // private async addDummyProducts() { ... }
-  // private async addDummyCategories() { ... }
-  // private async addDummyCustomers() { ... }
-  // private async addDummyInvoices() { ... }
-  //Removed redundant methods
+  // عمليات العملاء
+  async getCustomers(): Promise<any[]> {
+    try {
+      console.log('جاري استرداد بيانات العملاء من قاعدة البيانات...');
+      // التحقق من حالة الاتصال قبل الاستعلام
+      const checkConn = await pool.query('SELECT 1');
+      console.log('حالة الاتصال بقاعدة البيانات:', checkConn ? 'متصل' : 'غير متصل');
 
+      const result = await pool.query('SELECT * FROM customers ORDER BY id DESC');
+      console.log(`تم استرداد ${result.rows.length} عميل بنجاح`);
+      if (result.rows.length > 0) {
+        console.log('نموذج بيانات العميل:', JSON.stringify(result.rows[0], null, 2));
+      } else {
+        console.log('لا توجد بيانات عملاء في قاعدة البيانات');
+      }
+      return result.rows;
+    } catch (error) {
+      console.error('خطأ في الحصول على العملاء:', error);
+      if (error instanceof Error) {
+        console.error('رسالة الخطأ:', error.message);
+        console.error('تفاصيل الخطأ:', error.stack);
+      }
 
+      // التحقق من الجداول الموجودة في قاعدة البيانات
+      try {
+        const tables = await pool.query(`
+          SELECT table_name 
+          FROM information_schema.tables 
+          WHERE table_schema = 'public'
+        `);
+        console.log('الجداول الموجودة في قاعدة البيانات:', tables.rows.map(r => r.table_name));
+      } catch (e) {
+        console.error('فشل في الحصول على قائمة الجداول:', e);
+      }
+
+      return [];
+    }
+  }
+
+  async getCustomer(id: number): Promise<any> {
+    try {
+      const result = await pool.query('SELECT * FROM customers WHERE id = $1', [id]);
+      return result.rows[0] || null;
+    } catch (error) {
+      console.error('خطأ في الحصول على العميل:', error);
+      return null;
+    }
+  }
+
+  async createCustomer(customer: any): Promise<any> {
+    try {
+      const result = await pool.query(
+        'INSERT INTO customers(name, phone, email, address, created_at) VALUES($1, $2, $3, $4, NOW()) RETURNING *',
+        [customer.name, customer.phone, customer.email, customer.address]
+      );
+      return result.rows[0];
+    } catch (error) {
+      console.error('خطأ في إنشاء العميل:', error);
+      throw error;
+    }
+  }
+
+  async updateCustomer(id: number, customer: any): Promise<any> {
+    try {
+      const result = await pool.query(
+        'UPDATE customers SET name = $1, phone = $2, email = $3, address = $4 WHERE id = $5 RETURNING *',
+        [customer.name, customer.phone, customer.email, customer.address, id]
+      );
+      return result.rows[0];
+    } catch (error) {
+      console.error('خطأ في تحديث العميل:', error);
+      throw error;
+    }
+  }
+
+  // عمليات المواعيد
+  async getAppointments(): Promise<any[]> {
+    try {
+      const result = await pool.query('SELECT * FROM appointments ORDER BY appointment_date DESC');
+      return result.rows;
+    } catch (error) {
+      console.error('خطأ في الحصول على المواعيد:', error);
+      return [];
+    }
+  }
+
+  async getAppointment(id: number): Promise<any> {
+    try {
+      const result = await pool.query('SELECT * FROM appointments WHERE id = $1', [id]);
+      return result.rows[0] || null;
+    } catch (error) {
+      console.error('خطأ في الحصول على الموعد:', error);
+      return null;
+    }
+  }
+
+  async createAppointment(appointment: any): Promise<any> {
+    try {
+      const result = await pool.query(
+        'INSERT INTO appointments(customer_id, appointment_date, service, status, notes, created_at) VALUES($1, $2, $3, $4, $5, NOW()) RETURNING *',
+        [appointment.customerId, appointment.appointmentDate, appointment.service, appointment.status, appointment.notes]
+      );
+      return result.rows[0];
+    } catch (error) {
+      console.error('خطأ في إنشاء الموعد:', error);
+      throw error;
+    }
+  }
+
+  // عمليات المنتجات
+  async getProducts(): Promise<any[]> {
+    try {
+      const result = await pool.query('SELECT * FROM products ORDER BY id DESC');
+      return result.rows;
+    } catch (error) {
+      console.error('خطأ في الحصول على المنتجات:', error);
+      return [];
+    }
+  }
+
+  async getProduct(id: number): Promise<any> {
+    try {
+      const result = await pool.query('SELECT * FROM products WHERE id = $1', [id]);
+      return result.rows[0] || null;
+    } catch (error) {
+      console.error('خطأ في الحصول على المنتج:', error);
+      return null;
+    }
+  }
+
+  async createProduct(product: any): Promise<any> {
+    try {
+      const result = await pool.query(
+        'INSERT INTO products(name, sku, price, cost, quantity, group_id, created_at) VALUES($1, $2, $3, $4, $5, $6, NOW()) RETURNING *',
+        [product.name, product.sku, product.price, product.cost, product.quantity, product.groupId]
+      );
+      return result.rows[0];
+    } catch (error) {
+      console.error('خطأ في إنشاء المنتج:', error);
+      throw error;
+    }
+  }
+
+  async updateProduct(id: number, product: any): Promise<any> {
+    try {
+      const result = await pool.query(
+        'UPDATE products SET name = $1, sku = $2, price = $3, cost = $4, quantity = $5, group_id = $6 WHERE id = $7 RETURNING *',
+        [product.name, product.sku, product.price, product.cost, product.quantity, product.groupId, id]
+      );
+      return result.rows[0];
+    } catch (error) {
+      console.error('خطأ في تحديث المنتج:', error);
+      throw error;
+    }
+  }
+
+  // عمليات مجموعات المنتجات
+  async getProductGroups(): Promise<any[]> {
+    try {
+      const result = await pool.query('SELECT * FROM product_groups ORDER BY id DESC');
+      return result.rows;
+    } catch (error) {
+      console.error('خطأ في الحصول على مجموعات المنتجات:', error);
+      return [];
+    }
+  }
+
+  async getProductGroup(id: number): Promise<any> {
+    try {
+      const result = await pool.query('SELECT * FROM product_groups WHERE id = $1', [id]);
+      return result.rows[0] || null;
+    } catch (error) {
+      console.error('خطأ في الحصول على مجموعة المنتجات:', error);
+      return null;
+    }
+  }
+
+  async createProductGroup(group: any): Promise<any> {
+    try {
+      const result = await pool.query(
+        'INSERT INTO product_groups(name, description, created_at) VALUES($1, $2, NOW()) RETURNING *',
+        [group.name, group.description]
+      );
+      return result.rows[0];
+    } catch (error) {
+      console.error('خطأ في إنشاء مجموعة المنتجات:', error);
+      throw error;
+    }
+  }
+
+  // عمليات الفواتير
+  async getInvoices(): Promise<any[]> {
+    try {
+      const result = await pool.query('SELECT * FROM invoices ORDER BY id DESC');
+      return result.rows;
+    } catch (error) {
+      console.error('خطأ في الحصول على الفواتير:', error);
+      return [];
+    }
+  }
+
+  async getInvoice(id: number): Promise<any> {
+    try {
+      const result = await pool.query('SELECT * FROM invoices WHERE id = $1', [id]);
+      return result.rows[0] || null;
+    } catch (error) {
+      console.error('خطأ في الحصول على الفاتورة:', error);
+      return null;
+    }
+  }
+
+  async createInvoice(invoice: any): Promise<any> {
+    try {
+      const result = await pool.query(
+        'INSERT INTO invoices(customer_id, total_amount, status, payment_method, created_at) VALUES($1, $2, $3, $4, NOW()) RETURNING *',
+        [invoice.customerId, invoice.totalAmount, invoice.status, invoice.paymentMethod]
+      );
+      return result.rows[0];
+    } catch (error) {
+      console.error('خطأ في إنشاء الفاتورة:', error);
+      throw error;
+    }
+  }
+
+  // عمليات الموردين
+  async getSuppliers(): Promise<any[]> {
+    try {
+      const result = await pool.query('SELECT * FROM suppliers ORDER BY id DESC');
+      return result.rows;
+    } catch (error) {
+      console.error('خطأ في الحصول على الموردين:', error);
+      return [];
+    }
+  }
+
+  async getSupplier(id: number): Promise<any> {
+    try {
+      const result = await pool.query('SELECT * FROM suppliers WHERE id = $1', [id]);
+      return result.rows[0] || null;
+    } catch (error) {
+      console.error('خطأ في الحصول على المورد:', error);
+      return null;
+    }
+  }
+
+  async createSupplier(supplier: any): Promise<any> {
+    try {
+      const result = await pool.query(
+        'INSERT INTO suppliers(name, contact_name, phone, email, address, created_at) VALUES($1, $2, $3, $4, $5, NOW()) RETURNING *',
+        [supplier.name, supplier.contactName, supplier.phone, supplier.email, supplier.address]
+      );
+      return result.rows[0];
+    } catch (error) {
+      console.error('خطأ في إنشاء المورد:', error);
+      throw error;
+    }
+  }
+
+  async updateSupplier(id: number, supplier: any): Promise<any> {
+    try {
+      const result = await pool.query(
+        'UPDATE suppliers SET name = $1, contact_name = $2, phone = $3, email = $4, address = $5 WHERE id = $6 RETURNING *',
+        [supplier.name, supplier.contactName, supplier.phone, supplier.email, supplier.address, id]
+      );
+      return result.rows[0];
+    } catch (error) {
+      console.error('خطأ في تحديث المورد:', error);
+      throw error;
+    }
+  }
+
+  async deleteSupplier(id: number): Promise<void> {
+    try {
+      await pool.query('DELETE FROM suppliers WHERE id = $1', [id]);
+    } catch (error) {
+      console.error('خطأ في حذف المورد:', error);
+      throw error;
+    }
+  }
+
+  async getDiscountCodeByCode(code: string): Promise<any> {
+    try {
+      const result = await pool.query('SELECT * FROM discount_codes WHERE code = $1', [code]);
+      return result.rows[0] || null;
+    } catch (error) {
+      console.error('خطأ في الحصول على رمز الخصم:', error);
+      return null;
+    }
+  }
+
+  async createDiscountCode(code: any): Promise<any> {
+    try {
+      const result = await pool.query(
+        'INSERT INTO discount_codes(code, discount_type, discount_value, valid_from, valid_to, usage_limit, used_count, created_at, updated_at) VALUES($1, $2, $3, $4, $5, $6, $7, NOW(), NOW()) RETURNING *',
+        [code.code, code.discountType, code.discountValue, code.validFrom, code.validTo, code.usageLimit, 0]
+      );
+      return result.rows[0];
+    } catch (error) {
+      console.error('خطأ في إنشاء رمز الخصم:', error);
+      throw error;
+    }
+  }
+
+  async getPurchaseOrders(): Promise<any[]> {
+    try {
+      const result = await pool.query('SELECT * FROM purchase_orders ORDER BY id DESC');
+      return result.rows;
+    } catch (error) {
+      console.error('خطأ في الحصول على أوامر الشراء:', error);
+      return [];
+    }
+  }
 }
 
-// إنشاء نسخة مفردة من فئة التخزين
-export const storage = new Storage();
+// إنشاء كائن التخزين للاستخدام في التطبيق
+export const storage = new DatabaseStorage();

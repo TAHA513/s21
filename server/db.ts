@@ -1,71 +1,46 @@
-import sqlite3 from 'sqlite3';
-import { open, Database } from 'sqlite';
 
-// قاعدة البيانات المحلية
-let _db: Database | null = null;
+import pkg from 'pg';
+const { Pool } = pkg;
+import { drizzle } from 'drizzle-orm/node-postgres';
 
-// دالة للحصول على اتصال قاعدة البيانات
-export async function getDb() {
-  if (!_db) {
-    _db = await open({
-      filename: './database.sqlite',
-      driver: sqlite3.Database
-    });
+// إنشاء الاتصال باستخدام متغيرات البيئة
+const connectionString = process.env.DATABASE_URL;
 
-    // إنشاء الجداول الأساسية إذا لم تكن موجودة
-    await _db.exec(`
-      CREATE TABLE IF NOT EXISTS connection_test (
-        id INTEGER PRIMARY KEY,
-        timestamp TEXT DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-  }
-  return _db;
+if (!connectionString) {
+  console.error('خطأ: متغير البيئة DATABASE_URL غير محدد');
+  process.exit(1);
 }
 
-// محاكاة واجهة تجمع الاتصالات للتوافق مع الكود الحالي
-export const pool = {
-  query: async (text: string, params: any[] = []) => {
-    const db = await getDb();
-    // استبدال $1, $2, الخ بـ ?, ?, للتوافق مع SQLite
-    const sqliteText = text.replace(/\$\d+/g, '?');
-    try {
-      if (sqliteText.trim().toLowerCase().startsWith('select')) {
-        return { rows: await db.all(sqliteText, params) };
-      } else {
-        const result = await db.run(sqliteText, params);
-        return { rowCount: result.changes, rows: [] };
-      }
-    } catch (error) {
-      console.error('خطأ في تنفيذ الاستعلام:', error);
-      throw error;
-    }
-  },
-  end: async () => {
-    if (_db) {
-      await _db.close();
-      _db = null;
-    }
-  }
-};
+// إنشاء مجمع اتصالات قاعدة البيانات مع إعدادات أفضل
+export const pool = new Pool({
+  connectionString,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  max: 20, // عدد الاتصالات المتزامنة القصوى
+  idleTimeoutMillis: 30000, // مهلة الخمول بالمللي ثانية (30 ثانية)
+  connectionTimeoutMillis: 5000, // مهلة الاتصال (5 ثوان)
+});
+
+// إضافة مستمعي أحداث لمجمع الاتصالات لتتبع المشاكل
+pool.on('error', (err) => {
+  console.error('خطأ غير متوقع في مجمع اتصالات قاعدة البيانات:', err);
+});
+
+pool.on('connect', () => {
+  console.log('تم إنشاء اتصال جديد بقاعدة البيانات');
+});
+
+// تصدير كائن Drizzle ORM
+export const db = drizzle(pool);
 
 // اختبار الاتصال بقاعدة البيانات
 export async function testConnection() {
   try {
-    console.log('جاري اختبار الاتصال بقاعدة البيانات...');
-    const db = await getDb();
-    const result = await db.get('SELECT datetime("now") as now');
-    console.log('✅ تم الاتصال بقاعدة البيانات بنجاح. الوقت الحالي:', result?.now);
+    const client = await pool.connect();
+    console.log('تم الاتصال بقاعدة البيانات بنجاح');
+    client.release();
     return true;
-  } catch (error) {
-    console.error('❌ فشل الاتصال بقاعدة البيانات:', error);
+  } catch (err) {
+    console.error('فشل الاتصال بقاعدة البيانات:', err);
     return false;
   }
 }
-
-// إغلاق الاتصال عند إيقاف التطبيق
-process.on('SIGINT', async () => {
-  await pool.end();
-  console.log('تم إغلاق اتصال قاعدة البيانات');
-  process.exit(0);
-});

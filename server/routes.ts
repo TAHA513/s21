@@ -1,349 +1,182 @@
 
-import { Express } from 'express';
-import { storage } from './storage.js';
+import type { Express } from "express";
+import { createServer, type Server } from "http";
+import { storage } from "./storage.js";
+import express from 'express';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
+import { pool } from "./db.js";
 
-// إعداد مسارات API
-export async function setupRoutes(app: Express) {
-  // مسار الصفحة الرئيسية أو اختبار API
-  app.get('/api', (req, res) => {
-    res.json({ 
-      message: 'مرحبا بك في واجهة برمجة التطبيقات',
-      status: 'success',
-      timestamp: new Date().toISOString()
-    });
-  });
+const upload = multer({ dest: 'uploads/' });
 
-  // ======= مسارات المنتجات =======
+export async function setupRoutes(app: Express): Promise<Server> {
+  const server = createServer(app);
 
-  // الحصول على جميع المنتجات
-  app.get('/api/products', async (req, res) => {
+  // نقطة نهاية للتحقق من اتصال قاعدة البيانات
+  app.get("/api/health", async (_req, res) => {
     try {
-      console.log('طلب جديد للحصول على المنتجات');
-      const products = await storage.getAllProducts();
-      console.log(`تم العثور على ${products.length} منتج، جاري إرسالها إلى العميل`);
+      // التحقق من اتصال قاعدة البيانات
+      const result = await pool.query('SELECT NOW() as server_time');
       
-      // إرسال البيانات
-      const response = {
-        status: 'success',
-        count: products.length,
-        data: products
-      };
-      
-      res.json(response);
-      
-      // إشعار جميع العملاء المتصلين (إذا كان متاحًا)
-      if (global.notifyClients) {
-        global.notifyClients('products_updated', { count: products.length });
-      }
+      res.json({
+        status: "online",
+        database: "connected",
+        server_time: result.rows[0]?.server_time,
+        environment: process.env.NODE_ENV || 'development'
+      });
     } catch (error) {
-      console.error('خطأ في جلب المنتجات:', error);
+      console.error('خطأ في فحص حالة قاعدة البيانات:', error);
       res.status(500).json({ 
-        status: 'error',
-        message: 'حدث خطأ أثناء جلب المنتجات',
-        error: error.message
+        status: "online", 
+        database: "error",
+        error: error instanceof Error ? error.message : String(error)
       });
     }
   });
 
-  // الحصول على منتج بواسطة المعرف
-  app.get('/api/products/:id', async (req, res) => {
+  // Dashboard APIs - بيانات اللوحة الرئيسية
+  app.get("/api/dashboard/summary", async (_req, res) => {
+    try {
+      const invoices = await storage.getInvoices();
+      const products = await storage.getProducts();
+      const customers = await storage.getCustomers();
+
+      // حساب إجمالي المبيعات
+      const totalSales = invoices.reduce((sum, invoice) => sum + Number(invoice.finalTotal), 0);
+      
+      // عدد الطلبات المكتملة
+      const completedOrders = invoices.filter(inv => inv.status === 'completed').length;
+
+      res.json({
+        totalSales,
+        totalProducts: products.length,
+        totalCustomers: customers.length,
+        totalOrders: invoices.length,
+        completedOrders
+      });
+    } catch (error) {
+      console.error('خطأ في استرجاع ملخص اللوحة الرئيسية:', error);
+      res.status(500).json({ error: 'حدث خطأ أثناء استرجاع ملخص اللوحة الرئيسية' });
+    }
+  });
+
+  // Products API - واجهة برمجة المنتجات
+  app.get("/api/products", async (_req, res) => {
+    try {
+      const products = await storage.getProducts();
+      res.json(products);
+    } catch (error) {
+      console.error('خطأ في استرجاع المنتجات:', error);
+      res.status(500).json({ error: 'حدث خطأ أثناء استرجاع المنتجات' });
+    }
+  });
+
+  app.get("/api/products/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      
-      if (isNaN(id)) {
-        return res.status(400).json({ 
-          status: 'error',
-          message: 'معرف المنتج غير صالح'
-        });
-      }
-      
-      const product = await storage.getProductById(id);
-
+      const product = await storage.getProduct(id);
       if (!product) {
-        return res.status(404).json({ 
-          status: 'error',
-          message: 'لم يتم العثور على المنتج'
-        });
+        return res.status(404).json({ error: 'المنتج غير موجود' });
       }
-
-      res.json({
-        status: 'success',
-        data: product
-      });
+      res.json(product);
     } catch (error) {
-      console.error('خطأ في جلب المنتج:', error);
-      res.status(500).json({ 
-        status: 'error',
-        message: 'حدث خطأ أثناء جلب المنتج',
-        error: error.message
-      });
+      console.error('خطأ في استرجاع المنتج:', error);
+      res.status(500).json({ error: 'حدث خطأ أثناء استرجاع المنتج' });
     }
   });
 
-  // إنشاء منتج جديد
-  app.post('/api/products', async (req, res) => {
+  // Customers API - واجهة برمجة العملاء
+  app.get("/api/customers", async (_req, res) => {
     try {
-      const productData = req.body;
-
-      // التحقق من البيانات المطلوبة
-      if (!productData.name || !productData.cost_price || !productData.selling_price) {
-        return res.status(400).json({ 
-          status: 'error',
-          message: 'الرجاء توفير جميع البيانات المطلوبة للمنتج (الاسم، سعر التكلفة، سعر البيع)'
-        });
-      }
-
-      const newProduct = await storage.addProduct(productData);
-      
-      if (!newProduct) {
-        return res.status(500).json({ 
-          status: 'error',
-          message: 'فشل في إنشاء المنتج'
-        });
-      }
-      
-      res.status(201).json({
-        status: 'success',
-        message: 'تم إنشاء المنتج بنجاح',
-        data: newProduct
-      });
+      const customers = await storage.getCustomers();
+      res.json(customers);
     } catch (error) {
-      console.error('خطأ في إنشاء منتج:', error);
-      res.status(500).json({ 
-        status: 'error',
-        message: 'حدث خطأ أثناء إنشاء منتج جديد',
-        error: error.message
-      });
+      console.error('خطأ في استرجاع العملاء:', error);
+      res.status(500).json({ error: 'حدث خطأ أثناء استرجاع العملاء' });
     }
   });
 
-  // تحديث منتج
-  app.put('/api/products/:id', async (req, res) => {
+  app.get("/api/customers/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      
-      if (isNaN(id)) {
-        return res.status(400).json({ 
-          status: 'error',
-          message: 'معرف المنتج غير صالح'
-        });
+      const customer = await storage.getCustomer(id);
+      if (!customer) {
+        return res.status(404).json({ error: 'العميل غير موجود' });
       }
-      
-      const productData = req.body;
-
-      // التحقق من البيانات المطلوبة
-      if (!productData.name || !productData.cost_price || !productData.selling_price) {
-        return res.status(400).json({ 
-          status: 'error',
-          message: 'الرجاء توفير جميع البيانات المطلوبة للمنتج (الاسم، سعر التكلفة، سعر البيع)'
-        });
-      }
-
-      const updatedProduct = await storage.updateProduct(id, productData);
-
-      if (!updatedProduct) {
-        return res.status(404).json({ 
-          status: 'error',
-          message: 'لم يتم العثور على المنتج'
-        });
-      }
-
-      res.json({
-        status: 'success',
-        message: 'تم تحديث المنتج بنجاح',
-        data: updatedProduct
-      });
+      res.json(customer);
     } catch (error) {
-      console.error('خطأ في تحديث منتج:', error);
-      res.status(500).json({ 
-        status: 'error',
-        message: 'حدث خطأ أثناء تحديث المنتج',
-        error: error.message
-      });
+      console.error('خطأ في استرجاع العميل:', error);
+      res.status(500).json({ error: 'حدث خطأ أثناء استرجاع العميل' });
     }
   });
 
-  // حذف منتج
-  app.delete('/api/products/:id', async (req, res) => {
+  // Invoices API - واجهة برمجة الفواتير
+  app.get("/api/invoices", async (_req, res) => {
+    try {
+      const invoices = await storage.getInvoices();
+      res.json(invoices);
+    } catch (error) {
+      console.error('خطأ في استرجاع الفواتير:', error);
+      res.status(500).json({ error: 'حدث خطأ أثناء استرجاع الفواتير' });
+    }
+  });
+
+  app.get("/api/invoices/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      
-      if (isNaN(id)) {
-        return res.status(400).json({ 
-          status: 'error',
-          message: 'معرف المنتج غير صالح'
-        });
+      const invoice = await storage.getInvoice(id);
+      if (!invoice) {
+        return res.status(404).json({ error: 'الفاتورة غير موجودة' });
       }
-      
-      const success = await storage.deleteProduct(id);
-
-      if (!success) {
-        return res.status(404).json({ 
-          status: 'error',
-          message: 'لم يتم العثور على المنتج'
-        });
-      }
-
-      res.json({ 
-        status: 'success',
-        message: 'تم حذف المنتج بنجاح'
-      });
+      res.json(invoice);
     } catch (error) {
-      console.error('خطأ في حذف منتج:', error);
-      res.status(500).json({ 
-        status: 'error',
-        message: 'حدث خطأ أثناء حذف المنتج',
-        error: error.message
-      });
+      console.error('خطأ في استرجاع الفاتورة:', error);
+      res.status(500).json({ error: 'حدث خطأ أثناء استرجاع الفاتورة' });
     }
   });
 
-  // ======= مسارات فئات المنتجات =======
-  
-  // الحصول على جميع الفئات
-  app.get('/api/categories', async (req, res) => {
+  // إضافة نقطة نهاية API للتحقق من صحة قاعدة البيانات
+  app.get("/api/debug/database", async (_req, res) => {
     try {
-      const categories = await storage.getAllCategories();
+      // جمع كل البيانات من التخزين
+      const products = await storage.getProducts();
+      const categories = await storage.getCategories();
+      const customers = await storage.getCustomers();
+      const invoices = await storage.getInvoices();
+      const users = await storage.getUsers();
+
+      // إرجاع كل البيانات كتقرير واحد
       res.json({
-        status: 'success',
-        count: categories.length,
-        data: categories
-      });
-    } catch (error) {
-      console.error('خطأ في جلب فئات المنتجات:', error);
-      res.status(500).json({ 
-        status: 'error',
-        message: 'حدث خطأ أثناء جلب فئات المنتجات',
-        error: error.message
-      });
-    }
-  });
-
-  // ======= مسارات العملاء =======
-
-  // الحصول على جميع العملاء
-  app.get('/api/customers', async (req, res) => {
-    try {
-      const customers = await storage.getAllCustomers();
-      res.json({
-        status: 'success',
-        count: customers.length,
-        data: customers
-      });
-    } catch (error) {
-      console.error('خطأ في جلب العملاء:', error);
-      res.status(500).json({ 
-        status: 'error',
-        message: 'حدث خطأ أثناء جلب العملاء',
-        error: error.message
-      });
-    }
-  });
-  
-  // إضافة عميل جديد
-  app.post('/api/customers', async (req, res) => {
-    try {
-      const customerData = req.body;
-      
-      // التحقق من البيانات المطلوبة
-      if (!customerData.name) {
-        return res.status(400).json({ 
-          status: 'error',
-          message: 'الرجاء توفير اسم العميل على الأقل'
-        });
-      }
-      
-      const newCustomer = await storage.addCustomer(customerData);
-      
-      if (!newCustomer) {
-        return res.status(500).json({ 
-          status: 'error',
-          message: 'فشل في إضافة العميل'
-        });
-      }
-      
-      res.status(201).json({
-        status: 'success',
-        message: 'تم إضافة العميل بنجاح',
-        data: newCustomer
-      });
-    } catch (error) {
-      console.error('خطأ في إضافة عميل:', error);
-      res.status(500).json({ 
-        status: 'error',
-        message: 'حدث خطأ أثناء إضافة عميل جديد',
-        error: error.message
-      });
-    }
-  });
-
-  // ======= مسارات الفواتير =======
-  
-  // الحصول على جميع الفواتير
-  app.get('/api/invoices', async (req, res) => {
-    try {
-      const invoices = await storage.getAllInvoices();
-      res.json({
-        status: 'success',
-        count: invoices.length,
-        data: invoices
-      });
-    } catch (error) {
-      console.error('خطأ في جلب الفواتير:', error);
-      res.status(500).json({ 
-        status: 'error',
-        message: 'حدث خطأ أثناء جلب الفواتير',
-        error: error.message
-      });
-    }
-  });
-  
-  // إنشاء فاتورة جديدة
-  app.post('/api/invoices', async (req, res) => {
-    try {
-      const { invoice, items } = req.body;
-      
-      // التحقق من البيانات المطلوبة
-      if (!invoice || !items || !Array.isArray(items) || items.length === 0) {
-        return res.status(400).json({ 
-          status: 'error',
-          message: 'الرجاء توفير بيانات الفاتورة وعناصرها بشكل صحيح'
-        });
-      }
-      
-      if (!invoice.customer_name || !invoice.subtotal || !invoice.final_total) {
-        return res.status(400).json({ 
-          status: 'error',
-          message: 'الرجاء توفير اسم العميل والإجمالي الفرعي والإجمالي النهائي للفاتورة'
-        });
-      }
-      
-      const newInvoice = await storage.createInvoice(invoice, items);
-      
-      if (!newInvoice) {
-        return res.status(500).json({ 
-          status: 'error',
-          message: 'فشل في إنشاء الفاتورة'
-        });
-      }
-      
-      res.status(201).json({
-        status: 'success',
-        message: 'تم إنشاء الفاتورة بنجاح',
-        data: {
-          invoice: newInvoice,
-          items: items
+        products: {
+          count: products.length,
+          items: products
+        },
+        categories: {
+          count: categories.length,
+          items: categories
+        },
+        customers: {
+          count: customers.length,
+          items: customers
+        },
+        invoices: {
+          count: invoices.length,
+          items: invoices
+        },
+        users: {
+          count: users.length,
+          items: users.map(u => ({ id: u.id, username: u.username, role: u.role }))
         }
       });
     } catch (error) {
-      console.error('خطأ في إنشاء فاتورة:', error);
-      res.status(500).json({ 
-        status: 'error',
-        message: 'حدث خطأ أثناء إنشاء فاتورة جديدة',
-        error: error.message
-      });
+      console.error('خطأ في فحص قاعدة البيانات:', error);
+      res.status(500).json({ error: 'فشل فحص قاعدة البيانات: ' + String(error) });
     }
   });
 
-  console.log("✅ تم تسجيل جميع المسارات بنجاح");
+  // عرض الملفات المرفوعة
+  app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+
+  return server;
 }

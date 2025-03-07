@@ -11,14 +11,6 @@ build = ["npm", "run", "build"]
 run = ["npm", "run", "start"]
 
 [[ports]]
-localPort = 3000
-externalPort = 4200
-
-[[ports]]
-localPort = 4000
-externalPort = 5000
-
-[[ports]]
 localPort = 5000
 externalPort = 80
 
@@ -27,23 +19,11 @@ localPort = 5001
 externalPort = 3000
 
 [[ports]]
-localPort = 5090
-externalPort = 3002
-
-[[ports]]
-localPort = 5091
-externalPort = 3003
-
-[[ports]]
-localPort = 8080
-externalPort = 8080
-
-[[ports]]
 localPort = 24678
 externalPort = 3001
 
 [workflows]
-runButton = "Start application"
+runButton = "Project"
 
 [[workflows.workflow]]
 name = "Project"
@@ -66,5 +46,5 @@ task = "packager.installForAll"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "tsx server/index.ts"
+args = "npm run dev"
 waitForPort = 5000

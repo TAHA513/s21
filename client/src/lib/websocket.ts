@@ -1,128 +1,143 @@
+// Helper to get WebSocket URL based on current environment
+export function getWebSocketUrl(): string {
+  // Use the same protocol as the page (http -> ws, https -> wss)
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const host = window.location.host; // This includes hostname and port
 
-import { createContext, useContext, useEffect, useState } from "react";
+  // Build WebSocket URL
+  const wsUrl = `${protocol}//${host}/ws`;
+  console.log('WebSocket URL:', wsUrl);
+  return wsUrl;
+}
 
-// تكوين WebSocket
-const getWebSocketUrl = () => {
-  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-  const host = window.location.host;
-  return `${protocol}//${host}/ws`;
-};
+interface WebSocketConfig {
+  reconnectAttempts?: number;
+  reconnectInterval?: number;
+  onMessage?: (data: any) => void;
+  onStatusChange?: (status: 'connecting' | 'connected' | 'disconnected' | 'error') => void;
+}
 
-export type WebSocketContextType = {
-  socket: WebSocket | null;
-  isConnected: boolean;
-  messages: any[];
-  sendMessage: (message: any) => void;
-};
+export class WebSocketClient {
+  private ws: WebSocket | null = null;
+  private reconnectAttempts: number;
+  private reconnectInterval: number;
+  private reconnectTimeout: number = 0;
+  private maxReconnectTimeout: number = 30000; // 30 seconds
+  private currentAttempt: number = 0;
+  private onMessage?: (data: any) => void;
+  private onStatusChange?: (status: 'connecting' | 'connected' | 'disconnected' | 'error') => void;
 
-// إنشاء سياق WebSocket
-const WebSocketContext = createContext<WebSocketContextType>({
-  socket: null,
-  isConnected: false,
-  messages: [],
-  sendMessage: () => {},
-});
+  constructor(config: WebSocketConfig = {}) {
+    this.reconnectAttempts = config.reconnectAttempts ?? 5;
+    this.reconnectInterval = config.reconnectInterval ?? 1000;
+    this.onMessage = config.onMessage;
+    this.onStatusChange = config.onStatusChange;
+    this.connect();
+  }
 
-// مزود WebSocket
-export const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
-  const [socket, setSocket] = useState<WebSocket | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
-  const [messages, setMessages] = useState<any[]>([]);
-  const [reconnectAttempts, setReconnectAttempts] = useState(0);
-  const maxReconnectAttempts = 5;
-
-  // إنشاء اتصال WebSocket
-  const createWebSocketConnection = () => {
+  private connect() {
     try {
-      console.log("جاري إنشاء اتصال WebSocket...");
+      if (this.ws) {
+        this.ws.close();
+      }
+
+      this.updateStatus('connecting');
       const wsUrl = getWebSocketUrl();
-      const ws = new WebSocket(wsUrl);
+      this.ws = new WebSocket(wsUrl);
 
-      ws.onopen = () => {
-        console.log("✅ تم الاتصال بخادم WebSocket");
-        setIsConnected(true);
-        setReconnectAttempts(0);
+      // Connection timeout handler
+      const connectionTimeout = setTimeout(() => {
+        if (this.ws?.readyState === WebSocket.CONNECTING) {
+          console.error('WebSocket connection timeout');
+          this.ws.close();
+        }
+      }, 5000);
+
+      this.ws.onopen = () => {
+        clearTimeout(connectionTimeout);
+        console.log('WebSocket connection established successfully');
+        this.currentAttempt = 0;
+        this.reconnectTimeout = this.reconnectInterval;
+        this.updateStatus('connected');
       };
 
-      ws.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          console.log("📨 تم استلام رسالة:", data);
-          setMessages((prev) => [...prev, data]);
-        } catch (error) {
-          console.error("❌ خطأ في تحليل رسالة WebSocket:", error);
+      this.ws.onmessage = (event) => {
+        console.log('Received WebSocket message:', event.data);
+        if (this.onMessage) {
+          try {
+            const data = JSON.parse(event.data);
+            this.onMessage(data);
+          } catch (error) {
+            this.onMessage(event.data);
+          }
         }
       };
 
-      ws.onclose = (event) => {
-        console.log("❌ تم إغلاق اتصال WebSocket:", event.code, event.reason);
-        setIsConnected(false);
-        
-        // محاولة إعادة الاتصال إذا لم يكن الإغلاق متعمدًا
-        if (reconnectAttempts < maxReconnectAttempts) {
-          console.log(`محاولة إعادة الاتصال ${reconnectAttempts + 1}/${maxReconnectAttempts}...`);
-          setTimeout(() => {
-            setReconnectAttempts((prev) => prev + 1);
-            createWebSocketConnection();
-          }, 3000); // إعادة المحاولة بعد 3 ثوانٍ
-        } else {
-          console.log("تم الوصول إلى الحد الأقصى من محاولات إعادة الاتصال");
-        }
+      this.ws.onclose = (event) => {
+        clearTimeout(connectionTimeout);
+        console.log('WebSocket connection closed:', {
+          code: event.code,
+          reason: event.reason,
+          wasClean: event.wasClean
+        });
+        this.updateStatus('disconnected');
+        this.scheduleReconnect();
       };
 
-      ws.onerror = (error) => {
-        console.error("❌ خطأ في اتصال WebSocket:", error);
+      this.ws.onerror = (error) => {
+        clearTimeout(connectionTimeout);
+        console.error('WebSocket error:', error);
+        this.updateStatus('error');
       };
 
-      setSocket(ws);
-      return ws;
     } catch (error) {
-      console.error("❌ فشل في إنشاء اتصال WebSocket:", error);
-      return null;
+      console.error('Error creating WebSocket connection:', error);
+      this.updateStatus('error');
+      this.scheduleReconnect();
     }
-  };
+  }
 
-  // إرسال رسالة
-  const sendMessage = (message: any) => {
-    if (socket && isConnected) {
-      try {
-        const messageString = typeof message === 'string' ? message : JSON.stringify(message);
-        socket.send(messageString);
-        console.log("📤 تم إرسال رسالة:", message);
-      } catch (error) {
-        console.error("❌ خطأ في إرسال رسالة:", error);
-      }
-    } else {
-      console.warn("⚠️ لا يمكن إرسال الرسالة: الاتصال غير متوفر");
+  private scheduleReconnect() {
+    if (this.currentAttempt >= this.reconnectAttempts) {
+      console.log('Maximum reconnection attempts reached');
+      return;
     }
-  };
 
-  // إنشاء الاتصال عند تحميل المكون
-  useEffect(() => {
-    const ws = createWebSocketConnection();
-    
-    // تنظيف عند إزالة المكون
-    return () => {
-      if (ws) {
-        console.log("🧹 تنظيف اتصال WebSocket");
-        ws.close();
-      }
-    };
-  }, [reconnectAttempts]);
+    this.currentAttempt++;
+    const timeout = Math.min(this.reconnectTimeout * Math.pow(2, this.currentAttempt - 1), this.maxReconnectTimeout);
 
-  const value = {
-    socket,
-    isConnected,
-    messages,
-    sendMessage,
-  };
+    console.log(`Attempting to reconnect in ${timeout}ms (attempt ${this.currentAttempt}/${this.reconnectAttempts})`);
 
-  return (
-    <WebSocketContext.Provider value={value}>
-      {children}
-    </WebSocketContext.Provider>
-  );
-};
+    setTimeout(() => {
+      this.connect();
+    }, timeout);
+  }
 
-// مكوّن الاستخدام
-export const useWebSocket = () => useContext(WebSocketContext);
+  private updateStatus(status: 'connecting' | 'connected' | 'disconnected' | 'error') {
+    if (this.onStatusChange) {
+      this.onStatusChange(status);
+    }
+  }
+
+  public send(data: string | object) {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      console.error('WebSocket is not connected');
+      return false;
+    }
+
+    try {
+      const message = typeof data === 'string' ? data : JSON.stringify(data);
+      this.ws.send(message);
+      return true;
+    } catch (error) {
+      console.error('Error sending WebSocket message:', error);
+      return false;
+    }
+  }
+
+  public close() {
+    if (this.ws) {
+      this.ws.close();
+    }
+  }
+}
