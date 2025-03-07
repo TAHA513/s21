@@ -85,10 +85,16 @@ export class DatabaseStorage implements IStorage {
   async getCustomers(): Promise<any[]> {
     try {
       console.log('جاري استرداد بيانات العملاء من قاعدة البيانات...');
+      // التحقق من حالة الاتصال قبل الاستعلام
+      const checkConn = await pool.query('SELECT 1');
+      console.log('حالة الاتصال بقاعدة البيانات:', checkConn ? 'متصل' : 'غير متصل');
+      
       const result = await pool.query('SELECT * FROM customers ORDER BY id DESC');
       console.log(`تم استرداد ${result.rows.length} عميل بنجاح`);
       if (result.rows.length > 0) {
         console.log('نموذج بيانات العميل:', JSON.stringify(result.rows[0], null, 2));
+      } else {
+        console.log('لا توجد بيانات عملاء في قاعدة البيانات');
       }
       return result.rows;
     } catch (error) {
@@ -97,6 +103,19 @@ export class DatabaseStorage implements IStorage {
         console.error('رسالة الخطأ:', error.message);
         console.error('تفاصيل الخطأ:', error.stack);
       }
+      
+      // التحقق من الجداول الموجودة في قاعدة البيانات
+      try {
+        const tables = await pool.query(`
+          SELECT table_name 
+          FROM information_schema.tables 
+          WHERE table_schema = 'public'
+        `);
+        console.log('الجداول الموجودة في قاعدة البيانات:', tables.rows.map(r => r.table_name));
+      } catch (e) {
+        console.error('فشل في الحصول على قائمة الجداول:', e);
+      }
+      
       return [];
     }
   }
