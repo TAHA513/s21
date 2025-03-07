@@ -69,7 +69,8 @@ export default function CustomersPage() {
           <SearchInput
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="البحث عن عميل..."
+            placeholder="بحث عن عميل..."
+          />lder="البحث عن عميل..."
           />
         </div>
 

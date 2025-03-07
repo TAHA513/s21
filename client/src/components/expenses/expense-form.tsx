@@ -234,7 +234,7 @@ export function ExpenseForm() {
               <Button type="button" variant="outline" className="transition-transform hover:scale-105">
                 إلغاء
               </Button>
-            </DialogClose>
+            </DialogClose>ialogClose>
             <Button type="submit" className="transition-transform hover:scale-105">إضافة</Button>
           </motion.div>
         </form>
