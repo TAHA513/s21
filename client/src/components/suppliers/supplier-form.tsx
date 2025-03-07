@@ -27,11 +27,10 @@ export function SupplierForm({ onSuccess }: SupplierFormProps) {
     resolver: zodResolver(insertSupplierSchema),
     defaultValues: {
       name: "",
-      phoneNumber: "",
+      phone: "",
       email: "",
       address: "",
       notes: "",
-      status: "active",
     },
   });
 
@@ -74,12 +73,12 @@ export function SupplierForm({ onSuccess }: SupplierFormProps) {
 
         <FormField
           control={form.control}
-          name="phoneNumber"
+          name="phone"
           render={({ field }) => (
             <FormItem>
               <FormLabel>رقم الهاتف</FormLabel>
               <FormControl>
-                <Input {...field} />
+                <Input {...field} type="tel" dir="ltr" />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -93,7 +92,7 @@ export function SupplierForm({ onSuccess }: SupplierFormProps) {
             <FormItem>
               <FormLabel>البريد الإلكتروني</FormLabel>
               <FormControl>
-                <Input type="email" {...field} />
+                <Input type="email" {...field} dir="ltr" />
               </FormControl>
               <FormMessage />
             </FormItem>

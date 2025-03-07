@@ -9,7 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useQuery } from "@tanstack/react-query";
-import { Plus, MoreVertical, Edit, Trash } from "lucide-react";
+import { Plus, MoreVertical, Edit } from "lucide-react";
 import { useState } from "react";
 import { SearchInput } from "@/components/ui/search-input";
 import {
@@ -29,14 +29,15 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
+import type { Supplier } from "@shared/schema";
 
 export default function SuppliersPage() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
 
-  const { data: suppliers = [] } = useQuery({
+  const { data: suppliers = [] } = useQuery<Supplier[]>({
     queryKey: ["/api/suppliers"],
   });
 
@@ -44,34 +45,15 @@ export default function SuppliersPage() {
   const filteredSuppliers = suppliers.filter((supplier) =>
     supplier.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     supplier.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    supplier.phoneNumber?.includes(searchTerm)
+    supplier.phone?.includes(searchTerm)
   );
-
-  // تغيير حالة المورد
-  const updateSupplierStatus = async (id: number, status: string) => {
-    try {
-      await apiRequest("PATCH", `/api/suppliers/${id}`, { status });
-      queryClient.invalidateQueries({ queryKey: ['/api/suppliers'] });
-
-      toast({
-        title: "تم تحديث الحالة",
-        description: "تم تحديث حالة المورد بنجاح",
-      });
-    } catch (error) {
-      toast({
-        title: "خطأ",
-        description: "حدث خطأ أثناء تحديث حالة المورد",
-        variant: "destructive",
-      });
-    }
-  };
 
   return (
     <DashboardLayout>
       <div className="space-y-8">
         <div className="flex justify-between items-center">
           <h1 className="text-3xl font-bold">الموردين</h1>
-          <Dialog>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button>
                 <Plus className="h-4 w-4 ml-2" />
@@ -85,7 +67,14 @@ export default function SuppliersPage() {
                   أدخل بيانات المورد الجديد
                 </DialogDescription>
               </DialogHeader>
-              <SupplierForm />
+              <SupplierForm onSuccess={() => {
+                setIsDialogOpen(false);
+                queryClient.invalidateQueries({ queryKey: ["/api/suppliers"] });
+                toast({
+                  title: "تم بنجاح",
+                  description: "تمت إضافة المورد بنجاح",
+                });
+              }} />
             </DialogContent>
           </Dialog>
         </div>
@@ -108,9 +97,7 @@ export default function SuppliersPage() {
                 <TableHead>رقم الهاتف</TableHead>
                 <TableHead>البريد الإلكتروني</TableHead>
                 <TableHead>العنوان</TableHead>
-                <TableHead>عدد الطلبات</TableHead>
-                <TableHead>إجمالي التعاملات</TableHead>
-                <TableHead>الحالة</TableHead>
+                <TableHead>الملاحظات</TableHead>
                 <TableHead>الإجراءات</TableHead>
               </TableRow>
             </TableHeader>
@@ -118,22 +105,10 @@ export default function SuppliersPage() {
               {filteredSuppliers.map((supplier) => (
                 <TableRow key={supplier.id}>
                   <TableCell className="font-medium">{supplier.name}</TableCell>
-                  <TableCell>{supplier.phoneNumber}</TableCell>
-                  <TableCell>{supplier.email}</TableCell>
-                  <TableCell>{supplier.address}</TableCell>
-                  <TableCell>{supplier.ordersCount || 0}</TableCell>
-                  <TableCell>{supplier.totalAmount || 0}</TableCell>
-                  <TableCell>
-                    <Badge
-                      className={
-                        supplier.status === "active"
-                          ? "bg-green-100 text-green-800"
-                          : "bg-gray-100 text-gray-800"
-                      }
-                    >
-                      {supplier.status === "active" ? "نشط" : "غير نشط"}
-                    </Badge>
-                  </TableCell>
+                  <TableCell>{supplier.phone || '-'}</TableCell>
+                  <TableCell>{supplier.email || '-'}</TableCell>
+                  <TableCell>{supplier.address || '-'}</TableCell>
+                  <TableCell>{supplier.notes || '-'}</TableCell>
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -146,16 +121,6 @@ export default function SuppliersPage() {
                           <Edit className="h-4 w-4 ml-2" />
                           تعديل
                         </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() =>
-                            updateSupplierStatus(
-                              supplier.id,
-                              supplier.status === "active" ? "inactive" : "active"
-                            )
-                          }
-                        >
-                          {supplier.status === "active" ? "تعطيل" : "تفعيل"}
-                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -163,8 +128,8 @@ export default function SuppliersPage() {
               ))}
               {filteredSuppliers.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                    لا يوجد موردين حالياً
+                  <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
+                    لا يوجد موردين مطابقين للبحث
                   </TableCell>
                 </TableRow>
               )}

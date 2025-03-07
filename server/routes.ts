@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { insertSupplierSchema } from "@shared/schema";
 import express from 'express';
 import multer from 'multer';
 import { backupService } from './services/backup-service';
@@ -38,6 +39,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: 'حدث خطأ أثناء جلب المبيعات' });
     }
   });
+
+  // Suppliers Routes
+  app.get("/api/suppliers", async (_req, res) => {
+    try {
+      const suppliers = await storage.getSuppliers();
+      res.json(suppliers);
+    } catch (error) {
+      console.error('خطأ في جلب الموردين:', error);
+      res.status(500).json({ message: 'حدث خطأ أثناء جلب الموردين' });
+    }
+  });
+
+  app.post("/api/suppliers", async (req, res) => {
+    try {
+      const supplierData = insertSupplierSchema.parse(req.body);
+      const supplier = await storage.createSupplier(supplierData);
+      res.status(201).json(supplier);
+    } catch (error) {
+      console.error('خطأ في إضافة المورد:', error);
+      res.status(400).json({ message: 'بيانات المورد غير صحيحة' });
+    }
+  });
+
 
   // Backup and Restore endpoints
   app.post('/api/backup/generate', async (_req, res) => {
