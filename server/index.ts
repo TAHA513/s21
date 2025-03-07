@@ -75,8 +75,8 @@ async function main() {
     console.log(`📱 يمكنك الوصول إلى التطبيق من خلال: http://0.0.0.0:${port}/`);
 
       // إعداد WebSocket
-      import WebSocket from 'ws';
-      const wss = new WebSocket.Server({ server });
+      import { WebSocketServer } from 'ws';
+      const wss = new WebSocketServer({ server });
 
       wss.on('connection', (ws) => {
         console.log('✅ اتصال WebSocket جديد');

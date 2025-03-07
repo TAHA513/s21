@@ -1,4 +1,3 @@
-
 import sqlite3 from 'sqlite3';
 import { open, Database } from 'sqlite';
 
@@ -12,6 +11,14 @@ export async function getDb() {
       filename: './database.sqlite',
       driver: sqlite3.Database
     });
+
+    // إنشاء الجداول الأساسية إذا لم تكن موجودة
+    await _db.exec(`
+      CREATE TABLE IF NOT EXISTS connection_test (
+        id INTEGER PRIMARY KEY,
+        timestamp TEXT DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
   }
   return _db;
 }
@@ -47,12 +54,6 @@ export async function testConnection() {
   try {
     console.log('جاري اختبار الاتصال بقاعدة البيانات...');
     const db = await getDb();
-    await db.exec(`
-      CREATE TABLE IF NOT EXISTS connection_test (
-        id INTEGER PRIMARY KEY,
-        test_date TEXT
-      )
-    `);
     const result = await db.get('SELECT datetime("now") as now');
     console.log('✅ تم الاتصال بقاعدة البيانات بنجاح. الوقت الحالي:', result?.now);
     return true;
