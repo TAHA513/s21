@@ -14,7 +14,7 @@ import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import { promisify } from "util";
 import bcrypt from "bcryptjs";
-import { createClient } from "@neondatabase/serverless";
+import { neon } from "@neondatabase/serverless";
 import pino from "pino";
 
 // إعداد المسجل (Logger)
@@ -39,7 +39,7 @@ const httpServer = createServer(app);
 
 // إعداد قاعدة البيانات
 const pool = NODE_ENV === "production" ? 
-  createClient(DATABASE_URL) : 
+  neon(DATABASE_URL) : 
   new Pool({ connectionString: DATABASE_URL });
 
 const db = drizzle(pool);

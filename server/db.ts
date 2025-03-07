@@ -2,7 +2,7 @@
 import pkg from "pg";
 const { Pool } = pkg;
 import { drizzle } from "drizzle-orm/node-postgres";
-import { createClient } from "@neondatabase/serverless";
+import { neon } from "@neondatabase/serverless";
 import { users } from "../shared/schema.js";
 
 // استيراد المتغيرات البيئية
@@ -11,7 +11,7 @@ const NODE_ENV = process.env.NODE_ENV || "development";
 
 // إنشاء بركة الاتصال بقاعدة البيانات وفقًا للبيئة
 const pool = NODE_ENV === "production" ? 
-  createClient(DATABASE_URL) : 
+  neon(DATABASE_URL) : 
   new Pool({ connectionString: DATABASE_URL });
 
 // إنشاء معالج Drizzle ORM
