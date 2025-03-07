@@ -2,10 +2,13 @@
 export function getWebSocketUrl(): string {
   // Use the same protocol as the page (http -> ws, https -> wss)
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const host = window.location.host; // This includes hostname and port
-
-  // Build WebSocket URL
-  const wsUrl = `${protocol}//${host}/ws`;
+  const hostname = window.location.hostname;
+  
+  // استخدام المنفذ 24679 الذي تم تعيينه في إعدادات Vite
+  const wsPort = 24679;
+  
+  // Build WebSocket URL with explicit port
+  const wsUrl = `${protocol}//${hostname}:${wsPort}/ws`;
   console.log('WebSocket URL:', wsUrl);
   return wsUrl;
 }

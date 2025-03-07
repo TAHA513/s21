@@ -27,8 +27,10 @@ export async function setupVite(app: Express, server: Server) {
     middlewareMode: true,
     hmr: { 
       server,
-      port: 24678, // استخدام منفذ محدد للـ WebSocket
-      host: true    // السماح بالاتصال من أي مضيف
+      port: 24679, // تغيير المنفذ لتجنب التعارض
+      clientPort: 24679, // تحديد منفذ العميل أيضاً
+      host: true,
+      protocol: 'ws'
     },
     allowedHosts: true,
   };
