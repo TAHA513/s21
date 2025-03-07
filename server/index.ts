@@ -1,4 +1,3 @@
-
 import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -24,7 +23,7 @@ if (process.env.NODE_ENV !== "production") {
       server: { middlewareMode: true },
     })
   ).middlewares;
-  
+
   app.use(viteDevMiddleware);
 } else {
   // توجيه جميع الطلبات إلى index.html في وضع الإنتاج
@@ -54,23 +53,23 @@ import { WebSocketServer } from 'ws';
 const server = app.listen(port, "0.0.0.0", () => {
   console.log(`تم تشغيل الخادم على المنفذ ${port}`);
   console.log(`الواجهة متاحة على https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`);
-  
+
   // إعداد خادم WebSocket
   const wss = new WebSocketServer({ server });
-  
+
   wss.on('connection', (ws) => {
     console.log('WebSocket client connected');
-    
+
     ws.on('message', (message) => {
       console.log('Received:', message);
       // إرسال رد للعميل
       ws.send(JSON.stringify({ status: 'received', message: message.toString() }));
     });
-    
+
     ws.on('close', () => {
       console.log('WebSocket client disconnected');
     });
-    
+
     // إرسال رسالة ترحيب
     ws.send(JSON.stringify({ type: 'welcome', message: 'مرحبا بك في النظام!' }));
   });
