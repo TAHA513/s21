@@ -1,4 +1,3 @@
-
 import pg from 'pg';
 
 // إنشاء تجمع الاتصالات لقاعدة البيانات بوستجريسكل
@@ -11,15 +10,15 @@ export const pool = new pg.Pool({
   ssl: false
 });
 
-// اختبار الاتصال بقاعدة البيانات
+// إضافة وظيفة للتحقق من الاتصال
 export async function testConnection() {
   try {
-    const client = await pool.connect();
-    console.log('✅ تم الاتصال بقاعدة البيانات بنجاح');
-    client.release();
+    console.log('جاري اختبار الاتصال بقاعدة البيانات...');
+    const result = await pool.query('SELECT NOW()');
+    console.log('تم الاتصال بقاعدة البيانات بنجاح. الوقت الحالي:', result.rows[0].now);
     return true;
   } catch (error) {
-    console.error('❌ فشل الاتصال بقاعدة البيانات:', error);
+    console.error('فشل الاتصال بقاعدة البيانات:', error);
     return false;
   }
 }

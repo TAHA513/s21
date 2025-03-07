@@ -1,4 +1,3 @@
-
 import express from 'express';
 import cors from 'cors';
 import { createServer } from 'http';
@@ -10,7 +9,7 @@ import { storage } from './storage.js';
 async function main() {
   // تجهيز تطبيق Express
   const app = express();
-  
+
   // تكوين CORS وإعدادات JSON
   app.use(cors({
     origin: true,
@@ -18,19 +17,19 @@ async function main() {
   }));
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
-  
+
   console.log("🚀 بدء تشغيل الخادم...");
-  
+
   // اختبار الاتصال بقاعدة البيانات
   const dbConnected = await testConnection();
   if (!dbConnected) {
     console.error("❌ فشل الاتصال بقاعدة البيانات، سيتم محاولة إنشاء الجداول عند الطلب لاحقًا");
   }
-  
+
   // إعداد طرق API
   await setupRoutes(app);
   console.log("✅ تم تسجيل طرق API بنجاح");
-  
+
   // إنشاء وضمان وجود جداول قاعدة البيانات
   await storage.ensureTablesExist()
     .then(success => {
@@ -40,13 +39,13 @@ async function main() {
         console.error("❌ حدث خطأ أثناء إنشاء الجداول");
       }
     });
-  
+
   // استخدام منفذ 8080 لتجنب أي تعارض
   const port = process.env.PORT || 8080;
-  
+
   // إنشاء خادم HTTP
   const server = createServer(app);
-  
+
   // إعداد خادم Vite للواجهة الأمامية
   try {
     await setupViteServer(app, server);
@@ -54,7 +53,7 @@ async function main() {
   } catch (error) {
     console.error("❌ فشل في إعداد خادم Vite:", error);
   }
-  
+
   // إيقاف أي عمليات سابقة على نفس المنفذ (إجراء بديل)
   server.on('error', (error) => {
     if (error.code === 'EADDRINUSE') {
@@ -67,10 +66,10 @@ async function main() {
       console.error(`❌ خطأ في الخادم:`, error);
     }
   });
-  
+
   // اختبار إذا كان المنفذ قيد الاستخدام
   import { createServer as createNetServer } from 'net';
-  
+
   const testPort = (port: number): Promise<boolean> => {
     return new Promise((resolve) => {
       const testServer = createNetServer()
@@ -85,31 +84,80 @@ async function main() {
         .listen(port, '0.0.0.0');
     });
   };
-  
-  // اختبار المنفذ ثم الاستماع عليه إذا كان متاحًا
+
+  // بدء الاستماع على المنفذ المتاح
   testPort(port).then((isAvailable) => {
-    if (isAvailable) {
-      // بدء الاستماع على المنفذ المتاح
-      server.listen(port, '0.0.0.0', () => {
-        console.log(`✅ الخادم يعمل على المنفذ ${port}`);
-        console.log(`📱 يمكنك الوصول إلى التطبيق من خلال: http://0.0.0.0:${port}/`);
+    const chosenPort = isAvailable ? port : port + 1000;
+
+    // بدء الاستماع على المنفذ المتاح
+    server.listen(chosenPort, '0.0.0.0', () => {
+      if (!isAvailable) {
+        console.log(`⚠️ المنفذ ${port} قيد الاستخدام، تم الانتقال إلى المنفذ ${chosenPort}`);
+      }
+
+      console.log(`✅ الخادم يعمل على المنفذ ${chosenPort}`);
+      console.log(`📱 يمكنك الوصول إلى التطبيق من خلال: http://0.0.0.0:${chosenPort}/`);
+
+      // إعداد WebSocket
+      const WebSocket = require('ws');
+      const wss = new WebSocket.Server({ server });
+
+      wss.on('connection', (ws) => {
+        console.log('✅ اتصال WebSocket جديد');
+
+        // إرسال رسالة ترحيب عند الاتصال
+        ws.send(JSON.stringify({ type: 'connection', message: 'مرحبًا بك في نظام إدارة الأعمال' }));
+
+        // استماع للرسائل الواردة
+        ws.on('message', (message) => {
+          console.log('📩 رسالة واردة:', message.toString());
+          try {
+            const parsedMessage = JSON.parse(message.toString());
+
+            // معالجة الرسالة حسب النوع
+            if (parsedMessage.type === 'refresh') {
+              // إعادة تحميل البيانات وإرسالها للعميل
+              wss.clients.forEach((client) => {
+                if (client.readyState === WebSocket.OPEN) {
+                  client.send(JSON.stringify({ type: 'refresh', timestamp: new Date().toISOString() }));
+                }
+              });
+            }
+          } catch (error) {
+            console.error('❌ خطأ في معالجة رسالة WebSocket:', error);
+          }
+        });
+
+        // معالجة إغلاق الاتصال
+        ws.on('close', () => {
+          console.log('❌ تم إغلاق اتصال WebSocket');
+        });
+
+        // معالجة الأخطاء
+        ws.on('error', (error) => {
+          console.error('❌ خطأ في اتصال WebSocket:', error);
+        });
       });
-    } else {
-      // إذا كان المنفذ غير متاح، استخدم منفذ آخر
-      const newPort = port + 1000;
-      console.log(`⚠️ المنفذ ${port} قيد الاستخدام، جاري المحاولة على المنفذ ${newPort}...`);
-      server.listen(newPort, '0.0.0.0', () => {
-        console.log(`✅ الخادم يعمل على المنفذ ${newPort}`);
-        console.log(`📱 يمكنك الوصول إلى التطبيق من خلال: http://0.0.0.0:${newPort}/`);
-      });
-    }
+
+      // إرسال إشعارات بتحديث البيانات لجميع العملاء
+      const notifyClients = (type, data) => {
+        wss.clients.forEach((client) => {
+          if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify({ type, data, timestamp: new Date().toISOString() }));
+          }
+        });
+      };
+
+      // تصدير وظيفة الإشعار للاستخدام في وحدات أخرى
+      global.notifyClients = notifyClients;
+    });
   });
-  
+
   // معالجة الأخطاء غير المتوقعة
   process.on('uncaughtException', (error) => {
     console.error('❌ خطأ غير متوقع:', error);
   });
-  
+
   process.on('unhandledRejection', (reason, promise) => {
     console.error('❌ وعد غير معالج:', reason);
   });

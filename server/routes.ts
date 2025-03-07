@@ -18,12 +18,23 @@ export async function setupRoutes(app: Express) {
   // الحصول على جميع المنتجات
   app.get('/api/products', async (req, res) => {
     try {
+      console.log('طلب جديد للحصول على المنتجات');
       const products = await storage.getAllProducts();
-      res.json({
+      console.log(`تم العثور على ${products.length} منتج، جاري إرسالها إلى العميل`);
+      
+      // إرسال البيانات
+      const response = {
         status: 'success',
         count: products.length,
         data: products
-      });
+      };
+      
+      res.json(response);
+      
+      // إشعار جميع العملاء المتصلين (إذا كان متاحًا)
+      if (global.notifyClients) {
+        global.notifyClients('products_updated', { count: products.length });
+      }
     } catch (error) {
       console.error('خطأ في جلب المنتجات:', error);
       res.status(500).json({ 
