@@ -65,6 +65,7 @@ export async function setupRoutes(app: Express): Promise<void> {
   app.get("/api/products", async (_req, res) => {
     try {
       const products = await storage.getProducts();
+      console.log("تم استرجاع المنتجات:", JSON.stringify(products, null, 2));
       res.json(products);
     } catch (error) {
       console.error('خطأ في استرجاع المنتجات:', error);

@@ -48,7 +48,7 @@ async function main() {
     }
 
     // إعداد وتشغيل الخادم
-    const port = process.env.PORT || 5090; // استخدام منفذ مختلف لتجنب التعارض
+    const port = process.env.PORT || 5091; // تغيير المنفذ لتجنب التعارض
 
     // إنشاء HTTP server
     const server = createServer(app);

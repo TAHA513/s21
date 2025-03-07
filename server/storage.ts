@@ -193,10 +193,12 @@ export class DatabaseStorage implements IStorage {
   // عمليات المنتجات
   async getProducts(): Promise<any[]> {
     try {
-      const result = await pool.query('SELECT * FROM products ORDER BY id DESC');
+      console.log("جاري استرجاع المنتجات من قاعدة البيانات...");
+      const result = await pool.query('SELECT * FROM products');
+      console.log(`تم استرجاع ${result.rows.length} منتج من قاعدة البيانات`);
       return result.rows;
     } catch (error) {
-      console.error('خطأ في الحصول على المنتجات:', error);
+      console.error("خطأ في استرجاع المنتجات من قاعدة البيانات:", error);
       return [];
     }
   }
