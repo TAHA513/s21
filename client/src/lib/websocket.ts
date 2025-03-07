@@ -5,7 +5,7 @@ export function getWebSocketUrl(): string {
   const host = window.location.host; // This includes hostname and port
 
   // Build WebSocket URL
-  const wsUrl = `${protocol}//${host}`;
+  const wsUrl = `${protocol}//${host}/ws`;
   console.log('WebSocket URL:', wsUrl);
   return wsUrl;
 }
