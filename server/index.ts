@@ -66,7 +66,7 @@ app.get('/api/social-accounts', async (req, res) => {
 if (process.env.NODE_ENV !== 'production') {
   console.log("Setting up Vite proxy middleware for development");
   const viteProxy = createProxyMiddleware({
-    target: 'http://127.0.0.1:5174',
+    target: 'http://0.0.0.0:5174',
     changeOrigin: true,
     ws: true,
     logLevel: 'debug',
@@ -99,7 +99,7 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 // Serve the app on a different port to avoid conflicts
-const PORT = parseInt(process.env.PORT || '3001', 10);
+const PORT = parseInt(process.env.PORT || '3002', 10);
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
 });
