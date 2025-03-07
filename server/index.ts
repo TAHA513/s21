@@ -127,7 +127,6 @@ async function main() {
       // تصدير وظيفة الإشعار للاستخدام في وحدات أخرى
       global.notifyClients = notifyClients;
     });
-  });
 
   // معالجة الأخطاء غير المتوقعة
   process.on('uncaughtException', (error) => {
