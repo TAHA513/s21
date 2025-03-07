@@ -1,5 +1,5 @@
 import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "./routes";
+import { setupRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "../attached_assets/vite";
 import { setupAuth } from "./auth";
 
@@ -44,7 +44,7 @@ app.use((req, res, next) => {
     setupAuth(app);
     log('تم إعداد نظام المصادقة');
 
-    const server = await registerRoutes(app);
+    const server = await setupRoutes(app);
     log('تم تسجيل جميع المسارات');
 
     // Error handling middleware
