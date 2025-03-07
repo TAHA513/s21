@@ -21,6 +21,16 @@ pool.on('error', (err) => {
   process.exit(-1);
 });
 
+// اختبار الاتصال عند بدء التشغيل
+pool.connect()
+  .then(() => {
+    console.log('Successfully connected to PostgreSQL database');
+  })
+  .catch((err) => {
+    console.error('Failed to connect to PostgreSQL database:', err);
+    process.exit(-1);
+  });
+
 // تهيئة Drizzle ORM مع pool
 export const db = drizzle(pool, { schema });
 

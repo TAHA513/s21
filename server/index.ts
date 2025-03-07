@@ -7,6 +7,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import helmet from 'helmet';
+import { sql } from 'drizzle-orm';
+import { users } from '../shared/schema';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -57,8 +59,23 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 // Health check endpoint
-app.get('/api/health', (req, res) => {
-  res.status(200).json({ status: 'healthy' });
+app.get('/api/health', async (req, res) => {
+  try {
+    // Test database connection
+    const [result] = await db.select({ count: sql`1` }).from(users);
+    res.status(200).json({ 
+      status: 'healthy',
+      database: 'connected',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Health check failed:', error);
+    res.status(500).json({ 
+      status: 'unhealthy',
+      error: 'Database connection failed',
+      timestamp: new Date().toISOString()
+    });
+  }
 });
 
 // API Routes
@@ -72,16 +89,6 @@ app.get('/api/database-connections', async (req, res) => {
   }
 });
 
-app.post('/api/database-connections', async (req, res) => {
-  try {
-    const connection = await storage.createDatabaseConnection(req.body);
-    res.status(201).json(connection);
-  } catch (error) {
-    console.error('Error creating database connection:', error);
-    res.status(500).json({ error: 'حدث خطأ أثناء إنشاء اتصال قاعدة البيانات' });
-  }
-});
-
 app.get('/api/social-accounts', async (req, res) => {
   try {
     const accounts = await storage.getSocialMediaAccounts();
@@ -91,6 +98,21 @@ app.get('/api/social-accounts', async (req, res) => {
     res.status(500).json({ error: 'حدث خطأ أثناء جلب حسابات التواصل الاجتماعي' });
   }
 });
+
+// Default route for development mode
+if (process.env.NODE_ENV !== 'production') {
+  app.get('/', (req, res) => {
+    res.json({
+      status: 'Development server is running',
+      apis: {
+        health: '/api/health',
+        databaseConnections: '/api/database-connections',
+        socialAccounts: '/api/social-accounts'
+      },
+      frontend: 'http://localhost:5173'
+    });
+  });
+}
 
 // Handle frontend routing in production
 if (process.env.NODE_ENV === 'production') {
