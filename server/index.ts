@@ -67,36 +67,12 @@ async function main() {
     }
   });
 
-  // اختبار إذا كان المنفذ قيد الاستخدام
-  import { createServer as createNetServer } from 'net';
+  // بدء الاستماع على المنفذ
 
-  const testPort = (port: number): Promise<boolean> => {
-    return new Promise((resolve) => {
-      const testServer = createNetServer()
-        .once('error', () => {
-          // المنفذ قيد الاستخدام بالفعل
-          resolve(false);
-        })
-        .once('listening', () => {
-          // المنفذ متاح
-          testServer.close(() => resolve(true));
-        })
-        .listen(port, '0.0.0.0');
-    });
-  };
-
-  // بدء الاستماع على المنفذ المتاح
-  testPort(port).then((isAvailable) => {
-    const chosenPort = isAvailable ? port : port + 1000;
-
-    // بدء الاستماع على المنفذ المتاح
-    server.listen(chosenPort, '0.0.0.0', () => {
-      if (!isAvailable) {
-        console.log(`⚠️ المنفذ ${port} قيد الاستخدام، تم الانتقال إلى المنفذ ${chosenPort}`);
-      }
-
-      console.log(`✅ الخادم يعمل على المنفذ ${chosenPort}`);
-      console.log(`📱 يمكنك الوصول إلى التطبيق من خلال: http://0.0.0.0:${chosenPort}/`);
+  // بدء الاستماع على المنفذ
+  server.listen(port, '0.0.0.0', () => {
+    console.log(`✅ الخادم يعمل على المنفذ ${port}`);
+    console.log(`📱 يمكنك الوصول إلى التطبيق من خلال: http://0.0.0.0:${port}/`);
 
       // إعداد WebSocket
       const WebSocket = require('ws');

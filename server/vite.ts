@@ -26,11 +26,7 @@ export async function setupViteServer(app: Express, server: Server) {
   const serverOptions = {
     middlewareMode: true,
     hmr: { 
-      server,
-      port: 24680, 
-      clientPort: 24680, 
-      host: true,
-      protocol: 'ws'
+      server
     },
     appType: "custom",
   };
