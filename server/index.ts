@@ -7,6 +7,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import helmet from 'helmet';
+import { createProxyMiddleware } from 'http-proxy-middleware';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -79,10 +80,41 @@ app.get('/api/social-accounts', async (req, res) => {
   }
 });
 
-// إضافة مسار الصفحة الرئيسية لإصلاح الخطأ Cannot GET /
-app.get('/', (req, res) => {
-  res.send('Server is running!');
-});
+// Handle frontend routing
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, '../client/dist')));
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../client/dist/index.html'));
+  });
+} else {
+  // In development mode, proxy requests to Vite dev server
+  app.use('/api', (req, res, next) => {
+    // Skip proxy for API routes
+    next();
+  });
+
+  app.use(
+    createProxyMiddleware({
+      target: 'http://localhost:5173',
+      changeOrigin: true,
+      ws: true,
+      logLevel: 'debug',
+      pathRewrite: {
+        '^': '' // remove base path
+      },
+      onProxyReq: (proxyReq, req) => {
+        console.log(`[Proxy] ${req.method} ${req.url} -> ${proxyReq.path}`);
+      },
+      onProxyRes: (proxyRes, req) => {
+        console.log(`[Proxy] ${req.method} ${req.url} -> ${proxyRes.statusCode}`);
+      },
+      onError: (err, req, res) => {
+        console.error('[Proxy] Error:', err);
+        res.status(500).send('Proxy error: Failed to connect to Vite dev server');
+      }
+    })
+  );
+}
 
 // ALWAYS serve the app on port 5000
 const PORT = parseInt(process.env.PORT || '5000', 10);
