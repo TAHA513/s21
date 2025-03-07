@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp, decimal, boolean, json } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -109,7 +109,6 @@ export type MarketingCampaign = typeof marketingCampaigns.$inferSelect;
 export type InsertMarketingCampaign = z.infer<typeof insertMarketingCampaignSchema>;
 export type ScheduledPost = typeof scheduledPosts.$inferSelect;
 export type InsertScheduledPost = z.infer<typeof insertScheduledPostSchema>;
-
 
 // Create insert schemas
 export const insertUserSchema = createInsertSchema(users).extend({
