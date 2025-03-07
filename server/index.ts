@@ -7,6 +7,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import helmet from 'helmet';
+import { createProxyMiddleware } from 'http-proxy-middleware';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -47,6 +48,11 @@ app.use(
     },
   })
 );
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'healthy' });
+});
 
 // API Routes
 app.get('/api/database-connections', async (req, res) => {
@@ -97,10 +103,15 @@ if (process.env.NODE_ENV === 'production') {
     res.sendFile(path.join(__dirname, '../client/dist/index.html'));
   });
 } else {
-  // In development, redirect to Vite dev server for non-API routes
-  app.get(/^(?!\/api\/).*/, (req, res) => {
-    res.redirect(`http://localhost:5173${req.url}`);
-  });
+  // In development, proxy non-API requests to Vite dev server
+  app.use(
+    /^(?!\/api)/,
+    createProxyMiddleware({
+      target: 'http://localhost:5173',
+      changeOrigin: true,
+      ws: true,
+    })
+  );
 }
 
 // ALWAYS serve the app on port 5000
