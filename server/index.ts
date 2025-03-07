@@ -1,5 +1,5 @@
 
-import express, { json, urlencoded } from 'express';
+import express from 'express';
 import cors from 'cors';
 import { createServer } from 'http';
 import { setupViteServer } from './vite.js';
@@ -8,61 +8,84 @@ import { testConnection } from './db.js';
 import { storage } from './storage.js';
 
 async function main() {
-  console.log("بدء تشغيل الخادم...");
-  
-  // اختبار الاتصال بقاعدة البيانات
-  const dbConnected = await testConnection();
-  if (!dbConnected) {
-    console.error("فشل الاتصال بقاعدة البيانات، سيتم محاولة إنشاء الجداول عند الطلب");
-  } else {
-    console.log("تم الاتصال بقاعدة البيانات بنجاح");
-  }
-
-  // إنشاء تطبيق Express
+  // تجهيز تطبيق Express
   const app = express();
   
-  // تكوين التطبيق
-  app.use(json());
-  app.use(urlencoded({ extended: true }));
-  
-  // إعداد CORS - السماح بالوصول من أي مصدر عندما نكون في بيئة التطوير
+  // تكوين CORS وإعدادات JSON
   app.use(cors({
     origin: true,
     credentials: true
   }));
+  app.use(express.json());
+  app.use(express.urlencoded({ extended: true }));
+  
+  console.log("🚀 بدء تشغيل الخادم...");
+  
+  // اختبار الاتصال بقاعدة البيانات
+  const dbConnected = await testConnection();
+  if (!dbConnected) {
+    console.error("❌ فشل الاتصال بقاعدة البيانات، سيتم محاولة إنشاء الجداول عند الطلب لاحقًا");
+  }
   
   // إعداد طرق API
   await setupRoutes(app);
+  console.log("✅ تم تسجيل طرق API بنجاح");
   
-  // تأكد من وجود الجداول وإنشائها إذا لم تكن موجودة
-  await storage.ensureTablesExist();
+  // إنشاء وضمان وجود جداول قاعدة البيانات
+  await storage.ensureTablesExist()
+    .then(success => {
+      if (success) {
+        console.log("✅ تم التحقق من الجداول وإنشائها بنجاح");
+      } else {
+        console.error("❌ حدث خطأ أثناء إنشاء الجداول");
+      }
+    });
   
-  // إعداد وتشغيل الخادم
-  const port = process.env.PORT || 4000;
+  // استخدام منفذ 5000 بدلاً من 3000 أو 4000 لتجنب التعارض
+  const port = process.env.PORT || 5000;
   
   // إنشاء خادم HTTP
   const server = createServer(app);
   
   // إعداد خادم Vite للواجهة الأمامية
-  await setupViteServer(app, server);
+  try {
+    await setupViteServer(app, server);
+    console.log("✅ تم إعداد خادم Vite بنجاح");
+  } catch (error) {
+    console.error("❌ فشل في إعداد خادم Vite:", error);
+  }
   
-  // استماع إلى الطلبات
+  // إيقاف أي عمليات سابقة على نفس المنفذ (إجراء بديل)
+  server.on('error', (error) => {
+    if (error.code === 'EADDRINUSE') {
+      console.error(`❌ المنفذ ${port} قيد الاستخدام بالفعل، جاري المحاولة على منفذ آخر...`);
+      setTimeout(() => {
+        server.close();
+        server.listen(port + 1, '0.0.0.0');
+      }, 1000);
+    } else {
+      console.error(`❌ خطأ في الخادم:`, error);
+    }
+  });
+  
+  // بدء الاستماع على المنفذ
   server.listen(port, '0.0.0.0', () => {
-    console.log(`الخادم يعمل على المنفذ ${port} 🚀`);
-    console.log(`يمكنك الوصول إلى التطبيق من خلال: http://localhost:${port}/`);
+    console.log(`✅ الخادم يعمل على المنفذ ${port}`);
+    console.log(`📱 يمكنك الوصول إلى التطبيق من خلال: http://0.0.0.0:${port}/`);
   });
-
-  // إضافة معالجة للأخطاء غير المتوقعة
+  
+  // معالجة الأخطاء غير المتوقعة
   process.on('uncaughtException', (error) => {
-    console.error('خطأ غير متوقع:', error);
+    console.error('❌ خطأ غير متوقع:', error);
   });
-
+  
   process.on('unhandledRejection', (reason, promise) => {
-    console.error('وعد غير معالج:', reason);
+    console.error('❌ وعد غير معالج:', reason);
   });
 }
 
+// تشغيل الخادم
 main().catch((error) => {
-  console.error("خطأ أثناء بدء تشغيل الخادم:", error);
+  console.error("❌ خطأ أثناء بدء تشغيل الخادم:", error);
   process.exit(1);
 });

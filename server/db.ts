@@ -1,20 +1,25 @@
+
 import pg from 'pg';
 
 // إنشاء تجمع الاتصالات لقاعدة البيانات بوستجريسكل
 export const pool = new pg.Pool({
-  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/postgres',
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+  user: 'postgres',
+  host: 'localhost',
+  database: 'postgres',
+  password: 'postgres',
+  port: 5432,
+  ssl: false
 });
 
 // اختبار الاتصال بقاعدة البيانات
 export async function testConnection() {
   try {
     const client = await pool.connect();
-    console.log('تم الاتصال بقاعدة البيانات بنجاح');
+    console.log('✅ تم الاتصال بقاعدة البيانات بنجاح');
     client.release();
     return true;
   } catch (error) {
-    console.error('فشل الاتصال بقاعدة البيانات:', error);
+    console.error('❌ فشل الاتصال بقاعدة البيانات:', error);
     return false;
   }
 }
