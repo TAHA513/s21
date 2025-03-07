@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS "users" (
   "username" varchar NOT NULL UNIQUE,
   "password" varchar NOT NULL,
   "name" varchar NOT NULL,
+  "email" varchar,
   "role" varchar NOT NULL DEFAULT 'user',
   "created_at" timestamp NOT NULL DEFAULT NOW()
 );
@@ -111,6 +112,6 @@ ALTER TABLE "invoices" ADD CONSTRAINT "fk_invoice_customer" FOREIGN KEY ("custom
 ALTER TABLE "purchase_orders" ADD CONSTRAINT "fk_purchase_order_supplier" FOREIGN KEY ("supplier_id") REFERENCES "suppliers" ("id");
 
 -- Insert default admin user
-INSERT INTO users (username, password, name, role)
-VALUES ('admin', '$2b$10$eFP8kKU6PlyL5mZPKU7u8O2ck5Z2s2exA1wIIbYj7ouAU5bvwz0l6', 'المدير', 'admin')
+INSERT INTO users (username, password, name, email, role)
+VALUES ('admin', '$2b$10$eFP8kKU6PlyL5mZPKU7u8O2ck5Z2s2exA1wIIbYj7ouAU5bvwz0l6', 'المدير', 'admin@example.com', 'admin')
 ON CONFLICT (username) DO NOTHING;
