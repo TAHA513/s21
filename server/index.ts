@@ -71,7 +71,7 @@ app.use((req, res, next) => {
       log('تم إعداد الملفات الثابتة للإنتاج');
     }
 
-    const PORT = Number(process.env.PORT) || 5000;
+    const PORT = Number(process.env.PORT) || 5001;
 
     // التحقق من أن المنفذ غير مستخدم قبل بدء الخادم
     server.on('error', (error: any) => {
