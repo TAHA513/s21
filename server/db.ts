@@ -1,96 +1,32 @@
+import { Pool } from 'pg';
+import { drizzle } from 'drizzle-orm/node-postgres';
 
-// ملف وهمي بدون اتصال بقاعدة البيانات
-// هذا الملف يحل محل الاتصال بقاعدة البيانات ويوفر واجهة مشابهة
+// إنشاء الاتصال باستخدام متغيرات البيئة
+const connectionString = process.env.DATABASE_URL;
 
-// كائن وهمي لقاعدة البيانات
-export const db = {
-  // تنفيذ وهمي للاستعلامات
-  query: async () => {
-    return { rows: [] };
-  },
-  // تنفيذ وهمي للاختيار
-  select: () => {
-    return {
-      from: () => {
-        return {
-          where: () => {
-            return {
-              get: async () => null,
-              all: async () => [],
-              execute: async () => {}
-            };
-          },
-          all: async () => [],
-          get: async () => null,
-          execute: async () => {}
-        };
-      }
-    };
-  },
-  // تنفيذ وهمي للإدراج
-  insert: () => {
-    return {
-      values: (data: any) => {
-        return {
-          returning: () => {
-            return {
-              get: async () => ({ id: Math.floor(Math.random() * 1000) + 1, ...data }),
-              execute: async () => {}
-            };
-          },
-          execute: async () => {}
-        };
-      }
-    };
-  },
-  // تنفيذ وهمي للتحديث
-  update: () => {
-    return {
-      set: (data: any) => {
-        return {
-          where: () => {
-            return {
-              returning: () => {
-                return {
-                  get: async () => ({ id: Math.floor(Math.random() * 1000) + 1, ...data }),
-                  execute: async () => {}
-                };
-              },
-              execute: async () => {}
-            };
-          },
-          execute: async () => {}
-        };
-      }
-    };
-  },
-  // تنفيذ وهمي للحذف
-  delete: () => {
-    return {
-      from: () => {
-        return {
-          where: () => {
-            return {
-              execute: async () => {}
-            };
-          },
-          execute: async () => {}
-        };
-      }
-    };
-  }
-};
+if (!connectionString) {
+  console.error('خطأ: متغير البيئة DATABASE_URL غير محدد');
+  process.exit(1);
+}
 
-// كائن وهمي للمجمع
-export const pool = {
-  query: async () => {
-    return { rows: [] };
-  },
-  end: async () => {}
-};
+// إنشاء مجمع اتصالات قاعدة البيانات
+export const pool = new Pool({
+  connectionString,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+});
 
-// وظيفة وهمية لاختبار الاتصال
+// تصدير كائن Drizzle ORM
+export const db = drizzle(pool);
+
+// اختبار الاتصال بقاعدة البيانات
 export async function testConnection() {
-  console.log('تم تعطيل الاتصال بقاعدة البيانات بشكل دائم');
-  return true; // دائمًا ناجح لتجنب الأخطاء
+  try {
+    const client = await pool.connect();
+    console.log('تم الاتصال بقاعدة البيانات بنجاح');
+    client.release();
+    return true;
+  } catch (err) {
+    console.error('فشل الاتصال بقاعدة البيانات:', err);
+    return false;
+  }
 }
