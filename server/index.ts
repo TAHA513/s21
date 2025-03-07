@@ -40,24 +40,6 @@ app.use(helmet({
   crossOriginResourcePolicy: false,
 }));
 
-// Enable CORS for development
-if (process.env.NODE_ENV !== 'production') {
-  app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    res.header('Access-Control-Allow-Credentials', 'true');
-    if (req.method === 'OPTIONS') {
-      return res.sendStatus(200);
-    }
-    next();
-  });
-}
-
-// Health check endpoint
-app.get('/api/health', (req, res) => {
-  res.status(200).json({ status: 'healthy' });
-});
 
 // API Routes
 app.get('/api/database-connections', async (req, res) => {
@@ -80,40 +62,27 @@ app.get('/api/social-accounts', async (req, res) => {
   }
 });
 
-// Handle frontend routing
-if (process.env.NODE_ENV === 'production') {
+// In development mode, proxy to Vite dev server
+if (process.env.NODE_ENV !== 'production') {
+  const viteProxy = createProxyMiddleware({
+    target: 'http://localhost:5173',
+    changeOrigin: true,
+    ws: true
+  });
+
+  // Handle non-API routes
+  app.use((req, res, next) => {
+    if (req.url.startsWith('/api/')) {
+      return next();
+    }
+    viteProxy(req, res, next);
+  });
+} else {
+  // In production, serve static files
   app.use(express.static(path.join(__dirname, '../client/dist')));
   app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, '../client/dist/index.html'));
   });
-} else {
-  // In development mode, proxy requests to Vite dev server
-  app.use('/api', (req, res, next) => {
-    // Skip proxy for API routes
-    next();
-  });
-
-  app.use(
-    createProxyMiddleware({
-      target: 'http://localhost:5173',
-      changeOrigin: true,
-      ws: true,
-      logLevel: 'debug',
-      pathRewrite: {
-        '^': '' // remove base path
-      },
-      onProxyReq: (proxyReq, req) => {
-        console.log(`[Proxy] ${req.method} ${req.url} -> ${proxyReq.path}`);
-      },
-      onProxyRes: (proxyRes, req) => {
-        console.log(`[Proxy] ${req.method} ${req.url} -> ${proxyRes.statusCode}`);
-      },
-      onError: (err, req, res) => {
-        console.error('[Proxy] Error:', err);
-        res.status(500).send('Proxy error: Failed to connect to Vite dev server');
-      }
-    })
-  );
 }
 
 // ALWAYS serve the app on port 5000
