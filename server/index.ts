@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { testConnection } from "./db";
+import { setupAuth } from "./auth";
 
 const app = express();
 app.use(express.json({ limit: '50mb' }));
@@ -43,6 +44,9 @@ app.use((req, res, next) => {
     // اختبار الاتصال بقاعدة البيانات
     await testConnection();
 
+    // إعداد المصادقة
+    setupAuth(app);
+
     const server = await registerRoutes(app);
 
     // Error handling middleware
@@ -59,7 +63,7 @@ app.use((req, res, next) => {
       serveStatic(app);
     }
 
-    const PORT = process.env.PORT || 5000;
+    const PORT = Number(process.env.PORT) || 5000;
     server.listen(PORT, "0.0.0.0", () => {
       log(`تم تشغيل الخادم على المنفذ ${PORT}`);
       log(`الواجهة متاحة على https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`);

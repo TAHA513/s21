@@ -3,7 +3,6 @@ import { eq, and, sql } from 'drizzle-orm';
 import { db } from './db';
 import * as schema from '@shared/schema';
 import session from "express-session";
-import createMemoryStore from "memorystore";
 import connectPg from "connect-pg-simple";
 
 const PostgresSessionStore = connectPg(session);
