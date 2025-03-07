@@ -47,8 +47,39 @@ app.post("/api/database-connections", (req, res) => {
   res.json({ success: true, message: "تم إنشاء الاتصال بنجاح" });
 });
 
-// استماع على جميع الواجهات
-app.listen(port, "0.0.0.0", () => {
+// استماع على جميع الواجهات مع التعامل مع الأخطاء
+const server = app.listen(port, "0.0.0.0", () => {
   console.log(`تم تشغيل الخادم على المنفذ ${port}`);
-  console.log(`الواجهة متاحة على http://0.0.0.0:${port}`);
+  console.log(`الواجهة متاحة على https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`);
+});
+
+server.on('error', (error: any) => {
+  if (error.code === 'EADDRINUSE') {
+    console.error(`المنفذ ${port} مشغول بالفعل. جاري المحاولة على منفذ آخر...`);
+    // محاولة استخدام منفذ آخر
+    server.close();
+    app.listen(0, "0.0.0.0", () => {
+      console.log(`تم تشغيل الخادم على منفذ عشوائي`);
+      console.log(`الواجهة متاحة على https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`);
+    });
+  } else {
+    console.error('حدث خطأ أثناء تشغيل الخادم:', error);
+  }
+});
+
+// إضافة معالجة للإغلاق الآمن
+process.on('SIGTERM', () => {
+  console.log('تم استلام إشارة SIGTERM، جاري إغلاق الخادم...');
+  server.close(() => {
+    console.log('تم إغلاق الخادم');
+    process.exit(0);
+  });
+});
+
+process.on('SIGINT', () => {
+  console.log('تم استلام إشارة SIGINT، جاري إغلاق الخادم...');
+  server.close(() => {
+    console.log('تم إغلاق الخادم');
+    process.exit(0);
+  });
 });
