@@ -1,0 +1,180 @@
+تم إعداد نظام المصادقة
+تم تسجيل جميع المسارات
+❌ فشل الاتصال بقاعدة البيانات: AggregateError [ECONNREFUSED]: 
+    at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async testConnection (file:///opt/render/project/src/dist/index.js:34:20)
+    at async main (file:///opt/render/project/src/dist/index.js:687:23) {
+  code: 'ECONNREFUSED',
+  [errors]: [
+    Error: connect ECONNREFUSED ::1:5432
+        at createConnectionError (node:net:1656:14)
+        at afterConnectMultiple (node:net:1686:16) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '::1',
+      port: 5432
+    },
+    Error: connect ECONNREFUSED 127.0.0.1:5432
+        at createConnectionError (node:net:1656:14)
+        at afterConnectMultiple (node:net:1686:16) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 5432
+    }
+  ]
+}
+تم إعداد Vite للتطوير
+تم تشغيل الخادم على المنفذ 10000
+الواجهة متاحة على https://workspace.asaad11asaad98.repl.co
+1:52:59 AM [vite] Pre-transform error: Failed to load url /src/main.tsx?v=obdudJUPQ0TRGu6CfMPg3 (resolved id: /src/main.tsx?v=obdudJUPQ0TRGu6CfMPg3). Does the file exist?
+==> Running 'npm run start'
+> rest-express@1.0.0 start
+> NODE_ENV=production node dist/index.js
+⚠️ تحذير: لم يتم العثور على DATABASE_URL، يرجى التحقق من متغيرات البيئة.
+تم إعداد نظام المصادقة
+تم تسجيل جميع المسارات
+❌ فشل الاتصال بقاعدة البيانات: AggregateError [ECONNREFUSED]: 
+    at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async testConnection (file:///opt/render/project/src/dist/index.js:34:20)
+    at async main (file:///opt/render/project/src/dist/index.js:687:23) {
+  code: 'ECONNREFUSED',
+  [errors]: [
+    Error: connect ECONNREFUSED ::1:5432
+        at createConnectionError (node:net:1656:14)
+        at afterConnectMultiple (node:net:1686:16) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '::1',
+      port: 5432
+    },
+    Error: connect ECONNREFUSED 127.0.0.1:5432
+        at createConnectionError (node:net:1656:14)
+        at afterConnectMultiple (node:net:1686:16) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 5432
+    }
+  ]
+}
+تم إعداد Vite للتطوير
+تم تشغيل الخادم على المنفذ 10000
+الواجهة متاحة على https://workspace.asaad11asaad98.repl.co
+2:00:57 AM [vite] Pre-transform error: Failed to load url /src/main.tsx?v=47biDwyR2hKnheBFzatO5 (resolved id: /src/main.tsx?v=47biDwyR2hKnheBFzatO5). Does the file exist?
+==> Running 'npm run start'
+> rest-express@1.0.0 start
+> NODE_ENV=production node dist/index.js
+⚠️ تحذير: لم يتم العثور على DATABASE_URL، يرجى التحقق من متغيرات البيئة.
+تم إعداد نظام المصادقة
+تم تسجيل جميع المسارات
+❌ فشل الاتصال بقاعدة البيانات: AggregateError [ECONNREFUSED]: 
+    at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async testConnection (file:///opt/render/project/src/dist/index.js:34:20)
+    at async main (file:///opt/render/project/src/dist/index.js:687:23) {
+  code: 'ECONNREFUSED',
+  [errors]: [
+    Error: connect ECONNREFUSED ::1:5432
+        at createConnectionError (node:net:1656:14)
+        at afterConnectMultiple (node:net:1686:16) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '::1',
+      port: 5432
+    },
+    Error: connect ECONNREFUSED 127.0.0.1:5432
+        at createConnectionError (node:net:1656:14)
+        at afterConnectMultiple (node:net:1686:16) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 5432
+    }
+  ]
+}
+تم إعداد Vite للتطوير
+تم تشغيل الخادم على المنفذ 10000
+الواجهة متاحة على https://workspace.asaad11asaad98.repl.co
+2:08:39 AM [vite] Pre-transform error: Failed to load url /src/main.tsx?v=hkhmO7bC6NLMWTeS-t5su (resolved id: /src/main.tsx?v=hkhmO7bC6NLMWTeS-t5su). Does the file exist?
+==> Running 'npm run start'
+> rest-express@1.0.0 start
+> NODE_ENV=production node dist/index.js
+⚠️ تحذير: لم يتم العثور على DATABASE_URL، يرجى التحقق من متغيرات البيئة.
+تم إعداد نظام المصادقة
+تم تسجيل جميع المسارات
+❌ فشل الاتصال بقاعدة البيانات: AggregateError [ECONNREFUSED]: 
+    at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async testConnection (file:///opt/render/project/src/dist/index.js:34:20)
+    at async main (file:///opt/render/project/src/dist/index.js:687:23) {
+  code: 'ECONNREFUSED',
+  [errors]: [
+    Error: connect ECONNREFUSED ::1:5432
+        at createConnectionError (node:net:1656:14)
+        at afterConnectMultiple (node:net:1686:16) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '::1',
+      port: 5432
+    },
+    Error: connect ECONNREFUSED 127.0.0.1:5432
+        at createConnectionError (node:net:1656:14)
+        at afterConnectMultiple (node:net:1686:16) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 5432
+    }
+  ]
+}
+تم إعداد Vite للتطوير
+تم تشغيل الخادم على المنفذ 10000
+الواجهة متاحة على https://workspace.asaad11asaad98.repl.co
+2:18:39 AM [vite] Pre-transform error: Failed to load url /src/main.tsx?v=_ASbu0VwbtcKH9FnkJ9bn (resolved id: /src/main.tsx?v=_ASbu0VwbtcKH9FnkJ9bn). Does the file exist?
+==> Running 'npm run start'
+> rest-express@1.0.0 start
+> NODE_ENV=production node dist/index.js
+⚠️ تحذير: لم يتم العثور على DATABASE_URL، يرجى التحقق من متغيرات البيئة.
+تم إعداد نظام المصادقة
+تم تسجيل جميع المسارات
+❌ فشل الاتصال بقاعدة البيانات: AggregateError [ECONNREFUSED]: 
+    at /opt/render/project/src/node_modules/pg-pool/index.js:45:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async testConnection (file:///opt/render/project/src/dist/index.js:34:20)
+    at async main (file:///opt/render/project/src/dist/index.js:687:23) {
+  code: 'ECONNREFUSED',
+  [errors]: [
+    Error: connect ECONNREFUSED ::1:5432
+        at createConnectionError (node:net:1656:14)
+        at afterConnectMultiple (node:net:1686:16) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '::1',
+      port: 5432
+    },
+    Error: connect ECONNREFUSED 127.0.0.1:5432
+        at createConnectionError (node:net:1656:14)
+        at afterConnectMultiple (node:net:1686:16) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 5432
+    }
+  ]
+}
+تم إعداد Vite للتطوير
+تم تشغيل الخادم على المنفذ 10000
+الواجهة متاحة على https://workspace.asaad11asaad98.repl.co
