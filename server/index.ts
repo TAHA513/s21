@@ -51,10 +51,17 @@ async function main() {
     await setupVite(app, server);
     console.log("تم إعداد Vite للتطوير");
 
-    const port = 5000; // تغيير المنفذ إلى 5000
+    // استخدام المنفذ من متغيرات البيئة أو الافتراضي 5000
+    const port = process.env.PORT || 5000;
     server.listen(port, "0.0.0.0", () => {
       console.log(`تم تشغيل الخادم على المنفذ ${port}`);
-      console.log(`الواجهة متاحة على https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`);
+      
+      // عرض عنوان URL المختلف حسب بيئة التشغيل
+      if (process.env.REPL_SLUG && process.env.REPL_OWNER) {
+        console.log(`الواجهة متاحة على https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`);
+      } else {
+        console.log(`الواجهة متاحة على http://localhost:${port}`);
+      }
     });
   } catch (error) {
     console.error("خطأ كارثي عند بدء التطبيق:", error);
