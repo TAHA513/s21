@@ -1,10 +1,12 @@
 import express from "express";
+import http from "http";
 import { setupRoutes } from "./routes.js";
 import { setupAuth } from "./auth.js";
 import { setupVite } from "./vite.js";
 import { testConnection } from "./db.js";
 import type { Request, Response, NextFunction } from "express";
 import path from "path";
+import fs from "fs";
 
 async function main() {
   try {
@@ -24,7 +26,7 @@ async function main() {
       });
       next();
     });
-    
+
     // إضافة middleware لمنع التخزين المؤقت لطلبات API
     app.use('/api', (req, res, next) => {
       res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
@@ -57,26 +59,38 @@ async function main() {
       console.error("لم يتم الاتصال بقاعدة البيانات. التطبيق قد لا يعمل بشكل صحيح.");
     }
 
-    // إعداد Vite للتطوير فقط في بيئة التطوير
-    if (process.env.NODE_ENV !== 'production') {
+    // تحديد ما إذا كنا في وضع الإنتاج أم التطوير
+    const isProduction = process.env.NODE_ENV === 'production';
+    console.log(`وضع التشغيل: ${isProduction ? 'إنتاج' : 'تطوير'}`);
+
+    if (isProduction) {
+      // في وضع الإنتاج، استخدم الملفات المبنية مسبقًا
+      const distPath = path.resolve(process.cwd(), 'dist/public');
+
+      if (fs.existsSync(distPath)) {
+        console.log(`خدمة الملفات الثابتة من ${distPath}`);
+        app.use(express.static(distPath));
+
+        // التوجيه لـ index.html لدعم تطبيق الصفحة الواحدة (SPA)
+        app.get('*', (req, res, next) => {
+          // تخطي مسارات API
+          if (req.path.startsWith('/api')) {
+            return next();
+          }
+
+          // إرسال index.html لجميع الطلبات الأخرى
+          res.sendFile(path.join(distPath, 'index.html'));
+        });
+      } else {
+        console.error(`لم يتم العثور على مجلد البناء: ${distPath}. تأكد من بناء التطبيق أولاً.`);
+      }
+    } else {
+      // في وضع التطوير، استخدم Vite
       await setupVite(app, server);
       console.log("تم إعداد Vite للتطوير");
-    } else {
-      // في وضع الإنتاج، استخدم الملفات المجمعة
-      app.use(express.static(path.join(process.cwd(), 'dist/public')));
-      
-      // توجيه جميع طلبات التطبيق الأحادي الصفحة إلى index.html
-      app.get('*', (req, res, next) => {
-        // تخطي مسارات API
-        if (req.path.startsWith('/api')) {
-          return next();
-        }
-        res.sendFile(path.join(process.cwd(), 'dist/public/index.html'));
-      });
-      console.log("تم إعداد الواجهة للإنتاج");
     }
 
-    // استخدام المنفذ من متغيرات البيئة أو منفذ افتراضي
+    // استخدم المنفذ من متغيرات البيئة أو المنفذ الافتراضي
     const port = process.env.PORT || 5000;
     server.listen(port, "0.0.0.0", () => {
       console.log(`تم تشغيل الخادم على المنفذ ${port}`);
