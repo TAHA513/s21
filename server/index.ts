@@ -58,7 +58,7 @@ async function main() {
     // محاولة الاستماع على المنفذ المحدد، وإذا فشل، جرِّب منافذ بديلة
     const startServer = (currentPort: number, attempts = 0) => {
       const maxAttempts = 5; // عدد المحاولات القصوى
-      const alternativePorts = [3000, 8080, 8000, 4000]; // منافذ بديلة شائعة
+      const alternativePorts = [1000, 3000, 8080, 8000, 4000]; // منافذ بديلة شائعة
       
       server.listen(currentPort, "0.0.0.0")
         .on("listening", () => {
