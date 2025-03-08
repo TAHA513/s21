@@ -4,6 +4,7 @@ import { setupAuth } from "./auth.js";
 import { setupVite } from "./vite.js";
 import { testConnection } from "./db.js";
 import type { Request, Response, NextFunction } from "express";
+import path from "path";
 
 async function main() {
   try {
@@ -56,14 +57,32 @@ async function main() {
       console.error("لم يتم الاتصال بقاعدة البيانات. التطبيق قد لا يعمل بشكل صحيح.");
     }
 
-    // إعداد Vite للتطوير
-    await setupVite(app, server);
-    console.log("تم إعداد Vite للتطوير");
+    // إعداد Vite للتطوير فقط في بيئة التطوير
+    if (process.env.NODE_ENV !== 'production') {
+      await setupVite(app, server);
+      console.log("تم إعداد Vite للتطوير");
+    } else {
+      // في وضع الإنتاج، استخدم الملفات المجمعة
+      app.use(express.static(path.join(process.cwd(), 'dist/public')));
+      
+      // توجيه جميع طلبات التطبيق الأحادي الصفحة إلى index.html
+      app.get('*', (req, res, next) => {
+        // تخطي مسارات API
+        if (req.path.startsWith('/api')) {
+          return next();
+        }
+        res.sendFile(path.join(process.cwd(), 'dist/public/index.html'));
+      });
+      console.log("تم إعداد الواجهة للإنتاج");
+    }
 
-    const port = 5000; // تغيير المنفذ إلى 5000
+    // استخدام المنفذ من متغيرات البيئة أو منفذ افتراضي
+    const port = process.env.PORT || 5000;
     server.listen(port, "0.0.0.0", () => {
       console.log(`تم تشغيل الخادم على المنفذ ${port}`);
-      console.log(`الواجهة متاحة على https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`);
+      if (process.env.REPL_SLUG && process.env.REPL_OWNER) {
+        console.log(`الواجهة متاحة على https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`);
+      }
     });
   } catch (error) {
     console.error("خطأ كارثي عند بدء التطبيق:", error);
