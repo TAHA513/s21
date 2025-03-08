@@ -52,11 +52,6 @@ export async function setupRoutes(app: Express): Promise<Server> {
   app.get("/api/products", async (_req, res) => {
     try {
       console.log('جاري جلب المنتجات...');
-      // إضافة رؤوس لمنع التخزين المؤقت
-      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-      res.setHeader('Pragma', 'no-cache');
-      res.setHeader('Expires', '0');
-      
       const products = await storage.getProducts();
       console.log(`تم جلب ${products.length} منتج`);
       res.json(products);
@@ -112,11 +107,6 @@ export async function setupRoutes(app: Express): Promise<Server> {
   app.get("/api/customers", async (_req, res) => {
     try {
       console.log('جاري جلب العملاء...');
-      // إضافة رؤوس لمنع التخزين المؤقت
-      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-      res.setHeader('Pragma', 'no-cache');
-      res.setHeader('Expires', '0');
-      
       const customers = await storage.getCustomers();
       console.log(`تم جلب ${customers.length} عميل`);
       res.json(customers);
@@ -207,18 +197,60 @@ export async function setupRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // نقاط النهاية API للمنتجات والعملاء تم تعريفها بالفعل في الأعلى
+  // Products API - واجهة برمجة المنتجات
+  app.get("/api/products", async (_req, res) => {
+    try {
+      const products = await storage.getProducts();
+      res.json(products);
+    } catch (error) {
+      console.error('خطأ في استرجاع المنتجات:', error);
+      res.status(500).json({ error: 'حدث خطأ أثناء استرجاع المنتجات' });
+    }
+  });
+
+  app.get("/api/products/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const product = await storage.getProduct(id);
+      if (!product) {
+        return res.status(404).json({ error: 'المنتج غير موجود' });
+      }
+      res.json(product);
+    } catch (error) {
+      console.error('خطأ في استرجاع المنتج:', error);
+      res.status(500).json({ error: 'حدث خطأ أثناء استرجاع المنتج' });
+    }
+  });
+
+  // Customers API - واجهة برمجة العملاء
+  app.get("/api/customers", async (_req, res) => {
+    try {
+      const customers = await storage.getCustomers();
+      res.json(customers);
+    } catch (error) {
+      console.error('خطأ في استرجاع العملاء:', error);
+      res.status(500).json({ error: 'حدث خطأ أثناء استرجاع العملاء' });
+    }
+  });
+
+  app.get("/api/customers/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const customer = await storage.getCustomer(id);
+      if (!customer) {
+        return res.status(404).json({ error: 'العميل غير موجود' });
+      }
+      res.json(customer);
+    } catch (error) {
+      console.error('خطأ في استرجاع العميل:', error);
+      res.status(500).json({ error: 'حدث خطأ أثناء استرجاع العميل' });
+    }
+  });
 
   // Invoices API - واجهة برمجة الفواتير
   app.get("/api/invoices", async (_req, res) => {
     try {
-      // إضافة رؤوس لمنع التخزين المؤقت
-      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-      res.setHeader('Pragma', 'no-cache');
-      res.setHeader('Expires', '0');
-      
       const invoices = await storage.getInvoices();
-      console.log(`تم جلب ${invoices.length} فاتورة`);
       res.json(invoices);
     } catch (error) {
       console.error('خطأ في استرجاع الفواتير:', error);
@@ -316,81 +348,6 @@ export async function setupRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('خطأ في جلب قائمة الملفات:', error);
       res.status(500).json({ error: 'فشل جلب قائمة الملفات' });
-    }
-  });
-
-  // مسار API للموظفين
-  app.get("/api/staff", async (_req, res) => {
-    try {
-      console.log('جاري استرداد بيانات الموظفين...');
-      // إضافة رؤوس لمنع التخزين المؤقت
-      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-      res.setHeader('Pragma', 'no-cache');
-      res.setHeader('Expires', '0');
-      
-      // استعلام الموظفين من قاعدة البيانات أو استخدام مصفوفة فارغة إذا لم تكن الوظيفة متاحة
-      let staff = [];
-      try {
-        staff = await storage.getStaff();
-      } catch (e) {
-        console.log('وظيفة getStaff غير متاحة، استخدام مصفوفة فارغة');
-      }
-      
-      console.log(`تم استرداد ${staff.length} موظف`);
-      res.json(staff);
-    } catch (error) {
-      console.error('خطأ في استرداد الموظفين:', error);
-      res.status(500).json({ error: 'حدث خطأ أثناء استرداد الموظفين' });
-    }
-  });
-
-  // مسار API للمواعيد
-  app.get("/api/appointments", async (_req, res) => {
-    try {
-      console.log('جاري استرداد بيانات المواعيد...');
-      // إضافة رؤوس لمنع التخزين المؤقت
-      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-      res.setHeader('Pragma', 'no-cache');
-      res.setHeader('Expires', '0');
-      
-      // استعلام المواعيد من قاعدة البيانات أو استخدام مصفوفة فارغة إذا لم تكن الوظيفة متاحة
-      let appointments = [];
-      try {
-        appointments = await storage.getAppointments();
-      } catch (e) {
-        console.log('وظيفة getAppointments غير متاحة، استخدام مصفوفة فارغة');
-      }
-      
-      console.log(`تم استرداد ${appointments.length} موعد`);
-      res.json(appointments);
-    } catch (error) {
-      console.error('خطأ في استرداد المواعيد:', error);
-      res.status(500).json({ error: 'حدث خطأ أثناء استرداد المواعيد' });
-    }
-  });
-
-  // مسار API لحملات التسويق
-  app.get("/api/marketing-campaigns", async (_req, res) => {
-    try {
-      console.log('جاري استرداد بيانات حملات التسويق...');
-      // إضافة رؤوس لمنع التخزين المؤقت
-      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-      res.setHeader('Pragma', 'no-cache');
-      res.setHeader('Expires', '0');
-      
-      // استعلام حملات التسويق من قاعدة البيانات أو استخدام مصفوفة فارغة إذا لم تكن الوظيفة متاحة
-      let campaigns = [];
-      try {
-        campaigns = await storage.getMarketingCampaigns();
-      } catch (e) {
-        console.log('وظيفة getMarketingCampaigns غير متاحة، استخدام مصفوفة فارغة');
-      }
-      
-      console.log(`تم استرداد ${campaigns.length} حملة تسويقية`);
-      res.json(campaigns);
-    } catch (error) {
-      console.error('خطأ في استرداد حملات التسويق:', error);
-      res.status(500).json({ error: 'حدث خطأ أثناء استرداد حملات التسويق' });
     }
   });
 
