@@ -1,6 +1,6 @@
 import express, { type Express } from "express";
 import fs from "fs";
-import path, { dirname } from "path";
+import path, { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
 import { createServer as createViteServer, createLogger } from "vite";
 const __filename = fileURLToPath(import.meta.url);
@@ -22,52 +22,53 @@ export function log(message: string, source = "express") {
   console.log(`${formattedTime} [${source}] ${message}`);
 }
 
-export async function setupVite(app: Express, server: Server) {
-  const serverOptions = {
-    middlewareMode: true,
-    hmr: { server },
-    allowedHosts: true,
-  };
+export async function setupVite(app: Express, server: Server): Promise<void> {
+  // استخدام Vite فقط في بيئة التطوير
+  if (process.env.NODE_ENV === "production") {
+    const distPath = resolve(__dirname, "../dist/public");
 
-  const vite = await createViteServer({
-    ...viteConfig,
-    configFile: false,
-    customLogger: {
-      ...viteLogger,
-      error: (msg, options) => {
-        viteLogger.error(msg, options);
-        process.exit(1);
-      },
-    },
-    server: serverOptions,
-    appType: "custom",
-  });
-
-  app.use(vite.middlewares);
-  app.use("*", async (req, res, next) => {
-    const url = req.originalUrl;
-
-    try {
-      const clientTemplate = path.resolve(
-        __dirname,
-        "..",
-        "client",
-        "index.html",
-      );
-
-      // always reload the index.html file from disk incase it changes
-      let template = await fs.promises.readFile(clientTemplate, "utf-8");
-      template = template.replace(
-        `src="/src/main.tsx"`,
-        `src="/src/main.tsx?v=${nanoid()}"`,
-      );
-      const page = await vite.transformIndexHtml(url, template);
-      res.status(200).set({ "Content-Type": "text/html" }).end(page);
-    } catch (e) {
-      vite.ssrFixStacktrace(e as Error);
-      next(e);
+    // التحقق من وجود مجلد التوزيع قبل استخدامه
+    if (!fs.existsSync(distPath)) {
+      console.error(`تحذير: مجلد التوزيع غير موجود: ${distPath}`);
+      console.error(`تأكد من تنفيذ أمر البناء 'npm run build' قبل تشغيل الخادم في وضع الإنتاج`);
     }
-  });
+
+    // تقديم الملفات الثابتة المجمّعة في بيئة الإنتاج
+    const express = (await import("express")).default;
+    app.use("/", express.static(distPath));
+
+    // معالجة جميع المسارات الأخرى وإعادتها إلى index.html للتطبيقات ذات الصفحة الواحدة (SPA)
+    app.get("*", (_req, res) => {
+      const indexPath = resolve(distPath, "index.html");
+      if (fs.existsSync(indexPath)) {
+        res.sendFile(indexPath);
+      } else {
+        res.status(404).send("404 - الصفحة غير موجودة");
+      }
+    });
+
+    return;
+  }
+
+  // إعداد Vite في بيئة التطوير
+  try {
+    const { createServer: createViteServer } = await import("vite");
+    const vite = await createViteServer({
+      server: {
+        middlewareMode: true,
+        hmr: {
+          server: server,
+        },
+      },
+      root: resolve(__dirname, "../client"),
+      appType: "spa",
+    });
+
+    // استخدام الخوادم الوسيطة لـ Vite
+    app.use(vite.middlewares);
+  } catch (e) {
+    console.error("خطأ في إعداد Vite:", e);
+  }
 }
 
 export function serveStatic(app: Express) {

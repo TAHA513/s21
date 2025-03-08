@@ -55,35 +55,68 @@ async function main() {
     // بعض المنصات تستخدم أسماء مختلفة لمتغير المنفذ أو قيمًا افتراضية مختلفة
     const port = process.env.PORT || process.env.SERVER_PORT || process.env.HTTP_PORT || process.env.APP_PORT || 5000;
     
-    // محاولة الاستماع على المنفذ المحدد، وإذا فشل، جرِّب منافذ بديلة
-    const startServer = (currentPort: number, attempts = 0) => {
-      const maxAttempts = 5; // عدد المحاولات القصوى
-      const alternativePorts = [1000, 3000, 8080, 8000, 4000]; // منافذ بديلة شائعة
+    // إعداد الاستماع على المنفذ بشكل مناسب للاستضافة السحابية
+    const startServer = (currentPort: number) => {
+      // في بيئة الإنتاج، نستخدم المنفذ المحدد فقط بدون محاولات بديلة
+      // لأن خدمات الاستضافة السحابية عادة ما تحدد منفذًا معينًا يجب استخدامه
+      const isProduction = process.env.NODE_ENV === 'production';
       
       server.listen(currentPort, "0.0.0.0")
         .on("listening", () => {
           console.log(`تم تشغيل الخادم على المنفذ ${currentPort}`);
           
-          // عرض عنوان URL المختلف حسب بيئة التشغيل
+          // عرض عنوان URL المناسب للبيئة
           if (process.env.REPL_SLUG && process.env.REPL_OWNER) {
+            // بيئة Replit
             console.log(`الواجهة متاحة على https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`);
+          } else if (isProduction) {
+            // بيئة الإنتاج في الاستضافة السحابية
+            console.log(`التطبيق متاح على عنوان الاستضافة السحابية`);
           } else {
-            console.log(`الواجهة متاحة على http://localhost:${currentPort}`);
+            // بيئة التطوير المحلية
+            console.log(`الواجهة متاحة على http://0.0.0.0:${currentPort}`);
           }
         })
         .on("error", (err: any) => {
-          if (err.code === "EADDRINUSE" && attempts < maxAttempts) {
-            console.log(`المنفذ ${currentPort} قيد الاستخدام بالفعل، جارٍ المحاولة بمنفذ آخر...`);
-            // اختيار منفذ بديل من القائمة أو إضافة 1 للمنفذ الحالي
-            const nextPort = attempts < alternativePorts.length 
-              ? alternativePorts[attempts] 
-              : currentPort + 1;
-            
-            // محاولة أخرى بالمنفذ الجديد
-            startServer(nextPort, attempts + 1);
-          } else {
+          if (isProduction) {
+            // في حالة الإنتاج، أي خطأ يعتبر حرج
             console.error(`خطأ في بدء الخادم:`, err);
             process.exit(1);
+          } else {
+            // في بيئة التطوير، يمكننا محاولة منافذ أخرى
+            const alternativePorts = [1000, 3000, 8080, 8000, 4000];
+            const maxAttempts = alternativePorts.length;
+            
+            const tryAlternativePort = (attempts = 0) => {
+              if (attempts >= maxAttempts) {
+                console.error(`خطأ في بدء الخادم بعد محاولات متعددة:`, err);
+                process.exit(1);
+                return;
+              }
+              
+              const nextPort = alternativePorts[attempts];
+              console.log(`المنفذ ${currentPort} قيد الاستخدام بالفعل، جارٍ المحاولة بالمنفذ ${nextPort}...`);
+              
+              server.listen(nextPort, "0.0.0.0")
+                .on("listening", () => {
+                  console.log(`تم تشغيل الخادم على المنفذ ${nextPort}`);
+                  if (process.env.REPL_SLUG && process.env.REPL_OWNER) {
+                    console.log(`الواجهة متاحة على https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`);
+                  } else {
+                    console.log(`الواجهة متاحة على http://0.0.0.0:${nextPort}`);
+                  }
+                })
+                .on("error", () => {
+                  tryAlternativePort(attempts + 1);
+                });
+            };
+            
+            if (err.code === "EADDRINUSE") {
+              tryAlternativePort();
+            } else {
+              console.error(`خطأ في بدء الخادم:`, err);
+              process.exit(1);
+            }
           }
         });
     };
