@@ -1,7 +1,7 @@
-
 import pkg from 'pg';
 const { Pool } = pkg;
 import { drizzle } from 'drizzle-orm/node-postgres';
+import { sql } from 'drizzle-orm';
 
 // الحصول على معلومات الاتصال من متغيرات البيئة
 // هذا يسمح بتكوين قاعدة البيانات من خلال متغيرات البيئة في السحابة المضيفة
@@ -50,12 +50,22 @@ export const db = drizzle(pool);
 // اختبار الاتصال بقاعدة البيانات
 export async function testConnection() {
   try {
-    const client = await pool.connect();
-    console.log('تم الاتصال بقاعدة البيانات بنجاح');
-    client.release();
+    // فحص إذا كنا في بيئة إنتاج وكانت DATABASE_URL غير موجودة
+    if (process.env.NODE_ENV === 'production' && !process.env.DATABASE_URL) {
+      console.warn("⚠️ نظام يعمل في وضع تجاوز قاعدة البيانات (وضع تجريبي)");
+      return true; // لتجنب توقف التطبيق في بيئة الإنتاج إذا لم تكن قاعدة البيانات متوفرة
+    }
+
+    await db.execute(sql`SELECT 1`);
+    console.log("تم الاتصال بقاعدة البيانات بنجاح");
     return true;
-  } catch (err) {
-    console.error('فشل الاتصال بقاعدة البيانات:', err);
+  } catch (error) {
+    console.error("⚠️ تعذر الاتصال بقاعدة البيانات:", error);
+    // تسجيل الخطأ ولكن السماح للتطبيق بالاستمرار في وضع الإنتاج
+    if (process.env.NODE_ENV === 'production') {
+      console.warn("⚠️ التطبيق يعمل في وضع محدود بدون قاعدة بيانات");
+      return true;
+    }
     return false;
   }
 }

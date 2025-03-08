@@ -44,7 +44,11 @@ async function main() {
     // اختبار الاتصال بقاعدة البيانات
     const connected = await testConnection();
     if (!connected) {
-      console.error("لم يتم الاتصال بقاعدة البيانات. التطبيق قد لا يعمل بشكل صحيح.");
+      if (process.env.NODE_ENV !== 'production') {
+        console.error("لم يتم الاتصال بقاعدة البيانات. التطبيق قد لا يعمل بشكل صحيح.");
+      } else {
+        console.warn("تشغيل التطبيق بوضع مؤقت بدون قاعدة بيانات. بعض الميزات قد لا تعمل.");
+      }
     }
 
     // إعداد Vite للتطوير
