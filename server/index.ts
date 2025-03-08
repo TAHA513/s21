@@ -51,7 +51,7 @@ async function main() {
     await setupVite(app, server);
     console.log("تم إعداد Vite للتطوير");
 
-    const port = process.env.PORT || 10000; // استخدام متغير البيئة PORT أو 10000 كمنفذ بديل
+    const port = 5000; // تغيير المنفذ إلى 5000
     server.listen(port, "0.0.0.0", () => {
       console.log(`تم تشغيل الخادم على المنفذ ${port}`);
       console.log(`الواجهة متاحة على https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`);
