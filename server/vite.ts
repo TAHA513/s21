@@ -31,22 +31,30 @@ export async function setupVite(app: Express, server: Server): Promise<void> {
     if (!fs.existsSync(distPath)) {
       console.error(`تحذير: مجلد التوزيع غير موجود: ${distPath}`);
       console.error(`تأكد من تنفيذ أمر البناء 'npm run build' قبل تشغيل الخادم في وضع الإنتاج`);
+    } else {
+      console.log(`تم العثور على مجلد التوزيع: ${distPath}`);
     }
 
     // تقديم الملفات الثابتة المجمّعة في بيئة الإنتاج
-    const express = (await import("express")).default;
-    app.use("/", express.static(distPath));
-
-    // معالجة جميع المسارات الأخرى وإعادتها إلى index.html للتطبيقات ذات الصفحة الواحدة (SPA)
-    app.get("*", (_req, res) => {
+    app.use(express.static(distPath, { maxAge: '1d' }));
+    
+    // معالجة جميع المسارات التي لا تبدأ بـ /api/ وإعادتها إلى index.html للتطبيقات ذات الصفحة الواحدة (SPA)
+    app.get("*", (req, res, next) => {
+      if (req.path.startsWith('/api/')) {
+        return next();
+      }
+      
       const indexPath = resolve(distPath, "index.html");
       if (fs.existsSync(indexPath)) {
+        console.log(`توجيه الطلب ${req.path} إلى index.html`);
         res.sendFile(indexPath);
       } else {
+        console.error(`ملف index.html غير موجود في ${distPath}`);
         res.status(404).send("404 - الصفحة غير موجودة");
       }
     });
 
+    console.log("تم تكوين الخادم لبيئة الإنتاج بنجاح");
     return;
   }
 

@@ -53,13 +53,16 @@ async function main() {
 
     // استخدام المنفذ من متغيرات البيئة مع دعم منصات مختلفة
     // بعض المنصات تستخدم أسماء مختلفة لمتغير المنفذ أو قيمًا افتراضية مختلفة
-    const port = process.env.PORT || process.env.SERVER_PORT || process.env.HTTP_PORT || process.env.APP_PORT || 5000;
+    // في بيئة الإنتاج استخدم المنفذ 8080 إذا لم يتم تحديد منفذ آخر (تستخدمه العديد من المنصات السحابية)
+    const isProduction = process.env.NODE_ENV === 'production';
+    const port = process.env.PORT || process.env.SERVER_PORT || process.env.HTTP_PORT || process.env.APP_PORT || (isProduction ? 8080 : 5000);
+    
+    console.log(`استخدام المنفذ: ${port} في البيئة: ${isProduction ? 'الإنتاج' : 'التطوير'}`);
     
     // إعداد الاستماع على المنفذ بشكل مناسب للاستضافة السحابية
     const startServer = (currentPort: number) => {
       // في بيئة الإنتاج، نستخدم المنفذ المحدد فقط بدون محاولات بديلة
       // لأن خدمات الاستضافة السحابية عادة ما تحدد منفذًا معينًا يجب استخدامه
-      const isProduction = process.env.NODE_ENV === 'production';
       
       server.listen(currentPort, "0.0.0.0")
         .on("listening", () => {
