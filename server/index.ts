@@ -51,18 +51,45 @@ async function main() {
     await setupVite(app, server);
     console.log("تم إعداد Vite للتطوير");
 
-    // استخدام المنفذ من متغيرات البيئة أو الافتراضي 5000
-    const port = process.env.PORT || 5000;
-    server.listen(port, "0.0.0.0", () => {
-      console.log(`تم تشغيل الخادم على المنفذ ${port}`);
+    // استخدام المنفذ من متغيرات البيئة مع دعم منصات مختلفة
+    // بعض المنصات تستخدم أسماء مختلفة لمتغير المنفذ أو قيمًا افتراضية مختلفة
+    const port = process.env.PORT || process.env.SERVER_PORT || process.env.HTTP_PORT || process.env.APP_PORT || 5000;
+    
+    // محاولة الاستماع على المنفذ المحدد، وإذا فشل، جرِّب منافذ بديلة
+    const startServer = (currentPort: number, attempts = 0) => {
+      const maxAttempts = 5; // عدد المحاولات القصوى
+      const alternativePorts = [3000, 8080, 8000, 4000]; // منافذ بديلة شائعة
       
-      // عرض عنوان URL المختلف حسب بيئة التشغيل
-      if (process.env.REPL_SLUG && process.env.REPL_OWNER) {
-        console.log(`الواجهة متاحة على https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`);
-      } else {
-        console.log(`الواجهة متاحة على http://localhost:${port}`);
-      }
-    });
+      server.listen(currentPort, "0.0.0.0")
+        .on("listening", () => {
+          console.log(`تم تشغيل الخادم على المنفذ ${currentPort}`);
+          
+          // عرض عنوان URL المختلف حسب بيئة التشغيل
+          if (process.env.REPL_SLUG && process.env.REPL_OWNER) {
+            console.log(`الواجهة متاحة على https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`);
+          } else {
+            console.log(`الواجهة متاحة على http://localhost:${currentPort}`);
+          }
+        })
+        .on("error", (err: any) => {
+          if (err.code === "EADDRINUSE" && attempts < maxAttempts) {
+            console.log(`المنفذ ${currentPort} قيد الاستخدام بالفعل، جارٍ المحاولة بمنفذ آخر...`);
+            // اختيار منفذ بديل من القائمة أو إضافة 1 للمنفذ الحالي
+            const nextPort = attempts < alternativePorts.length 
+              ? alternativePorts[attempts] 
+              : currentPort + 1;
+            
+            // محاولة أخرى بالمنفذ الجديد
+            startServer(nextPort, attempts + 1);
+          } else {
+            console.error(`خطأ في بدء الخادم:`, err);
+            process.exit(1);
+          }
+        });
+    };
+
+    // بدء الخادم بالمنفذ الأساسي
+    startServer(Number(port));
   } catch (error) {
     console.error("خطأ كارثي عند بدء التطبيق:", error);
     process.exit(1);
